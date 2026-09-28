@@ -9,13 +9,6 @@
         func fetch(_ database: GRDB.Database) throws -> Value
     }
 
-    struct StatementValues<QueryValue: QueryRepresentable>: FetchKeyRequest {
-        let query: ISO_9075.Fragment
-
-        func fetch(_ database: GRDB.Database) throws -> [QueryValue.QueryOutput] {
-            try Array(QueryValueCursor<QueryValue>(db: database, query: query, cached: true))
-        }
-    }
 
     struct StatementValue<QueryValue: QueryRepresentable>: FetchKeyRequest {
         let query: ISO_9075.Fragment

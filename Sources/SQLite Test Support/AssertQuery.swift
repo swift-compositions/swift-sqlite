@@ -112,11 +112,13 @@ private func assertStatement<each V: QueryRepresentable, S: SQL.Statement<(repea
       column: column
     )
   }
-  assertInlineSnapshot(
-    of: switch Result(catching: { try execute(statement) }) {
+  let rendered =
+    switch Result(catching: { try execute(statement) }) {
     case .success(let rows): rows.isEmpty ? "(No results)" : table(rows)
     case .failure(let error): String(describing: error)
-    },
+    }
+  assertInlineSnapshot(
+    of: rendered,
     as: .lines,
     message: "Results did not match",
     syntaxDescriptor: InlineSnapshotSyntaxDescriptor(

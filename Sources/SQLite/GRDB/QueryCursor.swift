@@ -1,290 +1,154 @@
 #if GRDB
-import Foundation
-public import GRDB
-import GRDBSQLite
-public import StructuredQueriesCore
+    public import GRDB
+    internal import GRDBSQLite
+    public import SQL
 
-/// A cursor of a structured query.
-///
-/// Iterates over and decodes all of the rows of a structured query.
-public class QueryCursor<Element>: DatabaseCursor {
-  public var _isDone = false
-  public let _statement: GRDB.Statement
+    public class QueryCursor<Element>: DatabaseCursor {
+        public var _isDone = false
+        public let _statement: GRDB.Statement
+        @usableFromInline
+        var decoder: SQLiteQueryDecoder
 
-  @usableFromInline
-  var decoder: SQLiteQueryDecoder
+        @usableFromInline
+        init(db: GRDB.Database, query: ISO_9075.Fragment, cached: Bool) throws {
+            (_statement, decoder) = try db.prepare(SQLite().render(query), cached: cached)
+        }
 
-  @usableFromInline
-  init(db: Database, prepared: PreparedQuery, cached: Bool) throws {
-    (_statement, decoder) = try db.prepare(prepared, cached: cached)
-  }
+        deinit {
+            unsafe sqlite3_reset(_statement.sqliteStatement)
+            unsafe sqlite3_clear_bindings(_statement.sqliteStatement)
+        }
 
-  @usableFromInline
-  convenience init(db: Database, query: QueryFragment, cached: Bool) throws {
-    try self.init(db: db, prepared: PreparedQuery(query), cached: cached)
-  }
+        public func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
+            fatalError("Abstract method should be overridden in subclass")
+        }
 
-  deinit {
-    sqlite3_reset(_statement.sqliteStatement)
-    sqlite3_clear_bindings(_statement.sqliteStatement)
-  }
-
-  public func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
-    fatalError("Abstract method should be overridden in subclass")
-  }
-
-  @usableFromInline
-  struct DecodingError: Error, CustomStringConvertible {
-    let columnIndex: Int
-    let columnName: String
-    let reason: String
-    let sql: String
-
-    @usableFromInline
-    init(columnIndex: Int, columnName: String, reason: String, sql: String) {
-      self.columnIndex = columnIndex
-      self.columnName = columnName
-      self.reason = reason
-      self.sql = sql
+        @usableFromInline
+        func decoding<Value>(_ body: (inout SQLiteQueryDecoder) throws(QueryDecodingError) -> Value) throws -> Value {
+            do {
+                let value = try body(&decoder)
+                decoder.next()
+                return value
+            } catch {
+                let index = Int(decoder.currentIndex) - 1
+                throw ISO_9075.Error.decoding(
+                    "column \(index) (\(_statement.columnNames[index])): \(error) in \(_statement.sql)"
+                )
+            }
+        }
     }
 
     @usableFromInline
-    var description: String {
-      """
-      Expected column \(columnIndex) (\(columnName.debugDescription)) \(reason): ...
+    final class QueryValueCursor<QueryValue: QueryRepresentable>: QueryCursor<QueryValue.QueryOutput> {
+        @usableFromInline
+        override init(db: GRDB.Database, query: ISO_9075.Fragment, cached: Bool) throws {
+            try super.init(db: db, query: query, cached: cached)
+        }
 
-      \(sql)
-      """
+        @inlinable
+        override func _element(sqliteStatement _: SQLiteStatement) throws -> QueryValue.QueryOutput {
+            try decoding { decoder throws(QueryDecodingError) in try QueryValue(decoder: &decoder).queryOutput }
+        }
     }
-  }
 
-  @usableFromInline
-  func missingRequiredColumnError() -> DecodingError {
-    let columnIndex = Int(decoder.currentIndex) - 1
-    return DecodingError(
-      columnIndex: columnIndex,
-      columnName: _statement.columnNames[columnIndex],
-      reason: "to not be NULL",
-      sql: _statement.sql
-    )
-  }
+    @usableFromInline
+    final class QuerySectionedCursor<
+        Element: QueryRepresentable,
+        SectionName: QueryRepresentable
+    >: QueryCursor<(Element.QueryOutput, SectionName.QueryOutput)> {
+        @usableFromInline
+        override init(db: GRDB.Database, query: ISO_9075.Fragment, cached: Bool) throws {
+            try super.init(db: db, query: query, cached: cached)
+        }
 
-  @usableFromInline
-  func typeMismatchError(_ columnType: Any.Type) -> DecodingError {
-    let columnIndex = Int(decoder.currentIndex)
-    let storageClass = storageClassName(
-      sqlite3_column_type(_statement.sqliteStatement, Int32(columnIndex))
-    )
-    return DecodingError(
-      columnIndex: columnIndex,
-      columnName: _statement.columnNames[columnIndex],
-      reason: "to decode \(columnType), but found \(storageClass)",
-      sql: _statement.sql
-    )
-  }
-}
-
-@usableFromInline
-final class QueryValueCursor<QueryValue: QueryRepresentable>: QueryCursor<QueryValue.QueryOutput> {
-  public typealias Element = QueryValue.QueryOutput
-
-  // NB: Required to workaround a "Legacy previews execution" bug
-  //     https://github.com/pointfreeco/sqlite-data/pull/60
-  @usableFromInline
-  override init(db: Database, prepared: PreparedQuery, cached: Bool) throws {
-    try super.init(db: db, prepared: prepared, cached: cached)
-  }
-
-  @inlinable
-  public override func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
-    do {
-      let element = try QueryValue(decoder: &decoder).queryOutput
-      decoder.next()
-      return element
-    } catch QueryDecodingError.missingRequiredColumn {
-      throw missingRequiredColumnError()
-    } catch QueryDecodingError.typeMismatch(let columnType) {
-      throw typeMismatchError(columnType)
+        @inlinable
+        override func _element(
+            sqliteStatement _: SQLiteStatement
+        ) throws -> (Element.QueryOutput, SectionName.QueryOutput) {
+            try decoding { decoder throws(QueryDecodingError) in
+                (try Element(decoder: &decoder).queryOutput, try SectionName(decoder: &decoder).queryOutput)
+            }
+        }
     }
-  }
-}
 
-@usableFromInline
-final class QuerySectionedCursor<
-  Element: QueryRepresentable,
-  SectionName: QueryRepresentable
->: QueryCursor<(Element.QueryOutput, SectionName.QueryOutput)> {
-  // NB: Required to workaround a "Legacy previews execution" bug
-  //     https://github.com/pointfreeco/sqlite-data/pull/60
-  @usableFromInline
-  override init(db: Database, prepared: PreparedQuery, cached: Bool) throws {
-    try super.init(db: db, prepared: prepared, cached: cached)
-  }
+    @usableFromInline
+    final class QueryPackCursor<
+        each QueryValue: QueryRepresentable
+    >: QueryCursor<(repeat (each QueryValue).QueryOutput)> {
+        @usableFromInline
+        override init(db: GRDB.Database, query: ISO_9075.Fragment, cached: Bool) throws {
+            try super.init(db: db, query: query, cached: cached)
+        }
 
-  @inlinable
-  public override func _element(
-    sqliteStatement _: SQLiteStatement
-  ) throws -> (Element.QueryOutput, SectionName.QueryOutput) {
-    do {
-      let element = try Element(decoder: &decoder).queryOutput
-      let sectionName = try SectionName(decoder: &decoder).queryOutput
-      decoder.next()
-      return (element, sectionName)
-    } catch QueryDecodingError.missingRequiredColumn {
-      throw missingRequiredColumnError()
+        @inlinable
+        override func _element(sqliteStatement _: SQLiteStatement) throws -> (repeat (each QueryValue).QueryOutput) {
+            try decoding { decoder throws(QueryDecodingError) in
+                try decoder.decodeColumns((repeat each QueryValue).self)
+            }
+        }
     }
-  }
-}
 
-@usableFromInline
-final class QueryPackCursor<
-  each QueryValue: QueryRepresentable
->: QueryCursor<(repeat (each QueryValue).QueryOutput)> {
-  public typealias Element = (repeat (each QueryValue).QueryOutput)
+    @usableFromInline
+    final class QueryVoidCursor: QueryCursor<Void> {
+        @usableFromInline
+        override init(db: GRDB.Database, query: ISO_9075.Fragment, cached: Bool) throws {
+            try super.init(db: db, query: query, cached: cached)
+        }
 
-  // NB: Required to workaround a "Legacy previews execution" bug
-  //     https://github.com/pointfreeco/sqlite-data/pull/60
-  @usableFromInline
-  override init(db: Database, prepared: PreparedQuery, cached: Bool) throws {
-    try super.init(db: db, prepared: prepared, cached: cached)
-  }
-
-  @inlinable
-  public override func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
-    do {
-      let element = try decoder.decodeColumns((repeat each QueryValue).self)
-      decoder.next()
-      return element
-    } catch QueryDecodingError.missingRequiredColumn {
-      throw missingRequiredColumnError()
-    } catch QueryDecodingError.typeMismatch(let columnType) {
-      throw typeMismatchError(columnType)
+        @inlinable
+        override func _element(sqliteStatement _: SQLiteStatement) throws {
+            try decoding { decoder throws(QueryDecodingError) in try decoder.decodeColumns(Void.self) }
+        }
     }
-  }
-}
 
-@usableFromInline
-final class QueryVoidCursor: QueryCursor<Void> {
-  typealias Element = ()
-
-  // NB: Required to workaround a "Legacy previews execution" bug
-  //     https://github.com/pointfreeco/sqlite-data/pull/60
-  @usableFromInline
-  override init(db: Database, prepared: PreparedQuery, cached: Bool) throws {
-    try super.init(db: db, prepared: prepared, cached: cached)
-  }
-
-  @inlinable
-  override func _element(sqliteStatement _: SQLiteStatement) throws {
-    try decoder.decodeColumns(Void.self)
-    decoder.next()
-  }
-}
-
-@usableFromInline
-struct PreparedQuery: Hashable, Sendable {
-  @usableFromInline
-  let sql: String
-
-  @usableFromInline
-  let bindings: [QueryBinding]
-
-  @usableFromInline
-  init(_ query: QueryFragment) {
-    var (sql, bindings) = query.prepare { _ in "?" }
-    if sql.isEmpty {
-      sql = "SELECT 1 WHERE 0 -- Empty query generated by StructuredQueries"
+    extension GRDB.Database {
+        @usableFromInline
+        func prepare(
+            _ rendering: ISO_9075.Rendering,
+            cached: Bool
+        ) throws -> (GRDB.Statement, SQLiteQueryDecoder) {
+            let sql = rendering.sql.isEmpty ? "SELECT 1 WHERE 0" : rendering.sql
+            let statement = cached ? try cachedStatement(sql: sql) : try makeStatement(sql: sql)
+            if cached { unsafe sqlite3_reset(statement.sqliteStatement) }
+            for (index, value) in zip(Int32(1)..., rendering.values) {
+                try value.bind(to: statement.sqliteStatement, at: index)
+            }
+            return (statement, SQLiteQueryDecoder(statement: statement.sqliteStatement))
+        }
     }
-    self.sql = sql
-    self.bindings = bindings
-  }
-}
 
-extension Database {
-  @usableFromInline
-  func prepare(
-    _ prepared: PreparedQuery, cached: Bool
-  ) throws -> (GRDB.Statement, SQLiteQueryDecoder) {
-    let statement: GRDB.Statement
-    if cached {
-      statement = try cachedStatement(sql: prepared.sql)
-      sqlite3_reset(statement.sqliteStatement)
-    } else {
-      statement = try makeStatement(sql: prepared.sql)
+    extension ISO_9075.Value {
+        func bind(to statement: SQLiteStatement, at index: Int32) throws {
+            let result: Int32 =
+                switch self {
+                case .null: unsafe sqlite3_bind_null(statement, index)
+                case .bool(let bool): unsafe sqlite3_bind_int64(statement, index, bool ? 1 : 0)
+                case .int(let int): unsafe sqlite3_bind_int64(statement, index, int)
+                case .double(let double): unsafe sqlite3_bind_double(statement, index, double)
+                case .text(let text), .decimal(let text): text.bind(to: statement, at: index)
+                case .timestamp(let instant): try ISO_9075.Literal.timestamp(instant).bind(to: statement, at: index)
+                case .uuid(let uuid): String(uuid).lowercased().bind(to: statement, at: index)
+                case .json(let bytes): String(decoding: bytes.map(\.underlying), as: UTF8.self).bind(to: statement, at: index)
+                case .blob(let blob) where blob.isEmpty: unsafe sqlite3_bind_zeroblob(statement, index, 0)
+                case .blob(let blob):
+                    unsafe blob.map(\.underlying).withUnsafeBytes {
+                        unsafe sqlite3_bind_blob(statement, index, $0.baseAddress, Int32($0.count), SQLITE_TRANSIENT)
+                    }
+                case .array: throw ISO_9075.Error.binding(ISO_9075.Value.Failure("SQLite has no array values"))
+                case .invalid(let failure): throw ISO_9075.Error.binding(failure)
+                }
+            guard result == SQLITE_OK else { throw DatabaseError(resultCode: ResultCode(rawValue: result)) }
+        }
     }
-    for (index, binding) in zip(Int32(1)..., prepared.bindings) {
-      try binding.bind(to: statement.sqliteStatement, at: index)
+
+    extension String {
+        fileprivate func bind(to statement: SQLiteStatement, at index: Int32) -> Int32 {
+            var text = self
+            return text.withUTF8 { utf8 in
+                unsafe utf8.withMemoryRebound(to: CChar.self) {
+                    unsafe sqlite3_bind_text(statement, index, $0.baseAddress, Int32($0.count), SQLITE_TRANSIENT)
+                }
+            }
+        }
     }
-    return (
-      statement,
-      SQLiteQueryDecoder(statement: statement.sqliteStatement)
-    )
-  }
-}
-
-extension QueryBinding {
-  @usableFromInline
-  func bind(to statement: SQLiteStatement, at index: Int32) throws {
-    let result: Int32
-    switch self {
-    case .blob(let blob):
-      result =
-        blob.isEmpty
-        ? sqlite3_bind_zeroblob(statement, index, 0)
-        : sqlite3_bind_blob(statement, index, blob, Int32(blob.count), SQLITE_TRANSIENT)
-    case .bool(let bool):
-      result = sqlite3_bind_int64(statement, index, bool ? 1 : 0)
-    case .date(let date):
-      result = date.iso8601String.withUTF8Text {
-        sqlite3_bind_text(statement, index, $0, $1, SQLITE_TRANSIENT)
-      }
-    case .double(let double):
-      result = sqlite3_bind_double(statement, index, double)
-    case .int(let int):
-      result = sqlite3_bind_int64(statement, index, int)
-    case .null:
-      result = sqlite3_bind_null(statement, index)
-    case .text(let text):
-      result = text.withUTF8Text {
-        sqlite3_bind_text(statement, index, $0, $1, SQLITE_TRANSIENT)
-      }
-    case .uint(let uint) where uint <= UInt64(Int64.max):
-      result = sqlite3_bind_int64(statement, index, Int64(uint))
-    case .uint(let uint):
-      throw Int64OverflowError(unsignedInteger: uint)
-    case .uuid(let uuid):
-      result = uuid.withLowercasedUTF8Text {
-        sqlite3_bind_text(statement, index, $0, $1, SQLITE_TRANSIENT)
-      }
-    case .invalid(let error):
-      throw error
-    }
-    guard result == SQLITE_OK
-    else { throw DatabaseError(resultCode: ResultCode(rawValue: result)) }
-  }
-}
-
-extension String {
-  func withUTF8Text<R>(_ body: (UnsafePointer<CChar>, Int32) -> R) -> R {
-    var text = self
-    return text.withUTF8 { utf8 in
-      guard let base = utf8.baseAddress
-      else { return withUnsafePointer(to: 0 as CChar) { body($0, 0) } }
-      return base.withMemoryRebound(to: CChar.self, capacity: utf8.count) {
-        body($0, Int32(utf8.count))
-      }
-    }
-  }
-}
-
-
-@usableFromInline
-struct Int64OverflowError: Error {
-  let unsignedInteger: UInt64
-  @usableFromInline
-  init(unsignedInteger: UInt64) {
-    self.unsignedInteger = unsignedInteger
-  }
-}
-
 #endif

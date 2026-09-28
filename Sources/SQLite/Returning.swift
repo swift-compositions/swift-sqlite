@@ -9,10 +9,9 @@ extension Delete {
     for resultColumn in repeat each selection(From.columns) {
       returning.append(resultColumn.returningFragment)
     }
-    return _returning(returning)
+    return self.returning(fragments: returning)
   }
 
-  // NB: This overload allows for 'returning(\.self)'.
   @_documentation(visibility: private)
   public func returning(
     _ selection: (From.TableColumns) -> From.TableColumns
@@ -21,7 +20,7 @@ extension Delete {
     for resultColumn in From.TableColumns.allColumns {
       returning.append(resultColumn.returningFragment)
     }
-    return _returning(returning)
+    return self.returning(fragments: returning)
   }
 }
 
@@ -33,10 +32,9 @@ extension Insert {
     for resultColumn in repeat each selection(Into.columns) {
       returning.append(resultColumn.returningFragment)
     }
-    return _returning(returning)
+    return self.returning(fragments: returning)
   }
 
-  // NB: This overload allows for 'returning(\.self)'.
   @_documentation(visibility: private)
   public func returning(
     _ selection: (Into.TableColumns) -> Into.TableColumns
@@ -45,7 +43,7 @@ extension Insert {
     for resultColumn in Into.TableColumns.allColumns {
       returning.append(resultColumn.returningFragment)
     }
-    return _returning(returning)
+    return self.returning(fragments: returning)
   }
 }
 
@@ -57,10 +55,9 @@ extension Update {
     for resultColumn in repeat each selection(From.columns) {
       returning.append(resultColumn.returningFragment)
     }
-    return _returning(returning)
+    return self.returning(fragments: returning)
   }
 
-  // NB: This overload allows for 'returning(\.self)'.
   @_documentation(visibility: private)
   public func returning(
     _ selection: (From.TableColumns) -> From.TableColumns
@@ -69,6 +66,6 @@ extension Update {
     for resultColumn in From.TableColumns.allColumns {
       returning.append(resultColumn.returningFragment)
     }
-    return _returning(returning)
+    return self.returning(fragments: returning)
   }
 }

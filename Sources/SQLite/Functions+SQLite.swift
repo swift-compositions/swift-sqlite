@@ -1,10 +1,14 @@
-// moved from swift-sql AggregateFunctions.swift
+public import Byte
+public import ISO_9075_Foundation
+public import SQL
 
+extension QueryExpression
+where QueryValue: _OptionalPromotable, QueryValue._Optionalized.Wrapped == String {
     public func groupConcat(
         _ separator: (some QueryExpression)? = String?.none,
         filter: (some QueryExpression<Bool>)? = Bool?.none
     ) -> some QueryExpression<String?> {
-        AggregateFunctionExpression(
+        AggregateFunctionExpression<String?>(
             "group_concat",
             separator.map { [queryFragment, $0.queryFragment] } ?? [queryFragment],
             filter: filter?.queryFragment
@@ -16,7 +20,7 @@
         order: some QueryExpression,
         filter: (some QueryExpression<Bool>)? = Bool?.none
     ) -> some QueryExpression<String?> {
-        AggregateFunctionExpression(
+        AggregateFunctionExpression<String?>(
             "group_concat",
             separator.map { [queryFragment, $0.queryFragment] } ?? [queryFragment],
             order: order.queryFragment,
@@ -28,9 +32,9 @@
         distinct isDistinct: Bool,
         filter: (some QueryExpression<Bool>)? = Bool?.none
     ) -> some QueryExpression<String?> {
-        AggregateFunctionExpression(
+        AggregateFunctionExpression<String?>(
             "group_concat",
-            isDistinct: isDistinct,
+            distinct: isDistinct,
             [queryFragment],
             filter: filter?.queryFragment
         )
@@ -41,53 +45,63 @@
         order: some QueryExpression,
         filter: (some QueryExpression<Bool>)? = Bool?.none
     ) -> some QueryExpression<String?> {
-        AggregateFunctionExpression(
+        AggregateFunctionExpression<String?>(
             "group_concat",
-            isDistinct: isDistinct,
+            distinct: isDistinct,
             [queryFragment],
             order: order.queryFragment,
             filter: filter?.queryFragment
         )
     }
+}
 
+extension QueryExpression
+where QueryValue: _OptionalPromotable, QueryValue._Optionalized.Wrapped: Numeric {
     public func total(
         distinct isDistinct: Bool = false,
         filter: (some QueryExpression<Bool>)? = Bool?.none
     ) -> some QueryExpression<Double> {
         AggregateFunctionExpression<Double>(
             "total",
-            isDistinct: isDistinct,
+            distinct: isDistinct,
             [queryFragment],
             filter: filter?.queryFragment
         )
     }
-// moved from swift-sql Operators.swift
+}
 
+extension QueryExpression where QueryValue == String {
     public func glob(_ pattern: some StringProtocol) -> some QueryExpression<Bool> {
-        BinaryOperator(lhs: self, operator: "GLOB", rhs: "\(pattern)")
+        BinaryOperator<Bool>(lhs: self, operator: "GLOB", rhs: "\(pattern)")
     }
-// moved from swift-sql ScalarFunctions.swift
 
+    public func instr(_ occurrence: some QueryExpression<QueryValue>) -> some QueryExpression<Int> {
+        QueryFunction<Int>("instr", self, occurrence)
+    }
+}
+
+extension QueryExpression where QueryValue: SQL::_OptionalProtocol {
     public func ifnull<W>(
         _ other: some QueryExpression<W>
     ) -> some QueryExpression<W> where W == QueryValue.Wrapped {
-        QueryFunction("ifnull", self, other)
+        QueryFunction<W>("ifnull", self, other)
     }
 
     public func ifnull(
         _ other: some QueryExpression<QueryValue>
     ) -> some QueryExpression<QueryValue> {
-        QueryFunction("ifnull", self, other)
+        QueryFunction<QueryValue>("ifnull", self, other)
     }
+}
 
-    public func instr(_ occurrence: some QueryExpression<QueryValue>) -> some QueryExpression<Int> {
-        QueryFunction("instr", self, occurrence)
-    }
-
+extension QueryExpression where QueryValue: _OptionalPromotable<String?> {
     public func quote() -> some QueryExpression<QueryValue> {
-        QueryFunction("quote", self)
+        QueryFunction<QueryValue>("quote", self)
     }
+}
 
+extension QueryExpression where QueryValue == [Byte] {
     public func hex() -> some QueryExpression<String> {
-        QueryFunction("hex", self)
+        QueryFunction<String>("hex", self)
     }
+}

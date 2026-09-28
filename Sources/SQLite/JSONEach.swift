@@ -1,5 +1,4 @@
 public import ISO_9075_Foundation
-import Foundation
 public import SQL
 
 extension QueryExpression where QueryValue: _AnyJSONRepresentable & _JSONArrayRepresentation {
@@ -226,18 +225,18 @@ public struct JSONEach<
 
   fileprivate static func select(from tableReference: ISO_9075.Fragment) -> SelectOf<JSONEach> {
     var select = all.asSelect()
-    select._tableReference = tableReference
+    select.tableReference = tableReference
     return select
   }
 
   public struct TableColumns: TableDefinition, Sendable {
     public typealias QueryValue = JSONEach
 
-    public static var allColumns: [any TableColumnExpression] {
-      [TableColumns().key, TableColumns().value]
+    public static var allColumns: [Column<QueryValue>] {
+      TableColumns().key._columns + TableColumns().value._columns
     }
 
-    public static var writableColumns: [any WritableTableColumnExpression] { [] }
+    public static var writableColumns: [Column<QueryValue>] { [] }
 
     public var key: GeneratedColumn<JSONEach, Key> {
       GeneratedColumn("key", keyPath: \JSONEach.key)
@@ -251,9 +250,9 @@ public struct JSONEach<
   public struct Selection: TableExpression {
     public typealias QueryValue = JSONEach
 
-    public var allColumns: [any QueryExpression]
+    public let allColumns: [ISO_9075.Fragment]
 
-    public init(allColumns: [any QueryExpression]) {
+    public init(allColumns: [ISO_9075.Fragment]) {
       self.allColumns = allColumns
     }
   }
@@ -264,7 +263,7 @@ extension JSONEach: QueryRepresentable {
 }
 
 extension JSONEach: QueryDecodable {
-  public init(decoder: inout some QueryDecoder) throws {
+  public init(decoder: inout some QueryDecoder) throws(QueryDecodingError) {
     self.key = try Key(decoder: &decoder).queryOutput
     self.value = try Value(decoder: &decoder).queryOutput
   }
@@ -290,18 +289,18 @@ public struct JSONBEach<
 
   fileprivate static func select(from tableReference: ISO_9075.Fragment) -> SelectOf<JSONBEach> {
     var select = all.asSelect()
-    select._tableReference = tableReference
+    select.tableReference = tableReference
     return select
   }
 
   public struct TableColumns: TableDefinition, Sendable {
     public typealias QueryValue = JSONBEach
 
-    public static var allColumns: [any TableColumnExpression] {
-      [TableColumns().key, TableColumns().value]
+    public static var allColumns: [Column<QueryValue>] {
+      TableColumns().key._columns + TableColumns().value._columns
     }
 
-    public static var writableColumns: [any WritableTableColumnExpression] { [] }
+    public static var writableColumns: [Column<QueryValue>] { [] }
 
     public var key: GeneratedColumn<JSONBEach, Key> {
       GeneratedColumn("key", keyPath: \JSONBEach.key)
@@ -315,9 +314,9 @@ public struct JSONBEach<
   public struct Selection: TableExpression {
     public typealias QueryValue = JSONBEach
 
-    public var allColumns: [any QueryExpression]
+    public let allColumns: [ISO_9075.Fragment]
 
-    public init(allColumns: [any QueryExpression]) {
+    public init(allColumns: [ISO_9075.Fragment]) {
       self.allColumns = allColumns
     }
   }
@@ -328,7 +327,7 @@ extension JSONBEach: QueryRepresentable {
 }
 
 extension JSONBEach: QueryDecodable {
-  public init(decoder: inout some QueryDecoder) throws {
+  public init(decoder: inout some QueryDecoder) throws(QueryDecodingError) {
     self.key = try Key(decoder: &decoder).queryOutput
     self.value = try Value(decoder: &decoder).queryOutput
   }

@@ -1,6 +1,7 @@
 #if CloudKit
 #if canImport(CloudKit)
   package import SQL
+  import SQL_Macros
 
   @Table
   package struct TableInfo: Codable, Hashable {

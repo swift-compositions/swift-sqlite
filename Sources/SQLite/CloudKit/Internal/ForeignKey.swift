@@ -2,6 +2,7 @@
 #if canImport(CloudKit)
   import Foundation
   public import SQL
+  import SQL_Macros
 
   @Table
   package struct ForeignKey {

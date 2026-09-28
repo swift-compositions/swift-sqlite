@@ -1,13 +1,14 @@
 #if CloudKit
 #if canImport(CloudKit)
   package import SQL
+  import SQL_Macros
 
-  @Table("sqlitedata_icloud_recordTypes")
+  @Table("sqlite_icloud_recordTypes")
   package struct RecordType: Hashable {
     @Column(primaryKey: true)
     package let tableName: String
     package let schema: String
-    @Column(as: Set<TableInfo>.JSONRepresentation.self)
+    @Column(as: JSONRepresentation<Set<TableInfo>>.self)
     package let tableInfo: Set<TableInfo>
 
     // NB: The 'Hashable' conformance is manually implemented due to a Swift bug that causes the

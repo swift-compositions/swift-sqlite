@@ -1,32 +1,34 @@
 #if CloudKit
 #if canImport(CloudKit)
+  public import Byte
   public import CloudKit
   import CryptoKit
   public import SQL
+  import Time
 
   public struct _SystemFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
     public let queryOutput: Record
 
-    public var queryBinding: QueryBinding {
+    public var queryBinding: ISO_9075.Value {
       let archiver = NSKeyedArchiver(requiringSecureCoding: true)
       queryOutput.encodeSystemFields(with: archiver)
       if let recordChangeTag = queryOutput._recordChangeTag {
         archiver.encode(recordChangeTag, forKey: "_recordChangeTag")
       }
-      return archiver.encodedData.queryBinding
+      return .blob([Byte](archiver.encodedData))
     }
 
     public init(queryOutput: Record) {
       self.queryOutput = queryOutput
     }
 
-    public init?(queryBinding: QueryBinding) {
-      guard case .blob(let bytes) = queryBinding else { return nil }
-      try? self.init(data: Data(bytes))
-    }
-
-    public init(decoder: inout some SQL.QueryDecoder) throws {
-      try self.init(data: try Data(decoder: &decoder))
+    public init(decoder: inout some SQL.QueryDecoder) throws(QueryDecodingError) {
+      let bytes = try [Byte](decoder: &decoder)
+      do {
+        try self.init(data: Data(bytes))
+      } catch {
+        throw .dataCorrupted("\(bytes.count) bytes as \(Record.self)")
+      }
     }
 
     private init(data: Data) throws {
@@ -49,26 +51,26 @@
   public struct _AllFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
     public let queryOutput: Record
 
-    public var queryBinding: QueryBinding {
+    public var queryBinding: ISO_9075.Value {
       let archiver = NSKeyedArchiver(requiringSecureCoding: true)
       queryOutput.encode(with: archiver)
       if let recordChangeTag = queryOutput._recordChangeTag {
         archiver.encode(recordChangeTag, forKey: "_recordChangeTag")
       }
-      return archiver.encodedData.queryBinding
+      return .blob([Byte](archiver.encodedData))
     }
 
     public init(queryOutput: Record) {
       self.queryOutput = queryOutput
     }
 
-    public init?(queryBinding: QueryBinding) {
-      guard case .blob(let bytes) = queryBinding else { return nil }
-      try? self.init(data: Data(bytes))
-    }
-
-    public init(decoder: inout some SQL.QueryDecoder) throws {
-      try self.init(data: try Data(decoder: &decoder))
+    public init(decoder: inout some SQL.QueryDecoder) throws(QueryDecodingError) {
+      let bytes = try [Byte](decoder: &decoder)
+      do {
+        try self.init(data: Data(bytes))
+      } catch {
+        throw .dataCorrupted("\(bytes.count) bytes as \(Record.self)")
+      }
     }
 
     private init(data: Data) throws {
@@ -91,26 +93,18 @@
   extension CKDatabase.Scope {
     public struct RawValueRepresentation: QueryBindable, QueryRepresentable {
       public let queryOutput: CKDatabase.Scope
-      public var queryBinding: QueryBinding {
-        queryOutput.rawValue.queryBinding
+      public var queryBinding: ISO_9075.Value {
+        .int(Int64(queryOutput.rawValue))
       }
       public init(queryOutput: CKDatabase.Scope) {
         self.queryOutput = queryOutput
       }
-      public init?(queryBinding: QueryBinding) {
-        guard case .int(let rawValue) = queryBinding else { return nil }
-        try? self.init(rawValue: Int(rawValue))
-      }
-      public init(decoder: inout some QueryDecoder) throws {
-        try self.init(rawValue: Int(decoder: &decoder))
-      }
-      private init(rawValue: Int) throws {
-        guard let queryOutput = CKDatabase.Scope(rawValue: rawValue) else {
-          throw DecodingError()
-        }
+      public init(decoder: inout some QueryDecoder) throws(QueryDecodingError) {
+        let rawValue = try Int(decoder: &decoder)
+        guard let queryOutput = CKDatabase.Scope(rawValue: rawValue)
+        else { throw .dataCorrupted("\(rawValue) as a database scope") }
         self.init(queryOutput: queryOutput)
       }
-      private struct DecodingError: Error {}
     }
   }
 
@@ -175,7 +169,7 @@
 
     @discardableResult
     package func setBytes(
-      _ newValue: [UInt8],
+      _ newValue: [Byte],
       forKey key: CKRecord.FieldKey,
       at userModificationTime: Int64,
       dataManager: some DataManager
@@ -250,24 +244,26 @@
             setValue(value, forKey: column.name, at: userModificationTime)
           case .double(let value):
             setValue(value, forKey: column.name, at: userModificationTime)
-          case .date(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
+          case .timestamp(let value):
+            setValue(Date(value), forKey: column.name, at: userModificationTime)
           case .int(let value):
             setValue(value, forKey: column.name, at: userModificationTime)
           case .null:
             removeValue(forKey: column.name, at: userModificationTime)
-          case .text(let value):
+          case .text(let value), .decimal(let value):
             setValue(value, forKey: column.name, at: userModificationTime)
-          case .uint(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
-          case .uuid(let value):
+          case .json(let value):
             setValue(
-              value.uuidString.lowercased(),
+              String(decoding: value, as: UTF8.self),
               forKey: column.name,
               at: userModificationTime
             )
-          case .invalid(let error):
-            throw error
+          case .uuid(let value):
+            setValue(String(value).lowercased(), forKey: column.name, at: userModificationTime)
+          case .array:
+            throw ISO_9075.Value.Failure("SQLite has no array values")
+          case .invalid(let failure):
+            throw failure
           }
         }
         do {
@@ -320,20 +316,23 @@
               return other.encryptedValues[key] != value
             case .double(let value):
               return other.encryptedValues[key] != value
-            case .date(let value):
-              return other.encryptedValues[key] != value
+            case .timestamp(let value):
+              return other.encryptedValues[key] != Date(value)
             case .int(let value):
               return other.encryptedValues[key] != value
             case .null:
               return other.encryptedValues[key] != nil
-            case .text(let value):
+            case .text(let value), .decimal(let value):
               return other.encryptedValues[key] != value
-            case .uint(let value):
-              return other.encryptedValues[key] != value
+            case .json(let value):
+              return other.encryptedValues[key] != String(decoding: value, as: UTF8.self)
             case .uuid(let value):
-              return other.encryptedValues[key] != value.uuidString.lowercased()
-            case .invalid(let error):
-              failures[key] = SyncEngine.Error(error)
+              return other.encryptedValues[key] != String(value).lowercased()
+            case .array:
+              failures[key] = .binding(ISO_9075.Value.Failure("SQLite has no array values"))
+              return false
+            case .invalid(let failure):
+              failures[key] = .binding(failure)
               return false
             }
           }
@@ -360,28 +359,22 @@
     }
 
     package static let userModificationTimeKey =
-      "\(String.sqliteDataCloudKitSchemaName)_userModificationTime"
+      "\(String.sqliteCloudKitSchemaName)_userModificationTime"
   }
 
   extension __CKRecordObjCValue {
-    var queryFragment: QueryFragment {
-      if let value = self as? Int64 {
-        return value.queryFragment
-      } else if let value = self as? Double {
-        return value.queryFragment
-      } else if let value = self as? String {
-        return value.queryFragment
-      } else if let value = self as? Data {
-        return value.queryFragment
-      } else if let value = self as? Date {
-        return value.queryFragment
-      } else {
-        return "\(.invalid(Unbindable()))"
+    var queryFragment: ISO_9075.Fragment {
+      switch self {
+      case let value as Int64: value.queryFragment
+      case let value as Double: value.queryFragment
+      case let value as String: value.queryFragment
+      case let value as Data: [Byte](value).queryFragment
+      case let value as Date: Time.Instant(value).queryFragment
+      default:
+        "\(ISO_9075.Value.invalid(ISO_9075.Value.Failure("\(type(of: self)) is not bindable")))"
       }
     }
   }
-
-  private struct Unbindable: Error {}
 
   extension CKRecord {
     package var _recordChangeTag: Int? {
@@ -390,9 +383,9 @@
     }
   }
 
-  extension DataProtocol {
+  extension [Byte] {
     fileprivate var sha256: Data {
-      Data(SHA256.hash(data: self))
+      Data(SHA256.hash(data: Data(self)))
     }
   }
 #endif

@@ -1,9 +1,11 @@
 #if CloudKit
 #if canImport(CloudKit)
+  import Byte
   package import CloudKit
   public import SQL
+  import SQL_Macros
 
-  @Table("sqlitedata_icloud_pendingRecordZoneChanges")
+  @Table("sqlite_icloud_pendingRecordZoneChanges")
   package struct PendingRecordZoneChange {
     @Column(as: CKSyncEngine.PendingRecordZoneChange.DataRepresentation.self)
     package let pendingRecordZoneChange: CKSyncEngine.PendingRecordZoneChange
@@ -23,7 +25,7 @@
         self.queryOutput = queryOutput
       }
 
-      package var queryBinding: SQL.QueryBinding {
+      package var queryBinding: ISO_9075.Value {
         let archiver = NSKeyedArchiver(requiringSecureCoding: true)
         switch queryOutput {
         case .saveRecord(let recordID):
@@ -33,18 +35,18 @@
           recordID.encode(with: archiver)
           archiver.encode("deleteRecord", forKey: "changeType")
         @unknown default:
-          return .invalid(BindingError())
+          return .invalid(ISO_9075.Value.Failure("Unknown pending record zone change: \(queryOutput)"))
         }
-        return archiver.encodedData.queryBinding
+        return .blob([Byte](archiver.encodedData))
       }
 
-      package init?(queryBinding: SQL.QueryBinding) {
-        guard case .blob(let bytes) = queryBinding else { return nil }
-        try? self.init(data: Data(bytes))
-      }
-
-      package init(decoder: inout some SQL.QueryDecoder) throws {
-        try self.init(data: Data(decoder: &decoder))
+      package init(decoder: inout some SQL.QueryDecoder) throws(QueryDecodingError) {
+        let bytes = try [Byte](decoder: &decoder)
+        do {
+          try self.init(data: Data(bytes))
+        } catch {
+          throw .dataCorrupted("\(bytes.count) bytes as a pending record zone change")
+        }
       }
 
       private init(data: Data) throws {
@@ -66,7 +68,6 @@
     }
 
     private struct DecodingError: Error {}
-    private struct BindingError: Error {}
   }
 #endif
 

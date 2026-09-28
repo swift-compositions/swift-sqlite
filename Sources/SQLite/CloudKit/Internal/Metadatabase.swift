@@ -4,6 +4,7 @@
   import Foundation
   import os
   import SQL
+  import SQL_Macros
 
   func defaultMetadatabase(
     logger: Logger,
@@ -47,7 +48,7 @@
     migrator.registerMigration("Create Metadata Tables") { db in
       try #sql(
         """
-        CREATE TABLE "\(raw: .sqliteDataCloudKitSchemaName)_metadata" (
+        CREATE TABLE "\(raw: .sqliteCloudKitSchemaName)_metadata" (
           "recordPrimaryKey" TEXT NOT NULL,
           "recordType" TEXT NOT NULL,
           "recordName" TEXT NOT NULL AS ("recordPrimaryKey" || ':' || "recordType"),
@@ -61,7 +62,7 @@
           "share" BLOB,
           "hasLastKnownServerRecord" INTEGER NOT NULL AS ("lastKnownServerRecord" IS NOT NULL),
           "isShared" INTEGER NOT NULL AS ("share" IS NOT NULL),
-          "userModificationTime" INTEGER NOT NULL DEFAULT ("sqlitedata_icloud_currentTime"()),
+          "userModificationTime" INTEGER NOT NULL DEFAULT ("sqlite_icloud_currentTime"()),
           "_isDeleted" INTEGER NOT NULL DEFAULT 0,
 
           PRIMARY KEY ("recordPrimaryKey", "recordType"),
@@ -72,35 +73,35 @@
       .execute(db)
       try #sql(
         """
-        CREATE INDEX "\(raw: .sqliteDataCloudKitSchemaName)_metadata_zoneID"
-        ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("ownerName", "zoneName")
+        CREATE INDEX "\(raw: .sqliteCloudKitSchemaName)_metadata_zoneID"
+        ON "\(raw: .sqliteCloudKitSchemaName)_metadata"("ownerName", "zoneName")
         """
       )
       .execute(db)
       try #sql(
         """
-        CREATE INDEX "\(raw: .sqliteDataCloudKitSchemaName)_metadata_parentRecordName"
-        ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("parentRecordName")
+        CREATE INDEX "\(raw: .sqliteCloudKitSchemaName)_metadata_parentRecordName"
+        ON "\(raw: .sqliteCloudKitSchemaName)_metadata"("parentRecordName")
         """
       )
       .execute(db)
       try #sql(
         """
-        CREATE INDEX "\(raw: .sqliteDataCloudKitSchemaName)_metadata_isShared"
-        ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("isShared")
+        CREATE INDEX "\(raw: .sqliteCloudKitSchemaName)_metadata_isShared"
+        ON "\(raw: .sqliteCloudKitSchemaName)_metadata"("isShared")
         """
       )
       .execute(db)
       try #sql(
         """
-        CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_hasLastKnownServerRecord"
-        ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("hasLastKnownServerRecord")
+        CREATE INDEX IF NOT EXISTS "\(raw: .sqliteCloudKitSchemaName)_metadata_hasLastKnownServerRecord"
+        ON "\(raw: .sqliteCloudKitSchemaName)_metadata"("hasLastKnownServerRecord")
         """
       )
       .execute(db)
       try #sql(
         """
-        CREATE TABLE "\(raw: .sqliteDataCloudKitSchemaName)_recordTypes" (
+        CREATE TABLE "\(raw: .sqliteCloudKitSchemaName)_recordTypes" (
           "tableName" TEXT NOT NULL PRIMARY KEY,
           "schema" TEXT NOT NULL,
           "tableInfo" TEXT NOT NULL
@@ -110,7 +111,7 @@
       .execute(db)
       try #sql(
         """
-        CREATE TABLE "\(raw: .sqliteDataCloudKitSchemaName)_stateSerialization" (
+        CREATE TABLE "\(raw: .sqliteCloudKitSchemaName)_stateSerialization" (
           "scope" TEXT NOT NULL PRIMARY KEY,
           "data" TEXT NOT NULL
         ) STRICT
@@ -119,7 +120,7 @@
       .execute(db)
       try #sql(
         """
-        CREATE TABLE "\(raw: .sqliteDataCloudKitSchemaName)_unsyncedRecordIDs" (
+        CREATE TABLE "\(raw: .sqliteCloudKitSchemaName)_unsyncedRecordIDs" (
           "recordName" TEXT NOT NULL,
           "zoneName" TEXT NOT NULL,
           "ownerName" TEXT NOT NULL,
@@ -130,7 +131,7 @@
       .execute(db)
       try #sql(
         """
-        CREATE TABLE "\(raw: .sqliteDataCloudKitSchemaName)_pendingRecordZoneChanges" (
+        CREATE TABLE "\(raw: .sqliteCloudKitSchemaName)_pendingRecordZoneChanges" (
           "pendingRecordZoneChange" BLOB NOT NULL
         ) STRICT
         """

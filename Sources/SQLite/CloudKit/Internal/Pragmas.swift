@@ -1,11 +1,12 @@
 #if CloudKit
 #if canImport(CloudKit)
   public import SQL
+  import SQL_Macros
 
   @Table
   struct PragmaDatabaseList {
     static var tableAlias: String? { "databases" }
-    static var tableFragment: QueryFragment { "pragma_database_list()" }
+    static var tableFragment: ISO_9075.Fragment { "pragma_database_list()" }
 
     @Column("seq") let sequence: Int
     let name: String
@@ -15,7 +16,7 @@
   @Table
   struct PragmaForeignKeyCheck {
     static var tableAlias: String? { "foreignKeyChecks" }
-    static var tableFragment: QueryFragment { "pragma_foreign_key_check()" }
+    static var tableFragment: ISO_9075.Fragment { "pragma_foreign_key_check()" }
 
     let table: String
     let rowid: Int
@@ -27,8 +28,8 @@
   @Table
   package struct PragmaForeignKeyList<Base: Table> {
     package static var tableAlias: String? { "\(Base.tableName)ForeignKeys" }
-    package static var tableFragment: QueryFragment {
-      "pragma_foreign_key_list(\(quote: Base.tableName, delimiter: .text))"
+    package static var tableFragment: ISO_9075.Fragment {
+      "pragma_foreign_key_list(\(text: Base.tableName))"
     }
 
     package let id: Int
@@ -52,8 +53,8 @@
   @Table
   struct PragmaIndexList<Base: Table> {
     static var tableAlias: String? { "\(Base.tableName)Indices" }
-    static var tableFragment: QueryFragment {
-      "pragma_index_list(\(quote: Base.tableName, delimiter: .text))"
+    static var tableFragment: ISO_9075.Fragment {
+      "pragma_index_list(\(text: Base.tableName))"
     }
 
     @Column("seq") let sequence: Int
@@ -67,8 +68,8 @@
   package struct PragmaTableInfo<Base: Table> {
     package static var tableAlias: String? { "\(Base.tableName)TableInfo" }
     package static var schemaName: String? { Base.schemaName }
-    package static var tableFragment: QueryFragment {
-      "pragma_table_info(\(quote: Base.tableName, delimiter: .text))"
+    package static var tableFragment: ISO_9075.Fragment {
+      "pragma_table_info(\(text: Base.tableName))"
     }
 
     @Column("cid") package let columnID: Int

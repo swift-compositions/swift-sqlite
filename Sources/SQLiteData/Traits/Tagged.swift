@@ -1,14 +1,13 @@
-#if Tagged
-  public import Tagged
+public import Tagged
 
-  extension Tagged: IdentifierStringConvertible where RawValue: IdentifierStringConvertible {
-    public init?(rawIdentifier: String) {
-      guard let rawValue = RawValue(rawIdentifier: rawIdentifier) else { return nil }
-      self.init(rawValue)
-    }
-
-    public var rawIdentifier: String {
-      rawValue.rawIdentifier
-    }
+extension Tagged: IdentifierStringConvertible
+where Tag: ~Copyable & ~Escapable, Underlying: IdentifierStringConvertible {
+  public init?(rawIdentifier: String) {
+    guard let underlying = Underlying(rawIdentifier: rawIdentifier) else { return nil }
+    self.init(_unchecked: underlying)
   }
-#endif
+
+  public var rawIdentifier: String {
+    underlying.rawIdentifier
+  }
+}

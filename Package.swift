@@ -4,12 +4,13 @@ import Foundation
 import PackageDescription
 
 let package = Package(
-  name: "sqlite-data",
+  name: "swift-sqlite-data",
   platforms: [
-    .iOS(.v16),
-    .macOS(.v13),
-    .tvOS(.v16),
-    .watchOS(.v9),
+    .iOS(.v27),
+    .macOS(.v27),
+    .tvOS(.v27),
+    .watchOS(.v27),
+    .visionOS(.v27),
   ],
   products: [
     .library(
@@ -48,15 +49,6 @@ let package = Package(
         match the expected type.
         """
     ),
-    .trait(
-      name: "Tagged",
-      description: "Introduce SQLiteData conformances to the swift-tagged package."
-    ),
-    .trait(
-      name: "SQLiteDataTagged",
-      description: "A deprecated alias for the 'Tagged' trait.",
-      enabledTraits: ["Tagged"]
-    ),
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-collections", from: "1.0.0"),
@@ -69,8 +61,8 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
     .package(
-      url: "https://github.com/pointfreeco/swift-structured-queries",
-      from: "0.39.1",
+      url: "https://github.com/swift-compositions/swift-structured-queries-sqlite.git",
+      branch: "main",
       traits: [
         .trait(name: "CasePaths", condition: .when(traits: ["CasePaths"])),
         .trait(name: "ColumnCoding", condition: .when(traits: ["ColumnCoding"])),
@@ -82,10 +74,9 @@ let package = Package(
           name: "SuppressPlatformSQLiteAvailability",
           condition: .when(traits: ["SuppressPlatformSQLiteAvailability"])
         ),
-        .trait(name: "Tagged", condition: .when(traits: ["Tagged"])),
       ]
     ),
-    .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.10.0"),
+    .package(url: "https://github.com/swift-atoms/swift-tagged.git", branch: "main"),
   ],
   targets: [
     .target(
@@ -98,12 +89,8 @@ let package = Package(
         .product(name: "OrderedCollections", package: "swift-collections"),
         .product(name: "Perception", package: "swift-perception"),
         .product(name: "Sharing", package: "swift-sharing"),
-        .product(name: "StructuredQueriesSQLite", package: "swift-structured-queries"),
-        .product(
-          name: "Tagged",
-          package: "swift-tagged",
-          condition: .when(traits: ["Tagged"])
-        ),
+        .product(name: "StructuredQueriesSQLite", package: "swift-structured-queries-sqlite"),
+        .product(name: "Tagged", package: "swift-tagged"),
       ]
     ),
     .target(
@@ -115,7 +102,7 @@ let package = Package(
         .product(name: "CustomDump", package: "swift-custom-dump"),
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
-        .product(name: "StructuredQueriesTestSupport", package: "swift-structured-queries"),
+        .product(name: "StructuredQueriesTestSupport", package: "swift-structured-queries-sqlite"),
       ]
     ),
     .testTarget(
@@ -127,7 +114,7 @@ let package = Package(
         .product(name: "DependenciesTestSupport", package: "swift-dependencies"),
         .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
         .product(name: "SnapshotTestingCustomDump", package: "swift-snapshot-testing"),
-        .product(name: "StructuredQueries", package: "swift-structured-queries"),
+        .product(name: "StructuredQueries", package: "swift-structured-queries-sqlite"),
       ]
     ),
     .target(

@@ -108,7 +108,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
     }
 
     @_disfavoredOverload
-    public static func insert<D: _OptionalPromotable<Instant?>>(
+    public static func insert<D: _OptionalPromotable<Time.Instant?>>(
       touch dateColumn: KeyPath<On.TableColumns, TableColumn<On, D>>,
       when condition: ((_ new: New) -> any QueryExpression<Bool>)? = nil
     ) -> Self {
@@ -120,7 +120,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
     }
 
     @_disfavoredOverload
-    public static func insert<D: _OptionalPromotable<Instant?>>(
+    public static func insert<D: _OptionalPromotable<Time.Instant?>>(
       touch dateColumn: KeyPath<On.TableColumns, TableColumn<On, D>>,
       date dateFunction: any QueryExpression<D>,
       when condition: ((_ new: New) -> any QueryExpression<Bool>)? = nil
@@ -180,7 +180,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
     }
 
     @_disfavoredOverload
-    public static func update<D: _OptionalPromotable<Instant?>>(
+    public static func update<D: _OptionalPromotable<Time.Instant?>>(
       touch dateColumn: KeyPath<On.TableColumns, TableColumn<On, D>>,
       when condition: ((_ old: Old, _ new: New) -> any QueryExpression<Bool>)? = nil
     ) -> Self {
@@ -192,7 +192,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
     }
 
     @_disfavoredOverload
-    public static func update<D: _OptionalPromotable<Instant?>>(
+    public static func update<D: _OptionalPromotable<Time.Instant?>>(
       touch dateColumn: KeyPath<On.TableColumns, TableColumn<On, D>>,
       date dateFunction: any QueryExpression<D>,
       when condition: ((_ old: Old, _ new: New) -> any QueryExpression<Bool>)? = nil
@@ -221,7 +221,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
     }
 
     @_disfavoredOverload
-    public static func update<each Column: _TableColumnExpression, D: _OptionalPromotable<Instant?>>(
+    public static func update<each Column: _TableColumnExpression, D: _OptionalPromotable<Time.Instant?>>(
       of columns: (On.TableColumns) -> (repeat each Column),
       touch dateColumn: KeyPath<On.TableColumns, TableColumn<On, D>>,
       when condition: ((_ old: Old, _ new: New) -> any QueryExpression<Bool>)? = nil
@@ -235,7 +235,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
     }
 
     @_disfavoredOverload
-    public static func update<each Column: _TableColumnExpression, D: _OptionalPromotable<Instant?>>(
+    public static func update<each Column: _TableColumnExpression, D: _OptionalPromotable<Time.Instant?>>(
       of columns: (On.TableColumns) -> (repeat each Column),
       touch dateColumn: KeyPath<On.TableColumns, TableColumn<On, D>>,
       date dateFunction: any QueryExpression<D>,

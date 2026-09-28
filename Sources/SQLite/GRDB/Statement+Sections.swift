@@ -1,26 +1,11 @@
 #if GRDB
 public import GRDB
-public import StructuredQueriesCore
+import ISO_9075_Foundation
+public import SQL
 
 extension SelectStatement where QueryValue == (), Joins == () {
-  /// Returns all values fetched from the database, grouped into sections.
-  ///
-  /// Results are ordered by the given expression and grouped into a section for each of its
-  /// distinct values:
-  ///
-  /// ```swift
-  /// try Reminder
-  ///   .order(by: \.title)
-  ///   .fetchAll(db, sectionBy: \.priority)
-  /// ```
-  ///
-  /// - Parameters:
-  ///   - db: A database connection.
-  ///   - sectioning: A closure that returns an expression, or an ordering of one, to group results
-  ///     by.
-  /// - Returns: A collection of all values decoded from the database, grouped into sections.
   public func fetchAll<Key: QueryRepresentable>(
-    _ db: Database,
+    _ db: GRDB.Database,
     @_SectionBuilder<Key> sectionBy sectioning: (From.TableColumns) -> _Sectioning<Key>
   ) throws -> ResultsSectionCollection<From.QueryOutput, Key.QueryOutput>
   where Key.QueryOutput: Hashable {
@@ -31,16 +16,8 @@ extension SelectStatement where QueryValue == (), Joins == () {
     return try sectionedResults(From.self, Key.self, db: db, query: sectioned.query)
   }
 
-  /// Returns all values fetched from the database, grouped into sections.
-  ///
-  /// See ``StructuredQueriesCore/SelectStatement/fetchAll(_:sectionBy:)`` for more information.
-  ///
-  /// - Parameters:
-  ///   - db: A database connection.
-  ///   - sectionKeyPath: A key path to a column to group results by.
-  /// - Returns: A collection of all values decoded from the database, grouped into sections.
   public func fetchAll<Key: QueryRepresentable>(
-    _ db: Database,
+    _ db: GRDB.Database,
     sectionBy sectionKeyPath: KeyPath<
       From.TableColumns, some QueryExpression<Key>
     >
@@ -50,20 +27,11 @@ extension SelectStatement where QueryValue == (), Joins == () {
   }
 }
 
-extension Select where From: StructuredQueriesCore.Table {
-  /// Returns all values fetched from the database, grouped into sections.
-  ///
-  /// See ``StructuredQueriesCore/SelectStatement/fetchAll(_:sectionBy:)`` for more information.
-  ///
-  /// - Parameters:
-  ///   - db: A database connection.
-  ///   - sectioning: A closure that returns an expression, or an ordering of one, to group results
-  ///     by.
-  /// - Returns: A collection of all values decoded from the database, grouped into sections.
+extension Select where From: SQL.Table {
   @_documentation(visibility: private)
   @_disfavoredOverload
-  public func fetchAll<Key: QueryRepresentable, each J: StructuredQueriesCore.Table>(
-    _ db: Database,
+  public func fetchAll<Key: QueryRepresentable, each J: SQL.Table>(
+    _ db: GRDB.Database,
     @_SectionBuilder<Key> sectionBy sectioning: (
       From.TableColumns, repeat (each J).TableColumns
     ) -> _Sectioning<Key>
@@ -73,41 +41,24 @@ extension Select where From: StructuredQueriesCore.Table {
     return try sectionedResults(db, statement: self, sectionBy: sectionBy)
   }
 
-  /// Returns all values fetched from the database, grouped into sections.
-  ///
-  /// See ``StructuredQueriesCore/SelectStatement/fetchAll(_:sectionBy:)`` for more information.
-  ///
-  /// - Parameters:
-  ///   - db: A database connection.
-  ///   - sectioning: A closure that returns an expression, or an ordering of one, to group results
-  ///     by.
-  /// - Returns: A collection of all values decoded from the database, grouped into sections.
   @_documentation(visibility: private)
   public func fetchAll<Key: QueryRepresentable>(
-    _ db: Database,
+    _ db: GRDB.Database,
     @_SectionBuilder<Key> sectionBy sectioning: (
       From.TableColumns, Joins.TableColumns
     ) -> _Sectioning<Key>
   ) throws -> ResultsSectionCollection<QueryValue.QueryOutput, Key.QueryOutput>
   where
     QueryValue: QueryRepresentable,
-    Joins: StructuredQueriesCore.Table,
+    Joins: SQL.Table,
     Key.QueryOutput: Hashable
   {
     let sectionBy = sectioning(From.columns, Joins.columns)
     return try sectionedResults(db, statement: self, sectionBy: sectionBy)
   }
 
-  /// Returns all values fetched from the database, grouped into sections.
-  ///
-  /// See ``StructuredQueriesCore/SelectStatement/fetchAll(_:sectionBy:)`` for more information.
-  ///
-  /// - Parameters:
-  ///   - db: A database connection.
-  ///   - sectionKeyPath: A key path to a column to group results by.
-  /// - Returns: A collection of all values decoded from the database, grouped into sections.
   public func fetchAll<Key: QueryRepresentable>(
-    _ db: Database,
+    _ db: GRDB.Database,
     sectionBy sectionKeyPath: KeyPath<
       From.TableColumns, some QueryExpression<Key>
     >
@@ -119,11 +70,11 @@ extension Select where From: StructuredQueriesCore.Table {
 
 private func sectionedResults<
   Value: QueryRepresentable,
-  From: StructuredQueriesCore.Table,
-  each J: StructuredQueriesCore.Table,
+  From: SQL.Table,
+  each J: SQL.Table,
   Key: QueryRepresentable
 >(
-  _ db: Database,
+  _ db: GRDB.Database,
   statement: Select<Value, From, (repeat each J)>,
   sectionBy: _Sectioning<Key>
 ) throws -> ResultsSectionCollection<Value.QueryOutput, Key.QueryOutput>
@@ -138,8 +89,8 @@ where Key.QueryOutput: Hashable {
 private func sectionedResults<Value: QueryRepresentable, Key: QueryRepresentable>(
   _: Value.Type,
   _: Key.Type,
-  db: Database,
-  query: QueryFragment
+  db: GRDB.Database,
+  query: ISO_9075.Fragment
 ) throws -> ResultsSectionCollection<Value.QueryOutput, Key.QueryOutput>
 where Key.QueryOutput: Hashable {
   try ResultsSectionCollection(

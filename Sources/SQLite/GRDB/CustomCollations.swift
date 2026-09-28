@@ -1,16 +1,11 @@
 #if GRDB
 import GRDBSQLite
-public import StructuredQueriesSQLiteCore
+public import Comparison
+public import GRDB
+public import SQL
 
-#if EXCLUDE_EXPORTS
-  // NB: This 'public import' breaks the '@_exported import'.
-  public import class GRDB.Database
-#endif
 
-extension Database {
-  /// Adds a user-defined `@DatabaseCollation` to a connection.
-  ///
-  /// - Parameter collation: A database collation to add.
+extension GRDB.Database {
   public func add(collation: some DatabaseCollation) {
     sqlite3_create_collation_v2(
       sqliteConnection,
@@ -27,9 +22,9 @@ extension Database {
             UnsafeRawBufferPointer(start: rhs, count: Int(rhsCount))
           )
         {
-        case .ascending: return -1
-        case .same: return 0
-        case .descending: return 1
+        case .less: return -1
+        case .equal: return 0
+        case .greater: return 1
         }
       },
       { context in
@@ -38,10 +33,6 @@ extension Database {
       }
     )
   }
-
-  /// Deletes a user-defined `@DatabaseCollation` from a connection.
-  ///
-  /// - Parameter collation: A database collation to delete.
   public func remove(collation: some DatabaseCollation) {
     sqlite3_create_collation_v2(
       sqliteConnection,
@@ -55,47 +46,21 @@ extension Database {
 }
 
 extension Collation where Self == CanonicalCollation {
-  /// Orders text by Unicode Canonical Equivalence.
-  ///
-  /// This collating sequence orders text the same way as Swift's String type.
-  ///
-  /// > Tip: This collating sequence is automatically installed by
-  /// > ``defaultDatabase(path:configuration:)``. To manually install it, use
-  /// > ``GRDB/Database/add(collation:)``:
-  /// >
-  /// > ```swift
-  /// > configuration.prepareDatabase { db in
-  /// >   db.add(collation: .canonical)
-  /// > }
-  /// > ```
   public static var canonical: Self { Self() }
 }
-
-/// A collating sequence that orders text by Unicode Canonical Equivalence.
 public nonisolated struct CanonicalCollation: DatabaseCollation, Sendable {
   public var name: String { "canonical" }
   public init() {}
   public func compare(
     _ lhs: UnsafeRawBufferPointer, _ rhs: UnsafeRawBufferPointer
-  ) -> CollationOrder {
-    #if compiler(>=6.2)
-      if #available(iOS 26, macOS 26, tvOS 26, watchOS 26, *) {
-        do {
-          let lhsSpan = try UTF8Span(validating: lhs.assumingMemoryBound(to: UInt8.self).span)
-          let rhsSpan = try UTF8Span(validating: rhs.assumingMemoryBound(to: UInt8.self).span)
-          if lhsSpan.isCanonicallyLessThan(rhsSpan) { return .ascending }
-          if rhsSpan.isCanonicallyLessThan(lhsSpan) { return .descending }
-          return .same
-        } catch {
-          return lhs.elementsEqual(rhs)
-            ? .same
-            : lhs.lexicographicallyPrecedes(rhs) ? .ascending : .descending
-        }
-      }
-    #endif
-    return CollationOrder(
-      String(decoding: lhs, as: UTF8.self), String(decoding: rhs, as: UTF8.self)
-    )
+  ) -> Comparison {
+    do {
+      let lhsSpan = try UTF8Span(validating: lhs.assumingMemoryBound(to: UInt8.self).span)
+      let rhsSpan = try UTF8Span(validating: rhs.assumingMemoryBound(to: UInt8.self).span)
+      return lhsSpan.isCanonicallyLessThan(rhsSpan) ? .less : rhsSpan.isCanonicallyLessThan(lhsSpan) ? .greater : .equal
+    } catch {
+      return lhs.elementsEqual(rhs) ? .equal : lhs.lexicographicallyPrecedes(rhs) ? .less : .greater
+    }
   }
 }
 

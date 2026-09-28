@@ -32,6 +32,7 @@ let package = Package(
             traits: [.trait(name: "Tagged", condition: .when(traits: ["Tagged"]))]
         ),
         .package(url: "https://github.com/swift-atoms/swift-byte.git", branch: "main"),
+        .package(url: "https://github.com/swift-atoms/swift-comparison.git", branch: "main"),
         .package(url: "https://github.com/swift-iso/swift-iso-9075.git", branch: "main"),
         .package(url: "https://github.com/swift-ietf/swift-rfc-4122.git", branch: "main"),
         .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "603.0.0"),
@@ -48,6 +49,7 @@ let package = Package(
                 .product(name: "ISO 9075 Foundation", package: "swift-iso-9075"),
                 .product(name: "ISO 9075 Call-Level Interface", package: "swift-iso-9075"),
                 .product(name: "Byte", package: "swift-byte"),
+                .product(name: "Comparison", package: "swift-comparison"),
                 .product(name: "Time", package: "swift-time"),
                 .product(name: "RFC 4122", package: "swift-rfc-4122"),
                 .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["GRDB"])),

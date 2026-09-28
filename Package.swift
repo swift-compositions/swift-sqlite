@@ -25,6 +25,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-collections.git", from: "1.0.0"),
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.6.0"),
+        .package(url: "https://github.com/pointfreeco/swift-custom-dump.git", from: "1.3.3"),
         .package(url: "https://github.com/pointfreeco/swift-snapshot-testing.git", from: "1.18.4"),
         .package(
             url: "https://github.com/swift-compositions/swift-sql.git",
@@ -73,6 +74,7 @@ let package = Package(
             dependencies: [
                 "SQLite",
                 .product(name: "SQL Test Support", package: "swift-sql"),
+                .product(name: "CustomDump", package: "swift-custom-dump"),
                 .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
             ]
         ),
@@ -82,6 +84,7 @@ let package = Package(
                 "SQLite",
                 "SQLite Test Support",
                 .product(name: "SQL Macros", package: "swift-sql"),
+                .product(name: "CustomDump", package: "swift-custom-dump"),
                 .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
             ]
         ),

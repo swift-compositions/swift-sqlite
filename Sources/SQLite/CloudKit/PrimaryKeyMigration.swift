@@ -12,7 +12,8 @@
       _ db: Database,
       tables: repeat (each T).Type,
       dropUniqueConstraints: Bool = false,
-      uuid uuidFunction: (any ScalarDatabaseFunction<(), RFC_4122.UUID>)? = nil
+      uuid uuidFunction: (any ScalarDatabaseFunction<(), RFC_4122.UUID>)? = nil,
+      randomUUID: () -> RFC_4122.UUID = systemRandomUUID
     ) throws
     where
       repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible,
@@ -22,7 +23,7 @@
         try uuidFunction.flatMap { uuid -> RFC_4122.UUID? in
           try #sql("SELECT \(quote: uuid.name)()", as: RFC_4122.UUID.self).fetchOne(db)
         }
-          ?? RFC_4122.UUID.v4()
+          ?? randomUUID()
       )
 
       db.add(function: $backfillUUID)

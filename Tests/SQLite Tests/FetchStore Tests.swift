@@ -84,5 +84,16 @@
             try await Task.sleep(for: .milliseconds(100))
             #expect(store.value == ["Groceries"])
         }
+
+        #if canImport(SwiftUI)
+            @Test func `an animated store receives each change inside its animation`() async throws {
+                let queue = try reminders()
+                let store = FetchStore(value: [], Titles(), database: queue, scheduling: .animation(.default))
+                #expect(store.value == ["Groceries"])
+                try await queue.write { database in try database.execute(sql: #"INSERT INTO "reminder" VALUES ('Dentist')"#) }
+                await eventually { store.value.count == 2 }
+                #expect(store.value == ["Dentist", "Groceries"])
+            }
+        #endif
     }
 #endif

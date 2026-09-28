@@ -3,7 +3,7 @@ public import SQL
 @attached(peer, names: overloaded, prefixed(`$`))
 public macro DatabaseCollation(_ name: String = "") =
   #externalMacro(
-    module: "StructuredQueriesSQLiteMacros",
+    module: "SQLite_Macros_Implementation",
     type: "DatabaseCollationMacro"
   )
 
@@ -13,7 +13,7 @@ public macro DatabaseFunction(
   isDeterministic: Bool = false
 ) =
   #externalMacro(
-    module: "StructuredQueriesSQLiteMacros",
+    module: "SQLite_Macros_Implementation",
     type: "DatabaseFunctionMacro"
   )
 
@@ -24,7 +24,7 @@ public macro DatabaseFunction<each T: QueryRepresentable & QueryExpression, R: Q
   isDeterministic: Bool = false
 ) =
   #externalMacro(
-    module: "StructuredQueriesSQLiteMacros",
+    module: "SQLite_Macros_Implementation",
     type: "DatabaseFunctionMacro"
   )
 
@@ -35,7 +35,7 @@ public macro DatabaseFunction<each T: QueryRepresentable & QueryExpression>(
   isDeterministic: Bool = false
 ) =
   #externalMacro(
-    module: "StructuredQueriesSQLiteMacros",
+    module: "SQLite_Macros_Implementation",
     type: "DatabaseFunctionMacro"
   )
 
@@ -46,7 +46,7 @@ public macro DatabaseFunction<each T: QueryRepresentable & QueryExpression, R: Q
   isDeterministic: Bool = false
 ) =
   #externalMacro(
-    module: "StructuredQueriesSQLiteMacros",
+    module: "SQLite_Macros_Implementation",
     type: "DatabaseFunctionMacro"
   )
 
@@ -57,7 +57,7 @@ public macro DatabaseFunction<each T: QueryRepresentable & QueryExpression>(
   isDeterministic: Bool = false
 ) =
   #externalMacro(
-    module: "StructuredQueriesSQLiteMacros",
+    module: "SQLite_Macros_Implementation",
     type: "DatabaseFunctionMacro"
   )
 
@@ -68,7 +68,7 @@ public macro DatabaseFunction<R: QueryBindable>(
   isDeterministic: Bool = false
 ) =
   #externalMacro(
-    module: "StructuredQueriesSQLiteMacros",
+    module: "SQLite_Macros_Implementation",
     type: "DatabaseFunctionMacro"
   )
 
@@ -78,7 +78,7 @@ public macro StructuredQueriesIsolationCheck<each Input, Output>(
   collation: (repeat each Input) throws -> Output
 ) =
   #externalMacro(
-    module: "StructuredQueriesSQLiteMacros",
+    module: "SQLite_Macros_Implementation",
     type: "IsolationCheckMacro"
   )
 
@@ -88,7 +88,7 @@ public macro StructuredQueriesIsolationCheck<each Input, Output>(
   collation: @MainActor (repeat each Input) throws -> Output
 ) =
   #externalMacro(
-    module: "StructuredQueriesSQLiteMacros",
+    module: "SQLite_Macros_Implementation",
     type: "MainActorIsolationCheckMacro"
   )
 
@@ -98,7 +98,7 @@ public macro StructuredQueriesIsolationCheck<each Input, Output>(
   function: (repeat each Input) throws -> Output
 ) =
   #externalMacro(
-    module: "StructuredQueriesSQLiteMacros",
+    module: "SQLite_Macros_Implementation",
     type: "IsolationCheckMacro"
   )
 
@@ -108,7 +108,7 @@ public macro StructuredQueriesIsolationCheck<each Input, Output>(
   function: @MainActor (repeat each Input) throws -> Output
 ) =
   #externalMacro(
-    module: "StructuredQueriesSQLiteMacros",
+    module: "SQLite_Macros_Implementation",
     type: "MainActorIsolationCheckMacro"
   )
 
@@ -118,7 +118,7 @@ public macro StructuredQueriesIsolationCheck(
   property: () -> Void
 ) =
   #externalMacro(
-    module: "StructuredQueriesSQLiteMacros",
+    module: "SQLite_Macros_Implementation",
     type: "IsolationCheckMacro"
   )
 
@@ -128,6 +128,6 @@ public macro StructuredQueriesIsolationCheck(
   property: @MainActor () -> Void
 ) =
   #externalMacro(
-    module: "StructuredQueriesSQLiteMacros",
+    module: "SQLite_Macros_Implementation",
     type: "MainActorIsolationCheckMacro"
   )

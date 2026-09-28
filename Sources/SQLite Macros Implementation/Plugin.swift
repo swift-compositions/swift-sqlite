@@ -2,7 +2,7 @@ import SwiftCompilerPlugin
 import SwiftSyntaxMacros
 
 @main
-struct StructuredQueriesPlugin: CompilerPlugin {
+struct SQLitePlugin: CompilerPlugin {
   let providingMacros: [any Macro.Type] = [
     DatabaseCollationMacro.self,
     DatabaseFunctionMacro.self,

@@ -74,7 +74,7 @@ public macro DatabaseFunction<R: QueryBindable>(
 
 @_documentation(visibility: private)
 @freestanding(declaration)
-public macro StructuredQueriesIsolationCheck<each Input, Output>(
+public macro SQLiteIsolationCheck<each Input, Output>(
   collation: (repeat each Input) throws -> Output
 ) =
   #externalMacro(
@@ -84,7 +84,7 @@ public macro StructuredQueriesIsolationCheck<each Input, Output>(
 
 @_documentation(visibility: private)
 @freestanding(declaration)
-public macro StructuredQueriesIsolationCheck<each Input, Output>(
+public macro SQLiteIsolationCheck<each Input, Output>(
   collation: @MainActor (repeat each Input) throws -> Output
 ) =
   #externalMacro(
@@ -94,7 +94,7 @@ public macro StructuredQueriesIsolationCheck<each Input, Output>(
 
 @_documentation(visibility: private)
 @freestanding(declaration)
-public macro StructuredQueriesIsolationCheck<each Input, Output>(
+public macro SQLiteIsolationCheck<each Input, Output>(
   function: (repeat each Input) throws -> Output
 ) =
   #externalMacro(
@@ -104,7 +104,7 @@ public macro StructuredQueriesIsolationCheck<each Input, Output>(
 
 @_documentation(visibility: private)
 @freestanding(declaration)
-public macro StructuredQueriesIsolationCheck<each Input, Output>(
+public macro SQLiteIsolationCheck<each Input, Output>(
   function: @MainActor (repeat each Input) throws -> Output
 ) =
   #externalMacro(
@@ -114,7 +114,7 @@ public macro StructuredQueriesIsolationCheck<each Input, Output>(
 
 @_documentation(visibility: private)
 @freestanding(declaration)
-public macro StructuredQueriesIsolationCheck(
+public macro SQLiteIsolationCheck(
   property: () -> Void
 ) =
   #externalMacro(
@@ -124,7 +124,7 @@ public macro StructuredQueriesIsolationCheck(
 
 @_documentation(visibility: private)
 @freestanding(declaration)
-public macro StructuredQueriesIsolationCheck(
+public macro SQLiteIsolationCheck(
   property: @MainActor () -> Void
 ) =
   #externalMacro(

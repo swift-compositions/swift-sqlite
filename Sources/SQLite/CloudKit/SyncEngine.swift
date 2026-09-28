@@ -1,28 +1,19 @@
 #if CloudKit
 #if canImport(CloudKit)
   public import CloudKit
-  package import ConcurrencyExtras
-  import Dependencies
   public import GRDB
-  public import IssueReporting
   import OrderedCollections
   public import OSLog
   import Observation
-  public import StructuredQueries
-  import StructuredQueriesSQLite
-  #if EXCLUDE_EXPORTS
-    public import StructuredQueriesSQLiteCore
-  #endif
+  public import SQL
   import SwiftData
+  package import Synchronization
   import TabularData
 
   #if canImport(UIKit)
     import UIKit
   #endif
 
-  /// An object that manages the synchronization of local and remote SQLite data.
-  ///
-  /// See <doc:CloudKitSync> for more information.
   public final class SyncEngine: Observable, Sendable {
     package let userDatabase: UserDatabase
     package let logger: Logger
@@ -32,62 +23,46 @@
     let tablesByName: [String: any SynchronizableTable]
     package let tablesByOrder: [String: Int]
     let foreignKeysByTableName: [String: [ForeignKey]]
-    package let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
+    package let syncEngines = Mutex<SyncEngines>(SyncEngines())
     package let defaultZone: CKRecordZone
     let delegate: (any SyncEngineDelegate)?
     let defaultSyncEngines:
       @Sendable (any DatabaseReader, SyncEngine)
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
     package let container: any CloudContainer
-    let dataManager = Dependency(\.dataManager)
+    public let context: Context
+    let notificationCenter: NotificationCenter
+    let dataManager: any DataManager
+    let now: @Sendable () -> Date
+    let clock: any Clock<Duration>
     private let observationRegistrar = ObservationRegistrar()
-    private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
-    private let activityCounts = LockIsolated(ActivityCounts())
-    private let startTask = LockIsolated<Task<Void, Never>?>(nil)
+    private let notificationsObserver = Mutex<(any NSObjectProtocol)?>(nil)
+    private let activityCounts = Mutex(ActivityCounts())
+    private let startTask = Mutex<Task<Void, Never>?>(nil)
+    private let _lastError = Mutex<(any Swift.Error)?>(nil)
     #if DEBUG && canImport(DeveloperToolsSupport)
-      private let previewTimerTask = LockIsolated<Task<Void, Never>?>(nil)
+      private let previewTimerTask = Mutex<Task<Void, Never>?>(nil)
     #endif
 
-    /// The error message used when a write occurs to a record for which the current user does not
-    /// have permission.
-    ///
-    /// This error is thrown from any database write to a row for which the current user does
-    /// not have permissions to write, as determined by its `CKShare` (if applicable). To catch
-    /// this error try casting it to `DatabaseError` and checking its message:
-    ///
-    /// ```swift
-    /// do {
-    ///   try await database.write { db in
-    ///     Reminder.find(id)
-    ///       .update { $0.title = "Personal" }
-    ///       .execute(db)
-    ///   }
-    /// } catch let error as DatabaseError where error.message == SyncEngine.writePermissionError {
-    ///   // User does not have permission to write to this record.
-    /// }
-    /// ```
+    public enum Context: Sendable {
+      case live
+      case preview
+      case test
+    }
+
+    public enum Error: Swift.Error {
+      case accountUnavailable(CKAccountStatus)
+      case assetDataNotFound(column: String)
+      case unencodableColumns(recordName: String, [String: any Swift.Error])
+      case unknownDeletionReason(String)
+      case unrecognizedEvent(String)
+    }
+
     public static let writePermissionError =
       "co.pointfree.SQLiteData.CloudKit.write-permission-error"
     public static let invalidRecordNameError =
       "co.pointfree.SQLiteData.CloudKit.invalid-record-name-error"
 
-    /// Initialize a sync engine.
-    ///
-    /// - Parameters:
-    ///   - database: The database to synchronize to CloudKit.
-    ///   - tables: A list of tables that you want to synchronize _and_ that you want to be
-    ///     shareable with other users on CloudKit.
-    ///   - privateTables: A list of tables that you want to synchronize to CloudKit but that
-    ///     you do not want to be shareable with other users.
-    ///   - containerIdentifier: The container identifier in CloudKit to synchronize to. If omitted
-    ///     the container will be determined from the entitlements of your app.
-    ///   - defaultZone: The zone for all records to be stored in.
-    ///   - startImmediately: Determines if the sync engine starts right away or requires an
-    ///     explicit call to ``start()``. By default this argument is `true`.
-    ///   - delegate: A delegate object that can be notified of events and override default sync
-    ///     engine behavior.
-    ///   - logger: The logger used to log events in the sync engine. By default a `.disabled`
-    ///     logger is used, which means logs are not printed.
     public convenience init<
       each T1: PrimaryKeyedTable & _SendableMetatype,
       each T2: PrimaryKeyedTable & _SendableMetatype
@@ -99,8 +74,12 @@
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
       startImmediately: Bool? = nil,
       delegate: (any SyncEngineDelegate)? = nil,
-      logger: Logger = isTesting
-        ? Logger(.disabled) : Logger(subsystem: "SQLiteData", category: "CloudKit")
+      logger: Logger = Logger(subsystem: "SQLiteData", category: "CloudKit"),
+      context: Context = .live,
+      notificationCenter: NotificationCenter = .default,
+      dataManager: some DataManager = LiveDataManager(),
+      now: @escaping @Sendable () -> Date = Date.init,
+      clock: some Clock<Duration> = ContinuousClock()
     ) throws
     where
       repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
@@ -108,7 +87,6 @@
       repeat (each T2).PrimaryKey.QueryOutput: IdentifierStringConvertible,
       repeat (each T2).TableColumns.PrimaryColumn: WritableTableColumnExpression
     {
-      @Dependency(\.context) var context
       let containerIdentifier =
         containerIdentifier
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
@@ -125,8 +103,8 @@
 
       guard context == .live
       else {
-        let privateDatabase = MockCloudDatabase(databaseScope: .private)
-        let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
+        let privateDatabase = MockCloudDatabase(databaseScope: .private, dataManager: dataManager)
+        let sharedDatabase = MockCloudDatabase(databaseScope: .shared, dataManager: dataManager)
         let container = MockCloudContainer(
           containerIdentifier: containerIdentifier ?? "iCloud.co.pointfree.SQLiteData.Tests",
           privateCloudDatabase: privateDatabase,
@@ -155,10 +133,15 @@
           logger: logger,
           delegate: delegate,
           tables: allTables,
-          privateTables: allPrivateTables
+          privateTables: allPrivateTables,
+          context: context,
+          notificationCenter: notificationCenter,
+          dataManager: dataManager,
+          now: now,
+          clock: clock
         )
         try setUpSyncEngine()
-        if startImmediately ?? !isTesting {
+        if startImmediately ?? (context != .test) {
           _ = try start()
         }
         return
@@ -204,10 +187,15 @@
         logger: logger,
         delegate: delegate,
         tables: allTables,
-        privateTables: allPrivateTables
+        privateTables: allPrivateTables,
+        context: context,
+        notificationCenter: notificationCenter,
+        dataManager: dataManager,
+        now: now,
+        clock: clock
       )
       try setUpSyncEngine()
-      if startImmediately ?? !isTesting {
+      if startImmediately ?? (context != .test) {
         _ = try start()
       }
     }
@@ -224,7 +212,12 @@
       logger: Logger,
       delegate: (any SyncEngineDelegate)?,
       tables: [any SynchronizableTable],
-      privateTables: [any SynchronizableTable] = []
+      privateTables: [any SynchronizableTable] = [],
+      context: Context = .live,
+      notificationCenter: NotificationCenter = .default,
+      dataManager: some DataManager = LiveDataManager(),
+      now: @escaping @Sendable () -> Date = Date.init,
+      clock: some Clock<Duration> = ContinuousClock()
     ) throws {
       let allTables = OrderedSet((tables + privateTables).map(HashableSynchronizedTable.init))
         .map(\.type)
@@ -264,37 +257,41 @@
       self.defaultSyncEngines = defaultSyncEngines
       self.userDatabase = userDatabase
       self.logger = logger
+      self.context = context
+      self.notificationCenter = notificationCenter
+      self.dataManager = dataManager
+      self.now = now
+      self.clock = clock
       self.metadatabase = try defaultMetadatabase(
         logger: logger,
         url: try URL.metadatabase(
           databasePath: userDatabase.path,
           containerIdentifier: container.containerIdentifier
         ),
-        configuration: userDatabase.configuration
+        configuration: userDatabase.configuration,
+        context: context
       )
       self.tablesByName = Dictionary(
         uniqueKeysWithValues: self.tables.map { ($0.base.tableName, $0) }
       )
       self.foreignKeysByTableName = foreignKeysByTableName
-      tablesByOrder = try SQLiteData.tablesByOrder(
+      tablesByOrder = try topologicalOrder(
         userDatabase: userDatabase,
         tables: allTables,
         tablesByName: tablesByName
       )
       #if os(iOS)
-        @Dependency(\.defaultNotificationCenter) var defaultNotificationCenter
-        notificationsObserver.withValue {
-          $0 = defaultNotificationCenter.addObserver(
+        notificationsObserver.withLock {
+          $0 = notificationCenter.addObserver(
             forName: UIApplication.willResignActiveNotification,
             object: nil,
             queue: nil
-          ) { [syncEngines] _ in
-            _ = Task { @MainActor in
+          ) { [weak self] _ in
+            _ = Task { @MainActor [weak self] in
               let taskIdentifier = UIApplication.shared.beginBackgroundTask()
               defer { UIApplication.shared.endBackgroundTask(taskIdentifier) }
-              let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
-                ($0.private, $0.shared)
-              }
+              let (privateSyncEngine, sharedSyncEngine) =
+                self?.syncEngines.withLock { ($0.private, $0.shared) } ?? (nil, nil)
               try await privateSyncEngine?.sendChanges(CKSyncEngine.SendChangesOptions())
               try await sharedSyncEngine?.sendChanges(CKSyncEngine.SendChangesOptions())
             }
@@ -305,10 +302,10 @@
     }
 
     deinit {
-      notificationsObserver.withValue {
+      notificationsObserver.withLock {
         guard let observer = $0
         else { return }
-        NotificationCenter.default.removeObserver(observer)
+        notificationCenter.removeObserver(observer)
       }
     }
 
@@ -335,7 +332,6 @@
           : URL(filePath: metadatabase.path).lastPathComponent
         let attachedMetadatabaseName =
           URL(string: attachedMetadatabasePath)?.lastPathComponent ?? ""
-        @Dependency(\.context) var context
         if metadatabaseName != attachedMetadatabaseName
           && !(context == .preview && attachedMetadatabaseName.isEmpty)
         {
@@ -381,80 +377,60 @@
       }
     }
 
-    /// Starts the sync engine if it is stopped.
-    ///
-    /// When a sync engine is started it will upload all data stored locally that has not yet
-    /// been synchronized to CloudKit, and will download all changes from CloudKit since the
-    /// last time it synchronized.
-    ///
-    /// > Note: By default, sync engines start syncing when initialized.
     public func start() async throws {
       try await start().value
     }
 
-    /// Determines if the sync engine is currently sending local changes to the CloudKit server.
-    ///
-    /// It is an observable value, which means if it is accessed in a SwiftUI view, or some other
-    /// observable context, then the view will automatically re-render when the value changes. As
-    /// such, it can be useful for displaying a progress view to indicate that work is currently
-    /// being done to synchronize changes.
     public var isSendingChanges: Bool {
       sendingChangesCount > 0
     }
 
-    /// Determines if the sync engine is currently processing changes being sent to the device
-    /// from CloudKit.
-    ///
-    /// It is an observable value, which means if it is accessed in a SwiftUI view, or some other
-    /// observable context, then the view will automatically re-render when the value changes. As
-    /// such, it can be useful for displaying a progress view to indicate that work is currently
-    /// being done to synchronize changes.
     public var isFetchingChanges: Bool {
       fetchingChangesCount > 0
     }
 
-    /// Determines if the sync engine is currently sending or receiving changes from CloudKit.
-    ///
-    /// This value is true if either of ``isSendingChanges`` or ``isFetchingChanges`` is true.
-    /// It is an observable value, which means if it is accessed in a SwiftUI view, or some other
-    /// observable context, then the view will automatically re-render when the value changes. As
-    /// such, it can be useful for displaying a progress view to indicate that work is currently
-    /// being done to synchronize changes.
     public var isSynchronizing: Bool {
       isSendingChanges || isFetchingChanges
     }
 
-    /// Stops the sync engine if it is running.
-    ///
-    /// All edits made after stopping the sync engine will not be synchronized to CloudKit.
-    /// You must start the sync engine again using ``start()`` to synchronize the changes.
     public func stop() {
       guard isRunning else { return }
       #if DEBUG && canImport(DeveloperToolsSupport)
-        previewTimerTask.withValue {
+        previewTimerTask.withLock {
           $0?.cancel()
           $0 = nil
         }
       #endif
       observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
-        syncEngines.withValue {
+        syncEngines.withLock {
           $0 = SyncEngines()
         }
       }
     }
 
-    /// Determines if the sync engine is currently running or not.
     public var isRunning: Bool {
       observationRegistrar.access(self, keyPath: \.isRunning)
-      return syncEngines.withValue {
+      return syncEngines.withLock {
         $0.isRunning
+      }
+    }
+
+    public var lastError: (any Swift.Error)? {
+      observationRegistrar.access(self, keyPath: \.lastError)
+      return _lastError.withLock { $0 }
+    }
+
+    func surface(_ error: any Swift.Error) {
+      logger.error("\(String.sqliteDataCloudKitFailure): \(String(describing: error))")
+      observationRegistrar.withMutation(of: self, keyPath: \.lastError) {
+        _lastError.withLock { $0 = error }
       }
     }
 
     private func start() throws -> Task<Void, Never> {
       guard !isRunning else { return Task {} }
       observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
-        syncEngines.withValue {
+        syncEngines.withLock {
           let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
           $0 = SyncEngines(
             private: privateSyncEngine,
@@ -511,28 +487,29 @@
       )
 
       #if DEBUG && canImport(DeveloperToolsSupport)
-        @Dependency(\.context) var context
-        @Dependency(\.continuousClock) var clock
         if context == .preview {
-          previewTimerTask.withValue {
+          previewTimerTask.withLock {
             $0?.cancel()
-            $0 = Task { @Sendable [weak self] in
-              await withErrorReporting {
+            $0 = Task { @Sendable [weak self, clock = self.clock] in
+              do {
                 while true {
                   guard let self else { break }
                   try await clock.sleep(for: .seconds(1))
                   try await self.syncChanges()
                 }
+              } catch is CancellationError {
+              } catch {
+                self?.surface(error)
               }
             }
           }
         }
       #endif
       let startTask = Task<Void, Never> {
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
+        do {
           guard try await container.accountStatus() == .available
           else { return }
-          syncEngines.withValue {
+          syncEngines.withLock {
             $0.private?.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
           }
           try await uploadRecordsToCloudKit(
@@ -544,28 +521,22 @@
             currentRecordTypeByTableName: currentRecordTypeByTableName
           )
           try await cacheUserTables(recordTypes: currentRecordTypes)
+        } catch {
+          surface(error)
         }
       }
-      self.startTask.withValue {
+      self.startTask.withLock {
         $0?.cancel()
         $0 = startTask
       }
       return startTask
     }
 
-    /// Fetches pending remote changes from the server.
-    ///
-    /// Use this method to ensure the sync engine immediately fetches all pending remote changes
-    /// before your app continues. This isn't necessary in normal use, as the engine automatically
-    /// syncs your app's records. It is useful, however, in scenarios where you require more control
-    /// over sync, such as pull-to-refresh.
-    ///
-    /// - Parameter options: The options to use when fetching changes.
     public func fetchChanges(
       _ options: CKSyncEngine.FetchChangesOptions = CKSyncEngine.FetchChangesOptions()
     ) async throws {
-      await startTask.withValue(\.self)?.value
-      let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
+      await startTask.withLock { $0 }?.value
+      let (privateSyncEngine, sharedSyncEngine) = syncEngines.withLock {
         ($0.private, $0.shared)
       }
       guard let privateSyncEngine, let sharedSyncEngine
@@ -575,19 +546,11 @@
       _ = try await (`private`, shared)
     }
 
-    /// Sends pending local changes to the server.
-    ///
-    /// Use this method to ensure the sync engine sends all pending local changes to the server
-    /// before your app continues. This isn't necessary in normal use, as the engine automatically
-    /// syncs your app's records. It is useful, however, in scenarios where you require greater
-    /// control over sync, such as a "Backup now" button.
-    ///
-    /// - Parameter options: The options to use when sending changes.
     public func sendChanges(
       _ options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions()
     ) async throws {
-      await startTask.withValue(\.self)?.value
-      let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
+      await startTask.withLock { $0 }?.value
+      let (privateSyncEngine, sharedSyncEngine) = syncEngines.withLock {
         ($0.private, $0.shared)
       }
       guard let privateSyncEngine, let sharedSyncEngine
@@ -597,16 +560,6 @@
       _ = try await (`private`, shared)
     }
 
-    /// Synchronizes local and remote pending changes.
-    ///
-    /// Use this method to ensure the sync engine immediately fetches all pending remote changes
-    /// _and_ sends all pending local changes to the server. This isn't necessary in normal use,
-    /// as the engine automatically syncs your app's records. It is useful, however, in scenarios
-    /// where you require greater control over sync.
-    ///
-    /// - Parameters:
-    ///   - fetchOptions: The options to use when fetching changes.
-    ///   - sendOptions: The options to use when sending changes.
     public func syncChanges(
       fetchOptions: CKSyncEngine.FetchChangesOptions = CKSyncEngine.FetchChangesOptions(),
       sendOptions: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions()
@@ -657,7 +610,7 @@
           false
         }
       }
-      syncEngines.withValue {
+      syncEngines.withLock {
         $0.private?.state.add(pendingRecordZoneChanges: changesByIsPrivate[true] ?? [])
         $0.shared?.state.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
       }
@@ -749,32 +702,32 @@
       try migrate(metadatabase: metadatabase)
     }
 
-    /// Deletes synchronized data locally on device and restarts the sync engine.
-    ///
-    /// This method is called automatically by the sync engine when it detects the device's iCloud
-    /// account has logged out or changed. To customize this behavior, provide a
-    /// ``SyncEngineDelegate`` to the sync engine and implement
-    /// ``SyncEngineDelegate/syncEngine(_:accountChanged:)``.
-    ///
-    /// > Important: It is only appropriate to call this method when the device's iCloud account
-    /// > logs out or changes.
     public func deleteLocalData() async throws {
       stop()
       try tearDownSyncEngine()
-      await withErrorReporting(.sqliteDataCloudKitFailure) {
+      do {
         try await userDatabase.write { db in
           for table in tables {
             func open<T>(_: some SynchronizableTable<T>) {
-              withErrorReporting(.sqliteDataCloudKitFailure) {
+              do {
                 try T.delete().execute(db)
+              } catch {
+                surface(error)
               }
             }
             open(table)
           }
           try setUpSyncEngine(writableDB: db)
         }
+      } catch {
+        surface(error)
       }
       try await start()
+    }
+
+    @DatabaseFunction("sqlitedata_icloud_currentTime")
+    func currentTime() -> Int64 {
+      Int64(now().timeIntervalSince1970 * 1_000_000_000)
     }
 
     @DatabaseFunction(
@@ -824,7 +777,7 @@
       guard isRunning else {
         // TODO: Perform this work in a trigger instead of a task.
         Task { [changes = oldChanges + newChanges] in
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
+          do {
             try await userDatabase.write { db in
               try PendingRecordZoneChange
                 .insert {
@@ -834,14 +787,16 @@
                 }
                 .execute(db)
             }
+          } catch {
+            surface(error)
           }
         }
         return
       }
-      let oldSyncEngine = self.syncEngines.withValue {
+      let oldSyncEngine = self.syncEngines.withLock {
         oldZoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
-      let syncEngine = self.syncEngines.withValue {
+      let syncEngine = self.syncEngines.withLock {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
       oldSyncEngine?.state.add(pendingRecordZoneChanges: oldChanges)
@@ -868,18 +823,20 @@
       }
       guard isRunning else {
         Task { [changes] in
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
+          do {
             try await userDatabase.write { db in
               try PendingRecordZoneChange
                 .insert { changes.map { PendingRecordZoneChange($0) } }
                 .execute(db)
             }
+          } catch {
+            surface(error)
           }
         }
         return
       }
 
-      let syncEngine = self.syncEngines.withValue {
+      let syncEngine = self.syncEngines.withLock {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
       syncEngine?.state.add(pendingRecordZoneChanges: changes)
@@ -887,13 +844,10 @@
 
     package func acceptShare(metadata: ShareMetadata) async throws {
       guard let rootRecordID = metadata.hierarchicalRootRecordID
-      else {
-        reportIssue("Attempting to share without root record information.")
-        return
-      }
+      else { preconditionFailure("Attempting to share without root record information.") }
       let container = type(of: container).createContainer(identifier: metadata.containerIdentifier)
       _ = try await container.accept(metadata)
-      try await syncEngines.shared?.fetchChanges(
+      try await syncEngines.withLock { $0.shared }?.fetchChanges(
         CKSyncEngine.FetchChangesOptions(
           scope: .zoneIDs([rootRecordID.zoneID]),
           operationGroup: nil
@@ -901,19 +855,15 @@
       )
     }
 
-    /// Whether or not the ``SyncEngine`` is currently writing changes to the database.
-    ///
-    /// See <doc:CloudKitSync#Updating-triggers-to-be-compatible-with-synchronization> for more info.
     @DatabaseFunction("sqlitedata_icloud_syncEngineIsSynchronizingChanges")
     public static var isSynchronizing: Bool {
-      if _isCreatingTemporaryTrigger {
-        reportIssue(
-          """
-          Invoked 'SyncEngine.isSynchronizing' at trigger creation, which is unexpected. Use \
-          'SyncEngine.$isSynchronizing' to invoke at trigger execution, instead.
-          """
-        )
-      }
+      precondition(
+        !_isCreatingTemporaryTrigger,
+        """
+        Invoked 'SyncEngine.isSynchronizing' at trigger creation, which is unexpected. Use \
+        'SyncEngine.$isSynchronizing' to invoke at trigger execution, instead.
+        """
+      )
       return _isSynchronizingChanges
     }
 
@@ -925,22 +875,22 @@
     private var sendingChangesCount: Int {
       get {
         observationRegistrar.access(self, keyPath: \.isSendingChanges)
-        return activityCounts.withValue(\.sendingChangesCount)
+        return activityCounts.withLock { $0.sendingChangesCount }
       }
       set {
         observationRegistrar.withMutation(of: self, keyPath: \.isSendingChanges) {
-          activityCounts.withValue { $0.sendingChangesCount = newValue }
+          activityCounts.withLock { $0.sendingChangesCount = newValue }
         }
       }
     }
     private var fetchingChangesCount: Int {
       get {
         observationRegistrar.access(self, keyPath: \.isFetchingChanges)
-        return activityCounts.withValue(\.fetchingChangesCount)
+        return activityCounts.withLock { $0.fetchingChangesCount }
       }
       set {
         observationRegistrar.withMutation(of: self, keyPath: \.isFetchingChanges) {
-          activityCounts.withValue { $0.fetchingChangesCount = newValue }
+          activityCounts.withLock { $0.fetchingChangesCount = newValue }
         }
       }
     }
@@ -987,10 +937,7 @@
   extension SyncEngine: CKSyncEngineDelegate {
     public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
       guard let event = Event(event)
-      else {
-        reportIssue("Unrecognized event received: \(event)")
-        return
-      }
+      else { return surface(Error.unrecognizedEvent(String(describing: event))) }
       await handleEvent(event, syncEngine: syncEngine)
     }
 
@@ -1112,9 +1059,9 @@
       }
 
       #if DEBUG
-        let state = LockIsolated(NextRecordZoneChangeBatchLoggingState())
+        let state = Mutex(NextRecordZoneChangeBatchLoggingState())
         defer {
-          let state = state.withValue(\.self)
+          let state = state.withLock { $0 }
           if let tabularDescription = state.tabularDescription {
             logger.debug(
               """
@@ -1128,19 +1075,19 @@
       #endif
 
       let batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
-        guard
-          let (metadata, allFields) = await withErrorReporting(
-            .sqliteDataCloudKitFailure,
-            catching: {
-              try await metadatabase.read { db in
-                try SyncMetadata
-                  .find(recordID)
-                  .select { ($0, $0._lastKnownServerRecordAllFields) }
-                  .fetchOne(db)
-              }
-            }
-          )
-            ?? nil
+        let metadataAndAllFields: (SyncMetadata, CKRecord?)?
+        do {
+          metadataAndAllFields = try await metadatabase.read { db in
+            try SyncMetadata
+              .find(recordID)
+              .select { ($0, $0._lastKnownServerRecordAllFields) }
+              .fetchOne(db)
+          }
+        } catch {
+          surface(error)
+          metadataAndAllFields = nil
+        }
+        guard let (metadata, allFields) = metadataAndAllFields
         else {
           syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
           return nil
@@ -1151,7 +1098,7 @@
         var sentRecord: CKRecord.ID?
         #if DEBUG
           defer {
-            state.withValue { [missingTable, missingRecord, sentRecord] in
+            state.withLock { [missingTable, missingRecord, sentRecord] in
               if let missingTable {
                 $0.events.append("⚠️ Missing table")
                 $0.recordTypes.append(metadata.recordType)
@@ -1178,22 +1125,20 @@
           return nil
         }
         func open<T>(_: some SynchronizableTable<T>) async -> CKRecord? {
-          let row =
-            await withErrorReporting(.sqliteDataCloudKitFailure) {
-              // NB: Fake 'sending' result.
-              nonisolated(unsafe) var result: T.QueryOutput?
-              try await userDatabase.read { db in
-                result =
-                  try T
-                  .unscoped
-                  .where {
-                    #sql("\($0.primaryKey) = \(bind: metadata.recordPrimaryKey)")
-                  }
-                  .fetchOne(db)
-              }
-              return result
+          nonisolated(unsafe) var row: T.QueryOutput?
+          do {
+            try await userDatabase.read { db in
+              row =
+                try T
+                .unscoped
+                .where {
+                  #sql("\($0.primaryKey) = \(bind: metadata.recordPrimaryKey)")
+                }
+                .fetchOne(db)
             }
-            ?? nil
+          } catch {
+            surface(error)
+          }
           guard let row
           else {
             syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
@@ -1221,10 +1166,15 @@
             record.parent = nil
           }
 
-          record.update(
-            with: T(queryOutput: row),
-            userModificationTime: metadata.userModificationTime
-          )
+          do {
+            try record.update(
+              with: T(queryOutput: row),
+              userModificationTime: metadata.userModificationTime,
+              dataManager: dataManager
+            )
+          } catch {
+            surface(error)
+          }
           await refreshLastKnownServerRecord(record)
           sentRecord = recordID
           return record
@@ -1254,58 +1204,59 @@
       }
 
       if syncEngine.database.databaseScope == .shared {
-        let (sharesToDelete, recordsWithRoot):
+        var (sharesToDelete, recordsWithRoot):
           ([CKShare?], [(lastKnownServerRecord: CKRecord?, rootLastKnownServerRecord: CKRecord?)]) =
-            await withErrorReporting(.sqliteDataCloudKitFailure) {
-              guard !deletedRecordIDs.isEmpty
-              else { return ([], []) }
+            ([], [])
+        if !deletedRecordIDs.isEmpty {
+          do {
+            (sharesToDelete, recordsWithRoot) = try await metadatabase.read { db in
+              let sharesToDelete =
+                try SyncMetadata
+                .findAll(deletedRecordIDs)
+                .where(\.isShared)
+                .select(\.share)
+                .fetchAll(db)
 
-              return try await metadatabase.read { db in
-                let sharesToDelete =
-                  try SyncMetadata
-                  .findAll(deletedRecordIDs)
-                  .where(\.isShared)
-                  .select(\.share)
-                  .fetchAll(db)
-
-                let recordsWithRoot =
-                  try With {
-                    SyncMetadata
-                      .findAll(deletedRecordIDs)
-                      .where { $0.parentRecordName.is(nil) }
-                      .select {
-                        RecordWithRoot.Columns(
-                          parentRecordName: $0.parentRecordName,
-                          recordName: $0.recordName,
-                          lastKnownServerRecord: $0.lastKnownServerRecord,
-                          rootRecordName: $0.recordName,
-                          rootLastKnownServerRecord: $0.lastKnownServerRecord
-                        )
-                      }
-                      .union(
-                        all: true,
-                        SyncMetadata
-                          .join(RecordWithRoot.all) { $1.recordName.is($0.parentRecordName) }
-                          .select { metadata, tree in
-                            RecordWithRoot.Columns(
-                              parentRecordName: metadata.parentRecordName,
-                              recordName: metadata.recordName,
-                              lastKnownServerRecord: metadata.lastKnownServerRecord,
-                              rootRecordName: tree.rootRecordName,
-                              rootLastKnownServerRecord: tree.rootLastKnownServerRecord
-                            )
-                          }
+              let recordsWithRoot =
+                try With {
+                  SyncMetadata
+                    .findAll(deletedRecordIDs)
+                    .where { $0.parentRecordName.is(nil) }
+                    .select {
+                      RecordWithRoot.Columns(
+                        parentRecordName: $0.parentRecordName,
+                        recordName: $0.recordName,
+                        lastKnownServerRecord: $0.lastKnownServerRecord,
+                        rootRecordName: $0.recordName,
+                        rootLastKnownServerRecord: $0.lastKnownServerRecord
                       )
-                  } query: {
-                    RecordWithRoot
-                      .select { ($0.lastKnownServerRecord, $0.rootLastKnownServerRecord) }
-                  }
-                  .fetchAll(db)
+                    }
+                    .union(
+                      all: true,
+                      SyncMetadata
+                        .join(RecordWithRoot.all) { $1.recordName.is($0.parentRecordName) }
+                        .select { metadata, tree in
+                          RecordWithRoot.Columns(
+                            parentRecordName: metadata.parentRecordName,
+                            recordName: metadata.recordName,
+                            lastKnownServerRecord: metadata.lastKnownServerRecord,
+                            rootRecordName: tree.rootRecordName,
+                            rootLastKnownServerRecord: tree.rootLastKnownServerRecord
+                          )
+                        }
+                    )
+                } query: {
+                  RecordWithRoot
+                    .select { ($0.lastKnownServerRecord, $0.rootLastKnownServerRecord) }
+                }
+                .fetchAll(db)
 
-                return (sharesToDelete, recordsWithRoot)
-              }
+              return (sharesToDelete, recordsWithRoot)
             }
-            ?? ([], [])
+          } catch {
+            surface(error)
+          }
+        }
 
         let shareRecordIDsToDelete = sharesToDelete.compactMap(\.?.recordID)
 
@@ -1325,14 +1276,16 @@
         }
       }
 
-      await withErrorReporting(.sqliteDataCloudKitFailure) {
-        guard !deletedRecordIDs.isEmpty
-        else { return }
-        try await userDatabase.write { db in
-          try SyncMetadata
-            .findAll(deletedRecordIDs)
-            .delete()
-            .execute(db)
+      if !deletedRecordIDs.isEmpty {
+        do {
+          try await userDatabase.write { db in
+            try SyncMetadata
+              .findAll(deletedRecordIDs)
+              .delete()
+              .execute(db)
+          }
+        } catch {
+          surface(error)
         }
       }
 
@@ -1343,21 +1296,25 @@
       changeType: CKSyncEngine.Event.AccountChange.ChangeType,
       syncEngine: any SyncEngineProtocol
     ) async {
-      guard syncEngine === syncEngines.private
+      guard syncEngine === syncEngines.withLock({ $0.private })
       else { return }
 
       switch changeType {
       case .signIn:
         syncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
-        await withErrorReporting {
+        do {
           try await enqueueUnknownRecordsForCloudKit()
+        } catch {
+          surface(error)
         }
         await delegate?.syncEngine(self, accountChanged: changeType)
       case .signOut, .switchAccounts:
         guard let delegate
         else {
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
+          do {
             try await deleteLocalData()
+          } catch {
+            surface(error)
           }
           return
         }
@@ -1372,7 +1329,7 @@
       stateSerialization: CKSyncEngine.State.Serialization,
       syncEngine: any SyncEngineProtocol
     ) async {
-      await withErrorReporting(.sqliteDataCloudKitFailure) {
+      do {
         try await userDatabase.write { db in
           try StateSerialization.upsert {
             StateSerialization.Draft(
@@ -1382,6 +1339,8 @@
           }
           .execute(db)
         }
+      } catch {
+        surface(error)
       }
     }
 
@@ -1390,27 +1349,29 @@
       deletions: [(zoneID: CKRecordZone.ID, reason: CKDatabase.DatabaseChange.Deletion.Reason)],
       syncEngine: any SyncEngineProtocol
     ) async {
-      let defaultZoneDeleted =
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await userDatabase.write { db in
-            var defaultZoneDeleted = false
-            for (zoneID, reason) in deletions {
-              switch reason {
-              case .deleted, .purged:
-                try deleteRecords(in: zoneID, db: db)
-                if zoneID == self.defaultZone.zoneID {
-                  defaultZoneDeleted = true
-                }
-              case .encryptedDataReset:
-                try uploadRecords(in: zoneID, db: db)
-              @unknown default:
-                reportIssue("Unknown deletion reason: \(reason)")
+      let defaultZoneDeleted: Bool
+      do {
+        defaultZoneDeleted = try await userDatabase.write { db in
+          var defaultZoneDeleted = false
+          for (zoneID, reason) in deletions {
+            switch reason {
+            case .deleted, .purged:
+              try deleteRecords(in: zoneID, db: db)
+              if zoneID == self.defaultZone.zoneID {
+                defaultZoneDeleted = true
               }
+            case .encryptedDataReset:
+              try uploadRecords(in: zoneID, db: db)
+            @unknown default:
+              surface(Error.unknownDeletionReason(String(describing: reason)))
             }
-            return defaultZoneDeleted
           }
+          return defaultZoneDeleted
         }
-        ?? false
+      } catch {
+        surface(error)
+        defaultZoneDeleted = false
+      }
       if defaultZoneDeleted {
         syncEngine.state.add(pendingDatabaseChanges: [.saveZone(self.defaultZone)])
       }
@@ -1431,8 +1392,10 @@
           guard let table = tablesByName[recordType]
           else { continue }
           func open<T: PrimaryKeyedTable>(_: some SynchronizableTable<T>) {
-            withErrorReporting(.sqliteDataCloudKitFailure) {
+            do {
               try T.unscoped.where { #sql("\($0.primaryKey)").in(primaryKeys) }.delete().execute(db)
+            } catch {
+              surface(error)
             }
           }
           open(table)
@@ -1452,12 +1415,14 @@
           guard let table = tablesByName[recordType]
           else { continue }
           func open<T>(_: some SynchronizableTable<T>) {
-            withErrorReporting(.sqliteDataCloudKitFailure) {
+            do {
               pendingRecordZoneChanges.append(
                 contentsOf: try T.unscoped.select(\._recordName).fetchAll(db).map {
                   .saveRecord(CKRecord.ID(recordName: $0, zoneID: zoneID))
                 }
               )
+            } catch {
+              surface(error)
             }
           }
           open(table)
@@ -1485,7 +1450,7 @@
       for (recordType, recordIDs) in deletedRecordIDsByRecordType {
         if let table = tablesByName[recordType] {
           func open<T>(_: some SynchronizableTable<T>) async {
-            await withErrorReporting(.sqliteDataCloudKitFailure) {
+            do {
               try await userDatabase.write { db in
                 try T
                   .unscoped
@@ -1503,79 +1468,86 @@
                   .delete()
                   .execute(db)
               }
+            } catch {
+              surface(error)
             }
           }
           await open(table)
         } else if recordType == CKRecord.SystemType.share {
           for shareRecordID in recordIDs {
-            await withErrorReporting(.sqliteDataCloudKitFailure) {
+            do {
               try await deleteShare(shareRecordID: shareRecordID)
+            } catch {
+              surface(error)
             }
           }
         } else {
-          // NB: Deleting a record from a table we do not currently recognize.
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
+          do {
             try await userDatabase.write { db in
               try SyncMetadata
                 .findAll(recordIDs)
                 .delete()
                 .execute(db)
             }
+          } catch {
+            surface(error)
           }
         }
       }
 
-      let unsyncedRecords =
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          var unsyncedRecordIDs = try await userDatabase.write { db in
-            Set(
-              try UnsyncedRecordID.all
-                .fetchAll(db)
-                .map(CKRecord.ID.init(unsyncedRecordID:))
-            )
-          }
-          let modificationRecordIDs = Set(modifications.map(\.recordID))
-          let unsyncedRecordIDsToDelete = modificationRecordIDs.intersection(unsyncedRecordIDs)
-          unsyncedRecordIDs.subtract(modificationRecordIDs)
-          if !unsyncedRecordIDsToDelete.isEmpty {
-            try await userDatabase.write { db in
-              try UnsyncedRecordID
-                .findAll(unsyncedRecordIDsToDelete)
-                .delete()
-                .execute(db)
-            }
-          }
-          let batchSize = 150
-          let orderedUnsyncedRecordIDs = unsyncedRecordIDs.sorted {
-            topologicallyAscending(
-              lhsTableName: $0.tableName,
-              rhsTableName: $1.tableName,
-              rootFirst: true
-            )
-          }
-          var unsyncedRecords: [CKRecord] = []
-          for start in stride(from: 0, to: orderedUnsyncedRecordIDs.count, by: batchSize) {
-            let recordIDsBatch =
-              orderedUnsyncedRecordIDs
-              .dropFirst(start)
-              .prefix(batchSize)
-            let results = try await syncEngine.database.records(for: Array(recordIDsBatch))
-            for (recordID, result) in results {
-              switch result {
-              case .success(let record):
-                unsyncedRecords.append(record)
-              case .failure(let error as CKError) where error.code == .unknownItem:
-                try await userDatabase.write { db in
-                  try UnsyncedRecordID.find(recordID).delete().execute(db)
-                }
-              case .failure:
-                continue
-              }
-            }
-          }
-          return unsyncedRecords
+      let unsyncedRecords: [CKRecord]
+      do {
+        var unsyncedRecordIDs = try await userDatabase.write { db in
+          Set(
+            try UnsyncedRecordID.all
+              .fetchAll(db)
+              .map(CKRecord.ID.init(unsyncedRecordID:))
+          )
         }
-        ?? [CKRecord]()
+        let modificationRecordIDs = Set(modifications.map(\.recordID))
+        let unsyncedRecordIDsToDelete = modificationRecordIDs.intersection(unsyncedRecordIDs)
+        unsyncedRecordIDs.subtract(modificationRecordIDs)
+        if !unsyncedRecordIDsToDelete.isEmpty {
+          try await userDatabase.write { db in
+            try UnsyncedRecordID
+              .findAll(unsyncedRecordIDsToDelete)
+              .delete()
+              .execute(db)
+          }
+        }
+        let batchSize = 150
+        let orderedUnsyncedRecordIDs = unsyncedRecordIDs.sorted {
+          topologicallyAscending(
+            lhsTableName: $0.tableName,
+            rhsTableName: $1.tableName,
+            rootFirst: true
+          )
+        }
+        var records: [CKRecord] = []
+        for start in stride(from: 0, to: orderedUnsyncedRecordIDs.count, by: batchSize) {
+          let recordIDsBatch =
+            orderedUnsyncedRecordIDs
+            .dropFirst(start)
+            .prefix(batchSize)
+          let results = try await syncEngine.database.records(for: Array(recordIDsBatch))
+          for (recordID, result) in results {
+            switch result {
+            case .success(let record):
+              records.append(record)
+            case .failure(let error as CKError) where error.code == .unknownItem:
+              try await userDatabase.write { db in
+                try UnsyncedRecordID.find(recordID).delete().execute(db)
+              }
+            case .failure:
+              continue
+            }
+          }
+        }
+        unsyncedRecords = records
+      } catch {
+        surface(error)
+        unsyncedRecords = []
+      }
 
       let modifications = (modifications + unsyncedRecords).sorted { lhs, rhs in
         topologicallyAscending(
@@ -1589,40 +1561,46 @@
         case share(CKShare)
         case reference(CKShare.Reference)
       }
-      let shares: [ShareOrReference] =
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await userDatabase.write { db in
-            var shares: [ShareOrReference] = []
-            for record in modifications {
-              if let share = record as? CKShare {
-                shares.append(.share(share))
-              } else {
-                upsertFromServerRecord(record, db: db)
-                if let shareReference = record.share {
-                  shares.append(.reference(shareReference))
-                }
+      let shares: [ShareOrReference]
+      do {
+        shares = try await userDatabase.write { db in
+          var shares: [ShareOrReference] = []
+          for record in modifications {
+            if let share = record as? CKShare {
+              shares.append(.share(share))
+            } else {
+              upsertFromServerRecord(record, db: db)
+              if let shareReference = record.share {
+                shares.append(.reference(shareReference))
               }
             }
-            return shares
           }
+          return shares
         }
-        ?? []
+      } catch {
+        surface(error)
+        shares = []
+      }
 
       await withTaskGroup(of: Void.self) { group in
         for share in shares {
           group.addTask {
             switch share {
             case .share(let share):
-              await withErrorReporting(.sqliteDataCloudKitFailure) {
+              do {
                 try await self.cacheShare(share)
+              } catch {
+                self.surface(error)
               }
             case .reference(let shareReference):
               guard
                 let record = try? await syncEngine.database.record(for: shareReference.recordID),
                 let share = record as? CKShare
               else { return }
-              await withErrorReporting(.sqliteDataCloudKitFailure) {
+              do {
                 try await self.cacheShare(share)
+              } catch {
+                self.surface(error)
               }
             }
           }
@@ -1670,13 +1648,15 @@
       }
       for (failedRecord, error) in failedRecordSaves {
         func clearServerRecord() async {
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
+          do {
             try await userDatabase.write { db in
               try SyncMetadata
                 .find(failedRecord.recordID)
                 .update { $0.setLastKnownServerRecord(nil) }
                 .execute(db)
             }
+          } catch {
+            surface(error)
           }
         }
 
@@ -1756,8 +1736,10 @@
               }
             }
           }
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
+          do {
             try await open(table)
+          } catch {
+            surface(error)
           }
 
         case .permissionFailure:
@@ -1781,8 +1763,10 @@
               }
             }
           }
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
+          do {
             try await open(table)
+          } catch {
+            surface(error)
           }
 
         case .batchRequestFailed:
@@ -1807,46 +1791,48 @@
         }
       }
 
-      let enqueuedUnsyncedRecordID =
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await userDatabase.write { db in
-            var enqueuedUnsyncedRecordID = false
-            for (failedRecordID, error) in failedRecordDeletes {
-              switch error.code {
-              case .referenceViolation:
-                enqueuedUnsyncedRecordID = true
-                try UnsyncedRecordID.insert {
-                  UnsyncedRecordID(recordID: failedRecordID)
-                } onConflictDoUpdate: { _ in
-                }
-                .execute(db)
-                syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
-                break
-              case .batchRequestFailed:
-                syncEngine.state.add(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
-                break
-              case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-                .notAuthenticated, .operationCancelled, .internalError, .partialFailure,
-                .badContainer, .requestRateLimited, .missingEntitlement, .invalidArguments,
-                .resultsTruncated, .assetFileNotFound, .assetFileModified, .incompatibleVersion,
-                .constraintViolation, .changeTokenExpired, .badDatabase, .quotaExceeded,
-                .limitExceeded, .userDeletedZone, .tooManyParticipants, .alreadyShared,
-                .managedAccountRestricted, .participantMayNeedVerification, .serverResponseLost,
-                .assetNotAvailable, .accountTemporarilyUnavailable, .permissionFailure,
-                .unknownItem, .serverRecordChanged, .serverRejectedRequest, .zoneNotFound:
-                break
-              #if canImport(FoundationModels)
-                case .participantAlreadyInvited:
-                  break
-              #endif
-              @unknown default:
-                break
+      let enqueuedUnsyncedRecordID: Bool
+      do {
+        enqueuedUnsyncedRecordID = try await userDatabase.write { db in
+          var enqueuedUnsyncedRecordID = false
+          for (failedRecordID, error) in failedRecordDeletes {
+            switch error.code {
+            case .referenceViolation:
+              enqueuedUnsyncedRecordID = true
+              try UnsyncedRecordID.insert {
+                UnsyncedRecordID(recordID: failedRecordID)
+              } onConflictDoUpdate: { _ in
               }
+              .execute(db)
+              syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+              break
+            case .batchRequestFailed:
+              syncEngine.state.add(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+              break
+            case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
+              .notAuthenticated, .operationCancelled, .internalError, .partialFailure,
+              .badContainer, .requestRateLimited, .missingEntitlement, .invalidArguments,
+              .resultsTruncated, .assetFileNotFound, .assetFileModified, .incompatibleVersion,
+              .constraintViolation, .changeTokenExpired, .badDatabase, .quotaExceeded,
+              .limitExceeded, .userDeletedZone, .tooManyParticipants, .alreadyShared,
+              .managedAccountRestricted, .participantMayNeedVerification, .serverResponseLost,
+              .assetNotAvailable, .accountTemporarilyUnavailable, .permissionFailure,
+              .unknownItem, .serverRecordChanged, .serverRejectedRequest, .zoneNotFound:
+              break
+            #if canImport(FoundationModels)
+              case .participantAlreadyInvited:
+                break
+            #endif
+            @unknown default:
+              break
             }
-            return enqueuedUnsyncedRecordID
           }
+          return enqueuedUnsyncedRecordID
         }
-        ?? false
+      } catch {
+        surface(error)
+        enqueuedUnsyncedRecordID = false
+      }
       if enqueuedUnsyncedRecordID {
         await handleFetchedRecordZoneChanges(syncEngine: syncEngine)
       }
@@ -1899,10 +1885,12 @@
       _ serverRecord: CKRecord,
       force: Bool = false
     ) async {
-      await withErrorReporting(.sqliteDataCloudKitFailure) {
+      do {
         try await userDatabase.write { db in
           upsertFromServerRecord(serverRecord, force: force, db: db)
         }
+      } catch {
+        surface(error)
       }
     }
 
@@ -1911,7 +1899,7 @@
       force: Bool = false,
       db: Database
     ) {
-      withErrorReporting(.sqliteDataCloudKitFailure) {
+      do {
         guard
           let recordPrimaryKey = serverRecord.recordID.recordPrimaryKey,
           serverRecord.encryptedValues[CKRecord.userModificationTimeKey] != nil
@@ -1959,19 +1947,32 @@
             let allFields = metadata._lastKnownServerRecordAllFields,
             let row = try T.unscoped.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
           {
-            serverRecord.update(
-              with: allFields,
-              row: T(queryOutput: row),
-              columnNames: &columnNames,
-              parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
-                ? foreignKeysByTableName[T.tableName]?.first
-                : nil
-            )
+            do {
+              try serverRecord.update(
+                with: allFields,
+                row: T(queryOutput: row),
+                columnNames: &columnNames,
+                parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
+                  ? foreignKeysByTableName[T.tableName]?.first
+                  : nil,
+                dataManager: dataManager
+              )
+            } catch {
+              surface(error)
+            }
           }
 
           do {
             try $_currentZoneID.withValue(serverRecord.recordID.zoneID) {
-              try #sql(upsert(table, record: serverRecord, columnNames: columnNames)).execute(db)
+              try #sql(
+                upsert(
+                  table,
+                  record: serverRecord,
+                  columnNames: columnNames,
+                  dataManager: dataManager
+                )
+              )
+              .execute(db)
             }
             try UnsyncedRecordID.find(serverRecord.recordID).delete().execute(db)
             try SyncMetadata
@@ -1994,11 +1995,13 @@
           }
         }
         try open(table)
+      } catch {
+        surface(error)
       }
     }
 
     private func refreshLastKnownServerRecord(_ record: CKRecord) async {
-      await withErrorReporting(.sqliteDataCloudKitFailure) {
+      do {
         try await userDatabase.write { db in
           let metadata = try SyncMetadata.find(record.recordID).fetchOne(db)
           func updateLastKnownServerRecord() throws {
@@ -2016,6 +2019,8 @@
             try updateLastKnownServerRecord()
           }
         }
+      } catch {
+        surface(error)
       }
     }
 
@@ -2047,14 +2052,12 @@
       query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
       query.append(") VALUES (")
       query.append(
-        columnNames
+        try columnNames
           .map { columnName in
             if let asset = record[columnName] as? CKAsset {
-              let data = try? asset.fileURL.map { try dataManager.wrappedValue.load($0) }
-              if data == nil {
-                reportIssue("Asset data not found on disk")
-              }
-              return data?.queryFragment ?? "NULL"
+              guard let data = try? asset.fileURL.map({ try dataManager.load($0) })
+              else { throw Error.assetDataNotFound(column: columnName) }
+              return data.queryFragment
             } else {
               return record.encryptedValues[columnName]?.queryFragment ?? "NULL"
             }
@@ -2064,15 +2067,12 @@
       query.append(") ON CONFLICT(\(quote: T.primaryKey.name)) DO UPDATE SET ")
       query.append(" ")
       query.append(
-        nonPrimaryKeyChangedColumns
+        try nonPrimaryKeyChangedColumns
           .map { columnName in
             if let asset = record[columnName] as? CKAsset {
-              let data = try? asset.fileURL.map { try dataManager.wrappedValue.load($0) }
-              if data == nil {
-                reportIssue("Asset data not found on disk")
-              }
-              return
-                "\(quote: columnName) = \(data?.queryFragment ?? #""excluded".\#(quote: columnName)"#)"
+              guard let data = try? asset.fileURL.map({ try dataManager.load($0) })
+              else { throw Error.assetDataNotFound(column: columnName) }
+              return "\(quote: columnName) = \(data.queryFragment)"
             } else {
               return """
                 \(quote: columnName) = \
@@ -2174,9 +2174,7 @@
     package var `private`: (any SyncEngineProtocol)? {
       guard let `private` = rawValue?.private
       else {
-        if isRunning {
-          reportIssue("Private sync engine has not been set.")
-        }
+        precondition(!isRunning, "Private sync engine has not been set.")
         return nil
       }
       return `private`
@@ -2184,9 +2182,7 @@
     package var `shared`: (any SyncEngineProtocol)? {
       guard let `shared` = rawValue?.shared
       else {
-        if isRunning {
-          reportIssue("Shared sync engine has not been set.")
-        }
+        precondition(!isRunning, "Shared sync engine has not been set.")
         return nil
       }
       return `shared`
@@ -2194,31 +2190,10 @@
   }
 
   extension Database {
-    /// Attaches the metadatabase to an existing database connection.
-    ///
-    /// Invoke this method when preparing your database connection in order to allow querying the
-    /// ``SyncMetadata`` table (see <doc:CloudKitSync#Accessing-CloudKit-metadata> for more info):
-    ///
-    /// ```swift
-    /// func appDatabase() -> any DatabaseWriter {
-    ///   var configuration = Configuration()
-    ///   configuration.prepareDatabase = { db in
-    ///     db.attachMetadatabase()
-    ///     …
-    ///   }
-    /// }
-    /// ```
-    ///
-    /// By default this method will use the container identifier assigned in your app's
-    /// entitlements. If you wish to use a different container identifier then you can provide
-    /// the `containerIdentifier` argument.
-    ///
-    /// See <doc:PreparingDatabase> for more information on preparing your database.
-    ///
-    /// - Parameter containerIdentifier: The identifier of the CloudKit container used to
-    /// synchronize data. Defaults to the value set in the app's entitlements.
-    public func attachMetadatabase(containerIdentifier: String? = nil) throws {
-      @Dependency(\.context) var context
+    public func attachMetadatabase(
+      containerIdentifier: String? = nil,
+      context: SyncEngine.Context = .live
+    ) throws {
       let containerIdentifier =
         containerIdentifier
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
@@ -2381,12 +2356,12 @@
     }
   }
 
-  private func tablesByOrder(
+  private func topologicalOrder(
     userDatabase: UserDatabase,
     tables: [any SynchronizableTable],
     tablesByName: [String: any SynchronizableTable]
   ) throws -> [String: Int] {
-    let tableDependencies = try userDatabase.read { db in
+    let referencedTablesByTable = try userDatabase.read { db in
       var dependencies: OrderedDictionary<HashableSynchronizedTable, [any SynchronizableTable]> =
         [:]
       for table in tables {
@@ -2409,7 +2384,7 @@
     var visited = Set<HashableSynchronizedTable>()
     var marked = Set<HashableSynchronizedTable>()
     var result: [String: Int] = [:]
-    for table in tableDependencies.keys {
+    for table in referencedTablesByTable.keys {
       try visit(table: table)
     }
     return result
@@ -2428,7 +2403,7 @@
       }
 
       marked.insert(table)
-      for dependency in tableDependencies[table] ?? [] {
+      for dependency in referencedTablesByTable[table] ?? [] {
         try visit(table: HashableSynchronizedTable(dependency))
       }
       marked.remove(table)
@@ -2456,7 +2431,8 @@
   private func upsert<T>(
     _: some SynchronizableTable<T>,
     record: CKRecord,
-    columnNames: some Collection<String>
+    columnNames: some Collection<String>,
+    dataManager: some DataManager
   ) -> QueryFragment {
     let setColumnNames = T.TableColumns.writableColumns.map(\.name)
       .filter { record.hasSet(key: $0) }
@@ -2473,7 +2449,6 @@
       setColumnNames
         .map { columnName in
           if let asset = record[columnName] as? CKAsset {
-            @Dependency(\.dataManager) var dataManager
             return (try? asset.fileURL.map { try dataManager.load($0) })?
               .queryFragment ?? "NULL"
           } else {

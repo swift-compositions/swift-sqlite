@@ -1,25 +1,25 @@
 #if CloudKit
 #if canImport(CloudKit) && canImport(CryptoKit)
-  package import ConcurrencyExtras
   import CryptoKit
-  import Dependencies
-  package import Foundation
+  public import Foundation
+  package import Synchronization
 
-  package protocol DataManager: Sendable {
+  public protocol DataManager: Sendable {
     func load(_ url: URL) throws -> Data
     func save(_ data: Data, to url: URL) throws
     func sha256(of fileURL: URL) -> Data?
     var temporaryDirectory: URL { get }
   }
 
-  struct LiveDataManager: DataManager {
-    func load(_ url: URL) throws -> Data {
+  public struct LiveDataManager: DataManager {
+    public init() {}
+    public func load(_ url: URL) throws -> Data {
       try Data(contentsOf: url)
     }
-    func save(_ data: Data, to url: URL) throws {
+    public func save(_ data: Data, to url: URL) throws {
       try data.write(to: url)
     }
-    func sha256(of fileURL: URL) -> Data? {
+    public func sha256(of fileURL: URL) -> Data? {
       do {
         let fileHandle = try FileHandle(forReadingFrom: fileURL)
         defer { try? fileHandle.close() }
@@ -42,18 +42,18 @@
         return nil
       }
     }
-    var temporaryDirectory: URL {
+    public var temporaryDirectory: URL {
       URL(fileURLWithPath: NSTemporaryDirectory())
     }
   }
 
-  package struct InMemoryDataManager: DataManager {
-    package let storage = LockIsolated<[URL: Data]>([:])
+  public final class InMemoryDataManager: DataManager {
+    package let storage = Mutex<[URL: Data]>([:])
 
-    package init() {}
+    public init() {}
 
-    package func load(_ url: URL) throws -> Data {
-      try storage.withValue { storage in
+    public func load(_ url: URL) throws -> Data {
+      try storage.withLock { storage throws -> Data in
         guard let data = storage[url]
         else {
           struct FileNotFound: Error {}
@@ -63,39 +63,20 @@
       }
     }
 
-    package func save(_ data: Data, to url: URL) throws {
-      storage.withValue { $0[url] = data }
+    public func save(_ data: Data, to url: URL) throws {
+      storage.withLock { $0[url] = data }
     }
 
-    package func sha256(of fileURL: URL) -> Data? {
-      storage.withValue {
+    public func sha256(of fileURL: URL) -> Data? {
+      storage.withLock {
         $0[fileURL].map {
           Data(SHA256.hash(data: $0))
         }
       }
     }
 
-    package var temporaryDirectory: URL {
+    public var temporaryDirectory: URL {
       URL(fileURLWithPath: "/tmp")
-    }
-  }
-
-  private enum DataManagerKey: DependencyKey {
-    static var liveValue: any DataManager {
-      LiveDataManager()
-    }
-    static var previewValue: any DataManager {
-      InMemoryDataManager()
-    }
-    static var testValue: any DataManager {
-      InMemoryDataManager()
-    }
-  }
-
-  extension DependencyValues {
-    package var dataManager: any DataManager {
-      get { self[DataManagerKey.self] }
-      set { self[DataManagerKey.self] = newValue }
     }
   }
 #endif

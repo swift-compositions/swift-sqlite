@@ -2,8 +2,7 @@
 #if canImport(CloudKit)
   import CloudKit
   import Foundation
-  import StructuredQueries
-  import StructuredQueriesSQLite
+  import SQL
 
   extension PrimaryKeyedTable {
     static func metadataTriggers(
@@ -168,11 +167,11 @@
 
   extension SyncMetadata {
     fileprivate static func insert<T: PrimaryKeyedTable, Name>(
-      new: StructuredQueriesCore.TableAlias<T, Name>.TableColumns,
+      new: SQL.TableAlias<T, Name>.TableColumns,
       parentForeignKey: ForeignKey?,
       defaultZone: CKRecordZone,
       privateTables: [any SynchronizableTable]
-    ) -> some StructuredQueriesCore.Statement {
+    ) -> some SQL.Statement {
       let (parentRecordPrimaryKey, parentRecordType, zoneName, ownerName) = parentFields(
         alias: new,
         parentForeignKey: parentForeignKey,
@@ -210,11 +209,11 @@
     }
 
     fileprivate static func update<T: PrimaryKeyedTable, Name>(
-      new: StructuredQueriesCore.TableAlias<T, Name>.TableColumns,
+      new: SQL.TableAlias<T, Name>.TableColumns,
       parentForeignKey: ForeignKey?,
       defaultZone: CKRecordZone,
       privateTables: [any SynchronizableTable]
-    ) -> some StructuredQueriesCore.Statement {
+    ) -> some SQL.Statement {
       let (parentRecordPrimaryKey, parentRecordType, zoneName, ownerName) = parentFields(
         alias: new,
         parentForeignKey: parentForeignKey,
@@ -230,7 +229,7 @@
         $0.ownerName = ownerName ?? $0.ownerName
         $0.parentRecordPrimaryKey = parentRecordPrimaryKey
         $0.parentRecordType = parentRecordType
-        $0.userModificationTime = $currentTime()
+        $0.userModificationTime = #sql("sqlitedata_icloud_currentTime()")
       }
     }
   }
@@ -351,7 +350,7 @@
   }
 
   private func parentFields<Base, Name>(
-    alias: StructuredQueriesCore.TableAlias<Base, Name>.TableColumns,
+    alias: SQL.TableAlias<Base, Name>.TableColumns,
     parentForeignKey: ForeignKey?,
     defaultZone: CKRecordZone,
     privateTables: [any SynchronizableTable]
@@ -403,7 +402,7 @@
 
   private func validate(
     recordName: some QueryExpression<String>
-  ) -> some StructuredQueriesCore.Statement<Never> {
+  ) -> some SQL.Statement<Never> {
     #sql(
       """
       SELECT RAISE(ABORT, \(quote: SyncEngine.invalidRecordNameError, delimiter: .text))
@@ -414,11 +413,11 @@
   }
 
   private func checkWritePermissions<Base, Name>(
-    alias: StructuredQueriesCore.TableAlias<Base, Name>.TableColumns,
+    alias: SQL.TableAlias<Base, Name>.TableColumns,
     parentForeignKey: ForeignKey?,
     defaultZone: CKRecordZone,
     privateTables: [any SynchronizableTable]
-  ) -> some StructuredQueriesCore.Statement<Never> {
+  ) -> some SQL.Statement<Never> {
     let (parentRecordPrimaryKey, parentRecordType, _, _) = parentFields(
       alias: alias,
       parentForeignKey: parentForeignKey,

@@ -1,9 +1,7 @@
 #if CloudKit
 #if canImport(CloudKit)
   package import CloudKit
-#if EXCLUDE_EXPORTS
-  package import StructuredQueries
-#endif
+  package import SQL
 
   @Table("sqlitedata_icloud_stateSerialization")
   package struct StateSerialization {

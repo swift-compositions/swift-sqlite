@@ -1,11 +1,11 @@
 #if CloudKit
 #if canImport(CloudKit)
-  package import ConcurrencyExtras
   package import CloudKit
-  import Dependencies
+  package import Synchronization
 
   package final class MockCloudContainer: CloudContainer {
-    package let _accountStatus: LockIsolated<CKAccountStatus>
+    package static let containers = Mutex<[String: MockCloudContainer]>([:])
+    package let _accountStatus: Mutex<CKAccountStatus>
     package let containerIdentifier: String?
     package let privateCloudDatabase: MockCloudDatabase
     package let sharedCloudDatabase: MockCloudDatabase
@@ -16,20 +16,17 @@
       privateCloudDatabase: MockCloudDatabase,
       sharedCloudDatabase: MockCloudDatabase
     ) {
-      self._accountStatus = LockIsolated(accountStatus)
+      self._accountStatus = Mutex(accountStatus)
       self.containerIdentifier = containerIdentifier
       self.privateCloudDatabase = privateCloudDatabase
       self.sharedCloudDatabase = sharedCloudDatabase
 
       guard let containerIdentifier else { return }
-      @Dependency(\.mockCloudContainers) var mockCloudContainers
-      mockCloudContainers.withValue { storage in
-        storage[containerIdentifier] = self
-      }
+      Self.containers.withLock { $0[containerIdentifier] = self }
     }
 
     package func accountStatus() -> CKAccountStatus {
-      _accountStatus.withValue(\.self)
+      _accountStatus.withLock { $0 }
     }
 
     package var rawValue: CKContainer {
@@ -37,7 +34,7 @@
     }
 
     package func accountStatus() async throws -> CKAccountStatus {
-      _accountStatus.withValue { $0 }
+      _accountStatus.withLock { $0 }
     }
 
     package func shareMetadata(
@@ -49,7 +46,7 @@
         ? privateCloudDatabase
         : sharedCloudDatabase
 
-      let rootRecord: CKRecord? = database.state.withValue {
+      let rootRecord: CKRecord? = database.state.withLock {
         $0.storage[share.recordID.zoneID]?.records.values.first { record in
           record.share?.recordID == share.recordID
         }?
@@ -80,13 +77,9 @@
     package static func createContainer(identifier containerIdentifier: String)
       -> MockCloudContainer
     {
-      @Dependency(\.mockCloudContainers) var mockCloudContainers
-      return mockCloudContainers.withValue { storage in
-        let container: MockCloudContainer
-        if let existingContainer = storage[containerIdentifier] {
-          return existingContainer
-        } else {
-          container = MockCloudContainer(
+      containers.withLock { $0[containerIdentifier] }
+        ?? {
+          let container = MockCloudContainer(
             accountStatus: .available,
             containerIdentifier: containerIdentifier,
             privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
@@ -94,10 +87,8 @@
           )
           container.privateCloudDatabase.set(container: container)
           container.sharedCloudDatabase.set(container: container)
-        }
-        storage[containerIdentifier] = container
-        return container
-      }
+          return container
+        }()
     }
 
     package static func == (lhs: MockCloudContainer, rhs: MockCloudContainer) -> Bool {
@@ -106,26 +97,6 @@
 
     package func hash(into hasher: inout Hasher) {
       hasher.combine(ObjectIdentifier(self))
-    }
-  }
-
-  private enum MockCloudContainersKey: DependencyKey {
-    static var liveValue: LockIsolated<[String: MockCloudContainer]> {
-      LockIsolated<[String: MockCloudContainer]>([:])
-    }
-    static var testValue: LockIsolated<[String: MockCloudContainer]> {
-      LockIsolated<[String: MockCloudContainer]>([:])
-    }
-  }
-
-  extension DependencyValues {
-    fileprivate var mockCloudContainers: LockIsolated<[String: MockCloudContainer]> {
-      get {
-        self[MockCloudContainersKey.self]
-      }
-      set {
-        self[MockCloudContainersKey.self] = newValue
-      }
     }
   }
 #endif

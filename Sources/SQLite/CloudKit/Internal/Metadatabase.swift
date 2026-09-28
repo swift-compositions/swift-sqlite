@@ -1,15 +1,15 @@
 #if CloudKit
 #if canImport(CloudKit)
-  import Dependencies
   import GRDB
   import Foundation
   import os
-  import StructuredQueries
+  import SQL
 
   func defaultMetadatabase(
     logger: Logger,
     url: URL,
-    configuration: Configuration
+    configuration: Configuration,
+    context: SyncEngine.Context
   ) throws -> any DatabaseWriter {
     logger.debug(
       """
@@ -18,7 +18,6 @@
       """
     )
 
-    @Dependency(\.context) var context
     guard !url.isInMemory || context != .live
     else {
       struct InMemoryDatabase: Error {}
@@ -62,7 +61,7 @@
           "share" BLOB,
           "hasLastKnownServerRecord" INTEGER NOT NULL AS ("lastKnownServerRecord" IS NOT NULL),
           "isShared" INTEGER NOT NULL AS ("share" IS NOT NULL),
-          "userModificationTime" INTEGER NOT NULL DEFAULT (\($currentTime())),
+          "userModificationTime" INTEGER NOT NULL DEFAULT ("sqlitedata_icloud_currentTime"()),
           "_isDeleted" INTEGER NOT NULL DEFAULT 0,
 
           PRIMARY KEY ("recordPrimaryKey", "recordType"),

@@ -58,15 +58,15 @@ extension QueryExpression where QueryValue: _SQLiteDateRepresentation {
   }
 }
 
-extension QueryExpression where Self == _ModifiedDate<Instant> {
+extension QueryExpression where Self == _ModifiedDate<Time.Instant> {
   public static var now: Self { Self() }
 }
 
-extension QueryExpression where Self == _ModifiedDate<Instant.UnixTimeRepresentation> {
+extension QueryExpression where Self == _ModifiedDate<Time.Instant.UnixTimeRepresentation> {
   public static var now: Self { Self() }
 }
 
-extension QueryExpression where Self == _ModifiedDate<Instant.JulianDayRepresentation> {
+extension QueryExpression where Self == _ModifiedDate<Time.Instant.JulianDayRepresentation> {
   public static var now: Self { Self() }
 }
 
@@ -163,7 +163,7 @@ public struct DateTimeModifier: Sendable {
   }
 }
 
-public protocol _SQLiteDateRepresentation: QueryRepresentable where QueryOutput == Instant {
+public protocol _SQLiteDateRepresentation: QueryRepresentable where QueryOutput == Time.Instant {
   static var _timeValueModifiers: [ISO_9075.Fragment] { get }
   static func _dateStorage(_ arguments: [ISO_9075.Fragment]) -> ISO_9075.Fragment
 }
@@ -185,7 +185,7 @@ public struct _ModifiedDate<QueryValue: _SQLiteDateRepresentation>: QueryExpress
   }
 }
 
-extension Instant: _SQLiteDateRepresentation {
+extension Time.Instant: _SQLiteDateRepresentation {
   public static var _timeValueModifiers: [ISO_9075.Fragment] { [] }
   public static func _dateStorage(_ arguments: [ISO_9075.Fragment]) -> ISO_9075.Fragment {
     subsecDateTime(arguments)
@@ -196,14 +196,14 @@ func subsecDateTime(_ arguments: [ISO_9075.Fragment] = []) -> ISO_9075.Fragment 
   return "datetime(\((arguments + ["'subsec'"]).joined(separator: ", ")))"
 }
 
-extension Instant.UnixTimeRepresentation: _SQLiteDateRepresentation {
+extension Time.Instant.UnixTimeRepresentation: _SQLiteDateRepresentation {
   public static var _timeValueModifiers: [ISO_9075.Fragment] { ["'unixepoch'"] }
   public static func _dateStorage(_ arguments: [ISO_9075.Fragment]) -> ISO_9075.Fragment {
     "unixepoch(\(arguments.joined(separator: ", ")))"
   }
 }
 
-extension Instant.JulianDayRepresentation: _SQLiteDateRepresentation {
+extension Time.Instant.JulianDayRepresentation: _SQLiteDateRepresentation {
   public static var _timeValueModifiers: [ISO_9075.Fragment] { [] }
   public static func _dateStorage(_ arguments: [ISO_9075.Fragment]) -> ISO_9075.Fragment {
     "julianday(\(arguments.joined(separator: ", ")))"

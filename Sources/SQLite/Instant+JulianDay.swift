@@ -2,11 +2,11 @@ public import ISO_9075_Foundation
 public import SQL
 public import Time
 
-extension Instant {
+extension Time.Instant {
     public struct JulianDayRepresentation: QueryRepresentable, Sendable {
-        public var queryOutput: Instant
+        public var queryOutput: Time.Instant
 
-        public init(queryOutput: Instant) {
+        public init(queryOutput: Time.Instant) {
             self.queryOutput = queryOutput
         }
 
@@ -20,7 +20,7 @@ extension Instant {
     }
 }
 
-extension Instant.JulianDayRepresentation: QueryBindable {
+extension Time.Instant.JulianDayRepresentation: QueryBindable {
     public var queryBinding: ISO_9075.Value {
         .double(
             2_440_587.5
@@ -30,17 +30,17 @@ extension Instant.JulianDayRepresentation: QueryBindable {
     }
 }
 
-extension Instant.JulianDayRepresentation: QueryDecodable {
+extension Time.Instant.JulianDayRepresentation: QueryDecodable {
     public init(decoder: inout some QueryDecoder) throws(QueryDecodingError) {
-        self.init(queryOutput: Instant(secondsSinceUnixEpoch: (try Double(decoder: &decoder) - 2_440_587.5) * 86_400))
+        self.init(queryOutput: Time.Instant(secondsSinceUnixEpoch: (try Double(decoder: &decoder) - 2_440_587.5) * 86_400))
     }
 }
 
-extension Instant.JulianDayRepresentation: SQLiteType {
+extension Time.Instant.JulianDayRepresentation: SQLiteType {
     public static var typeAffinity: SQLiteTypeAffinity { Double.typeAffinity }
 }
 
-extension Instant {
+extension Time.Instant {
     init(secondsSinceUnixEpoch seconds: Double) {
         let whole = seconds.rounded(.down)
         self.init(

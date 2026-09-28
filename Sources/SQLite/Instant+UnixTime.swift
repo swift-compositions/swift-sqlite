@@ -2,11 +2,11 @@ public import ISO_9075_Foundation
 public import SQL
 public import Time
 
-extension Instant {
+extension Time.Instant {
     public struct UnixTimeRepresentation: QueryRepresentable, Sendable {
-        public var queryOutput: Instant
+        public var queryOutput: Time.Instant
 
-        public init(queryOutput: Instant) {
+        public init(queryOutput: Time.Instant) {
             self.queryOutput = queryOutput
         }
 
@@ -20,16 +20,16 @@ extension Instant {
     }
 }
 
-extension Instant.UnixTimeRepresentation: QueryBindable {
+extension Time.Instant.UnixTimeRepresentation: QueryBindable {
     public var queryBinding: ISO_9075.Value { .int(queryOutput.secondsSinceUnixEpoch) }
 }
 
-extension Instant.UnixTimeRepresentation: QueryDecodable {
+extension Time.Instant.UnixTimeRepresentation: QueryDecodable {
     public init(decoder: inout some QueryDecoder) throws(QueryDecodingError) {
-        self.init(queryOutput: Instant(secondsSinceUnixEpoch: try Int64(decoder: &decoder)))
+        self.init(queryOutput: Time.Instant(secondsSinceUnixEpoch: try Int64(decoder: &decoder)))
     }
 }
 
-extension Instant.UnixTimeRepresentation: SQLiteType {
+extension Time.Instant.UnixTimeRepresentation: SQLiteType {
     public static var typeAffinity: SQLiteTypeAffinity { Int.typeAffinity }
 }

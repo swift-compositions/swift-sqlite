@@ -2,29 +2,28 @@
 #if canImport(CloudKit) && canImport(CryptoKit)
   import CryptoKit
   public import Foundation
+  public import GRDB
+  public import RFC_4122
   public import SQL
-
-  #if EXCLUDE_EXPORTS
-    // NB: This 'public import' breaks the '@_exported import'.
-    public import class GRDB.Database
-  #endif
+  import SQL_Macros
 
   extension SyncEngine {
     public static func migratePrimaryKeys<each T: PrimaryKeyedTable>(
       _ db: Database,
       tables: repeat (each T).Type,
       dropUniqueConstraints: Bool = false,
-      uuid uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil
+      uuid uuidFunction: (any ScalarDatabaseFunction<(), RFC_4122.UUID>)? = nil
     ) throws
     where
       repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible,
       repeat (each T).TableColumns.PrimaryColumn: TableColumnExpression
     {
-      let salt =
-        (try uuidFunction.flatMap { uuid -> UUID? in
-          try #sql("SELECT \(quote: uuid.name)()", as: UUID.self).fetchOne(db)
+      let salt = String(
+        try uuidFunction.flatMap { uuid -> RFC_4122.UUID? in
+          try #sql("SELECT \(quote: uuid.name)()", as: RFC_4122.UUID.self).fetchOne(db)
         }
-        ?? UUID()).uuidString
+          ?? RFC_4122.UUID.v4()
+      )
 
       db.add(function: $backfillUUID)
       defer { db.remove(function: $backfillUUID) }
@@ -53,7 +52,7 @@
         )
       }
       for sql in indicesAndTriggersSQL {
-        try #sql(QueryFragment(stringLiteral: sql)).execute(db)
+        try #sql(ISO_9075.Fragment(sql)).execute(db)
       }
 
       let foreignKeyChecks = try PragmaForeignKeyCheck.all.fetchAll(db)
@@ -91,7 +90,7 @@
     fileprivate static func migratePrimaryKeyToUUID(
       db: Database,
       dropUniqueConstraints: Bool,
-      uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil,
+      uuidFunction: (any ScalarDatabaseFunction<(), RFC_4122.UUID>)? = nil,
       migratedTableNames: [String],
       salt: String
     ) throws {
@@ -137,14 +136,14 @@
       )
 
       var newColumns: [String] = []
-      var convertedColumns: [QueryFragment] = []
+      var convertedColumns: [ISO_9075.Fragment] = []
       if primaryKeys.first == nil {
         convertedColumns.append("NULL")
         newColumns.append(columns.primaryKey.name)
       }
       newColumns.append(contentsOf: tableInfo.map(\.name))
       convertedColumns.append(
-        contentsOf: tableInfo.map { tableInfo -> QueryFragment in
+        contentsOf: tableInfo.map { tableInfo -> ISO_9075.Fragment in
           if tableInfo.name == primaryKey.name, tableInfo.isInt {
             return $backfillUUID(id: #sql("\(quote: tableInfo.name)"), table: tableName, salt: salt)
               .queryFragment
@@ -158,12 +157,12 @@
             )
             .queryFragment
           } else {
-            return QueryFragment(quote: tableInfo.name)
+            return ISO_9075.Fragment(quote: tableInfo.name)
           }
         }
       )
 
-      try #sql(QueryFragment(stringLiteral: newSchema)).execute(db)
+      try #sql(ISO_9075.Fragment(newSchema)).execute(db)
       try #sql(
         """
         INSERT INTO \(quote: newTableName) \
@@ -530,11 +529,11 @@
     "TEXT", "VARCHAR",
   ]
 
-  @DatabaseFunction("sqlitedata_icloud_backfillUUID")
-  private func backfillUUID(id: Int, table: String, salt: String) -> UUID {
+  @DatabaseFunction("sqlite_icloud_backfillUUID")
+  private func backfillUUID(id: Int, table: String, salt: String) -> RFC_4122.UUID {
     return Insecure.MD5.hash(data: Data("\(table):\(id):\(salt)".utf8)).withUnsafeBytes { ptr in
-      UUID(
-        uuid: (
+      RFC_4122.UUID(
+        bytes: (
           ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5], ptr[6], ptr[7], ptr[8],
           ptr[9], ptr[10], ptr[11], ptr[12], ptr[13], ptr[14], ptr[15]
         )

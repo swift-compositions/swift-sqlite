@@ -3,6 +3,7 @@
   import CloudKit
   import Foundation
   import SQL
+  import SQL_Macros
 
   extension PrimaryKeyedTable {
     static func metadataTriggers(
@@ -41,7 +42,7 @@
       privateTables: [any SynchronizableTable]
     ) -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
-        "\(String.sqliteDataCloudKitSchemaName)_after_primary_key_change_on_\(tableName)",
+        "\(String.sqliteCloudKitSchemaName)_after_primary_key_change_on_\(tableName)",
         ifNotExists: true,
         after: .update(of: \.primaryKey) { old, new in
           checkWritePermissions(
@@ -68,7 +69,7 @@
       privateTables: [any SynchronizableTable]
     ) -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
-        "\(String.sqliteDataCloudKitSchemaName)_after_insert_on_\(tableName)",
+        "\(String.sqliteCloudKitSchemaName)_after_insert_on_\(tableName)",
         ifNotExists: true,
         after: .insert { new in
           checkWritePermissions(
@@ -93,7 +94,7 @@
       privateTables: [any SynchronizableTable]
     ) -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
-        "\(String.sqliteDataCloudKitSchemaName)_after_update_on_\(tableName)",
+        "\(String.sqliteCloudKitSchemaName)_after_update_on_\(tableName)",
         ifNotExists: true,
         after: .update { _, new in
           checkWritePermissions(
@@ -126,7 +127,7 @@
       Self
     > {
       createTemporaryTrigger(
-        "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_\(tableName)_from_user",
+        "\(String.sqliteCloudKitSchemaName)_after_delete_on_\(tableName)_from_user",
         ifNotExists: true,
         after: .delete { old in
           checkWritePermissions(
@@ -149,7 +150,7 @@
 
     fileprivate static var afterDeleteFromSyncEngine: TemporaryTrigger<Self> {
       createTemporaryTrigger(
-        "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_\(tableName)_from_sync_engine",
+        "\(String.sqliteCloudKitSchemaName)_after_delete_on_\(tableName)_from_sync_engine",
         ifNotExists: true,
         after: .delete { old in
           SyncMetadata
@@ -179,11 +180,11 @@
         privateTables: privateTables
       )
       let defaultZoneName = #sql(
-        "\(quote: defaultZone.zoneID.zoneName, delimiter: .text)",
+        "\(text: defaultZone.zoneID.zoneName)",
         as: String.self
       )
       let defaultOwnerName = #sql(
-        "\(quote: defaultZone.zoneID.ownerName, delimiter: .text)",
+        "\(text: defaultZone.zoneID.ownerName)",
         as: String.self
       )
       return insert {
@@ -229,7 +230,7 @@
         $0.ownerName = ownerName ?? $0.ownerName
         $0.parentRecordPrimaryKey = parentRecordPrimaryKey
         $0.parentRecordType = parentRecordType
-        $0.userModificationTime = #sql("sqlitedata_icloud_currentTime()")
+        $0.userModificationTime = #sql("sqlite_icloud_currentTime()")
       }
     }
   }
@@ -247,7 +248,7 @@
     fileprivate static func afterInsertTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self>
     {
       createTemporaryTrigger(
-        "\(String.sqliteDataCloudKitSchemaName)_after_insert_on_sqlitedata_icloud_metadata",
+        "\(String.sqliteCloudKitSchemaName)_after_insert_on_sqlite_icloud_metadata",
         ifNotExists: true,
         after: .insert { new in
           validate(recordName: new.recordName)
@@ -269,7 +270,7 @@
 
     fileprivate static func afterZoneUpdateTrigger() -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
-        "\(String.sqliteDataCloudKitSchemaName)_after_zone_update_on_sqlitedata_icloud_metadata",
+        "\(String.sqliteCloudKitSchemaName)_after_zone_update_on_sqlite_icloud_metadata",
         ifNotExists: true,
         after: .update {
           ($0.zoneName, $0.ownerName)
@@ -299,7 +300,7 @@
     fileprivate static func afterUpdateTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self>
     {
       createTemporaryTrigger(
-        "\(String.sqliteDataCloudKitSchemaName)_after_update_on_sqlitedata_icloud_metadata",
+        "\(String.sqliteCloudKitSchemaName)_after_update_on_sqlite_icloud_metadata",
         ifNotExists: true,
         after: .update { old, new in
           let zoneChanged = new.zoneName.neq(old.zoneName) || new.ownerName.neq(old.ownerName)
@@ -331,7 +332,7 @@
       for syncEngine: SyncEngine
     ) -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
-        "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_sqlitedata_icloud_metadata",
+        "\(String.sqliteCloudKitSchemaName)_after_delete_on_sqlite_icloud_metadata",
         ifNotExists: true,
         after: .update(of: \._isDeleted) { _, new in
           Values(
@@ -363,8 +364,8 @@
     let zoneNameOverride: SQLQueryExpression<String?>
     let ownerNameOverride: SQLQueryExpression<String?>
     if privateTables.contains(where: { $0.base.tableName == Base.tableName }) {
-      zoneNameOverride = #sql("\(quote: defaultZone.zoneID.zoneName, delimiter: .text)")
-      ownerNameOverride = #sql("\(quote: defaultZone.zoneID.ownerName, delimiter: .text)")
+      zoneNameOverride = #sql("\(text: defaultZone.zoneID.zoneName)")
+      ownerNameOverride = #sql("\(text: defaultZone.zoneID.ownerName)")
     } else {
       zoneNameOverride = #sql("NULL")
       ownerNameOverride = #sql("NULL")
@@ -405,7 +406,7 @@
   ) -> some SQL.Statement<Never> {
     #sql(
       """
-      SELECT RAISE(ABORT, \(quote: SyncEngine.invalidRecordNameError, delimiter: .text))
+      SELECT RAISE(ABORT, \(text: SyncEngine.invalidRecordNameError))
       WHERE NOT \(recordName.isValidCloudKitRecordName)
       """,
       as: Never.self
@@ -444,7 +445,7 @@
       RootShare
         .select { _ in
           #sql(
-            "RAISE(ABORT, \(quote: SyncEngine.writePermissionError, delimiter: .text))",
+            "RAISE(ABORT, \(text: SyncEngine.writePermissionError))",
             as: Never.self
           )
         }

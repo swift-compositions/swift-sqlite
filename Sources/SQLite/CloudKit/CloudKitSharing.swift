@@ -3,6 +3,7 @@
   public import CloudKit
   import GRDB
   public import SQL
+  import SQL_Macros
 
   #if canImport(SwiftUI) && canImport(UIKit) && !os(tvOS) && !os(watchOS)
     public import SwiftUI

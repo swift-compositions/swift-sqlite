@@ -1,11 +1,6 @@
 #if CloudKit
-public import Foundation
+public import RFC_4122
 
-/// A type that can be represented by a string identifier.
-///
-/// A requirement of tables synchronized to CloudKit using a ``SyncEngine``. You should generally
-/// identify tables using Foundation's `UUID` type or another globally unique identifier. It is
-/// not appropriate to conform simple integer types to this protocol.
 public protocol IdentifierStringConvertible {
   init?(rawIdentifier: String)
   var rawIdentifier: String { get }
@@ -25,12 +20,12 @@ extension String: IdentifierStringConvertible {}
 
 extension Substring: IdentifierStringConvertible {}
 
-extension UUID: IdentifierStringConvertible {
+extension RFC_4122.UUID: IdentifierStringConvertible {
   public init?(rawIdentifier: String) {
-    self.init(uuidString: rawIdentifier)
+    try? self.init(rawIdentifier)
   }
   public var rawIdentifier: String {
-    description.lowercased()
+    String(self).lowercased()
   }
 }
 

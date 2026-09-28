@@ -2,8 +2,9 @@
 #if canImport(CloudKit)
   package import CloudKit
   package import SQL
+  import SQL_Macros
 
-  @Table("sqlitedata_icloud_unsyncedRecordIDs")
+  @Table("sqlite_icloud_unsyncedRecordIDs")
   package struct UnsyncedRecordID: Equatable {
     package let recordName: String
     package let zoneName: String
@@ -26,7 +27,7 @@
     package static func findAll(_ recordIDs: some Collection<CKRecord.ID>) -> Where<
       UnsyncedRecordID
     > {
-      let condition: QueryFragment = recordIDs.map {
+      let condition: ISO_9075.Fragment = recordIDs.map {
         "(\(bind: $0.recordName), \(bind: $0.zoneID.zoneName), \(bind: $0.zoneID.ownerName))"
       }
       .joined(separator: ", ")

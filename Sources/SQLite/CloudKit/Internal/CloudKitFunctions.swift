@@ -5,7 +5,7 @@
   import SQL
 
   @DatabaseFunction(
-    "sqlitedata_icloud_hasPermission",
+    "sqlite_icloud_hasPermission",
     as: ((_SystemFieldsRepresentation<CKShare>?) -> Bool).self,
     isDeterministic: true
   )

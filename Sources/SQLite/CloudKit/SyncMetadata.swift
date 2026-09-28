@@ -2,8 +2,9 @@
 #if canImport(CloudKit)
   public import CloudKit
   public import SQL
+  import SQL_Macros
 
-  @Table("sqlitedata_icloud_metadata")
+  @Table("sqlite_icloud_metadata")
   public struct SyncMetadata: Hashable, Identifiable, Sendable {
     @Selection
     public struct ID: Hashable, Sendable {
@@ -150,7 +151,7 @@
     }
 
     package static func findAll(_ recordIDs: some Collection<CKRecord.ID>) -> Where<Self> {
-      let condition: QueryFragment = recordIDs.map {
+      let condition: ISO_9075.Fragment = recordIDs.map {
         "(\(bind: $0.recordName), \(bind: $0.zoneID.zoneName), \(bind: $0.zoneID.ownerName))"
       }
       .joined(separator: ", ")
@@ -209,7 +210,7 @@
 
   extension PrimaryKeyedTableDefinition {
     var _recordName: some QueryExpression<String> {
-      #sql("\(primaryKey) || ':' || \(quote: QueryValue.tableName, delimiter: .text)")
+      #sql("\(primaryKey) || ':' || \(text: QueryValue.tableName)")
     }
   }
 #endif

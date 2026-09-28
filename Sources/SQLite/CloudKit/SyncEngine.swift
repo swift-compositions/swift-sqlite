@@ -1,11 +1,13 @@
 #if CloudKit
 #if canImport(CloudKit)
   public import CloudKit
+  import Byte
   public import GRDB
   import OrderedCollections
   public import OSLog
   import Observation
   public import SQL
+  import SQL_Macros
   import SwiftData
   package import Synchronization
   import TabularData
@@ -53,6 +55,7 @@
     public enum Error: Swift.Error {
       case accountUnavailable(CKAccountStatus)
       case assetDataNotFound(column: String)
+      case binding(ISO_9075.Value.Failure)
       case cancelled
       case cloudKit(CKError)
       case database(DatabaseError)
@@ -69,6 +72,7 @@
           case let error as CKError: .cloudKit(error)
           case let error as DatabaseError: .database(error)
           case let error as SchemaError: .schema(error)
+          case let error as ISO_9075.Value.Failure: .binding(error)
           case is CancellationError: .cancelled
           default: .underlying(error as NSError)
           }
@@ -335,7 +339,7 @@
     nonisolated package func setUpSyncEngine(writableDB db: Database) throws {
       let attachedMetadatabasePath: String? =
         try PragmaDatabaseList
-        .where { $0.name.eq(String.sqliteDataCloudKitSchemaName) }
+        .where { $0.name.eq(String.sqliteCloudKitSchemaName) }
         .select(\.file)
         .fetchOne(db)
       if let attachedMetadatabasePath {
@@ -366,7 +370,7 @@
       } else {
         try #sql(
           """
-          ATTACH DATABASE \(bind: metadatabase.path) AS \(quote: .sqliteDataCloudKitSchemaName)
+          ATTACH DATABASE \(bind: metadatabase.path) AS \(quote: .sqliteCloudKitSchemaName)
           """
         )
         .execute(db)
@@ -438,7 +442,7 @@
     }
 
     func surface(_ error: Error) {
-      logger.error("\(String.sqliteDataCloudKitFailure): \(String(describing: error))")
+      logger.error("\(String.sqliteCloudKitFailure): \(String(describing: error))")
       observationRegistrar.withMutation(of: self, keyPath: \.lastError) {
         _lastError.withLock { $0 = error }
       }
@@ -742,20 +746,20 @@
       try await start()
     }
 
-    @DatabaseFunction("sqlitedata_icloud_currentTime")
+    @DatabaseFunction("sqlite_icloud_currentTime")
     func currentTime() -> Int64 {
       Int64(now().timeIntervalSince1970 * 1_000_000_000)
     }
 
     @DatabaseFunction(
-      "sqlitedata_icloud_didUpdate",
+      "sqlite_icloud_didUpdate",
       as: ((
         String,
         String,
         String,
         String,
         String,
-        [String]?.JSONRepresentation
+        JSONRepresentation<[String]>?
       ) -> Void).self
     )
     func didUpdate(
@@ -821,7 +825,7 @@
     }
 
     @DatabaseFunction(
-      "sqlitedata_icloud_didDelete",
+      "sqlite_icloud_didDelete",
       as: ((String, _SystemFieldsRepresentation<CKRecord>?, _SystemFieldsRepresentation<CKShare>?)
         -> Void).self
     )
@@ -872,7 +876,7 @@
       )
     }
 
-    @DatabaseFunction("sqlitedata_icloud_syncEngineIsSynchronizingChanges")
+    @DatabaseFunction("sqlite_icloud_syncEngineIsSynchronizingChanges")
     public static var isSynchronizing: Bool {
       precondition(
         !_isCreatingTemporaryTrigger,
@@ -1730,7 +1734,7 @@
                   try #sql(
                     """
                     UPDATE \(T.self)
-                    SET \(quote: foreignKey.from, delimiter: .identifier) = (\(raw: defaultValue))
+                    SET \(quote: foreignKey.from) = (\(raw: defaultValue))
                     WHERE (\(T.primaryKey)) = (\(bind: recordPrimaryKey))
                     """
                   )
@@ -1740,7 +1744,7 @@
                   try #sql(
                     """
                     UPDATE \(T.self)
-                    SET \(quote: foreignKey.from, delimiter: .identifier) = NULL
+                    SET \(quote: foreignKey.from) = NULL
                     WHERE (\(T.primaryKey)) = (\(bind: recordPrimaryKey))
                     """
                   )
@@ -2046,7 +2050,7 @@
       record: CKRecord,
       columnNames: some Collection<String>,
       changedColumnNames: some Collection<String>
-    ) async throws -> QueryFragment {
+    ) async throws -> ISO_9075.Fragment {
       let nonPrimaryKeyChangedColumns =
         changedColumnNames
         .filter {
@@ -2065,7 +2069,7 @@
         record = try await container.database(for: record.recordID).record(for: record.recordID)
       }
 
-      var query: QueryFragment = "INSERT INTO \(T.self) ("
+      var query: ISO_9075.Fragment = "INSERT INTO \(T.self) ("
       query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
       query.append(") VALUES (")
       query.append(
@@ -2074,7 +2078,7 @@
             if let asset = record[columnName] as? CKAsset {
               guard let data = try? asset.fileURL.map({ try dataManager.load($0) })
               else { throw Error.assetDataNotFound(column: columnName) }
-              return data.queryFragment
+              return [Byte](data).queryFragment
             } else {
               return record.encryptedValues[columnName]?.queryFragment ?? "NULL"
             }
@@ -2089,7 +2093,7 @@
             if let asset = record[columnName] as? CKAsset {
               guard let data = try? asset.fileURL.map({ try dataManager.load($0) })
               else { throw Error.assetDataNotFound(column: columnName) }
-              return "\(quote: columnName) = \(data.queryFragment)"
+              return "\(quote: columnName) = \([Byte](data).queryFragment)"
             } else {
               return """
                 \(quote: columnName) = \
@@ -2140,8 +2144,8 @@
   }
 
   extension String {
-    package static let sqliteDataCloudKitSchemaName = "sqlitedata_icloud"
-    package static let sqliteDataCloudKitFailure = "SQLite CloudKit Failure"
+    package static let sqliteCloudKitSchemaName = "sqlite_icloud"
+    package static let sqliteCloudKitFailure = "SQLite CloudKit Failure"
   }
 
   extension URL {
@@ -2157,7 +2161,7 @@
       }
       guard !databaseURL.isInMemory
       else {
-        return URL(string: "file:\(String.sqliteDataCloudKitSchemaName)?mode=memory&cache=shared")!
+        return URL(string: "file:\(String.sqliteCloudKitSchemaName)?mode=memory&cache=shared")!
       }
       return
         databaseURL.deletingLastPathComponent().appending(
@@ -2244,7 +2248,7 @@
       }
       try #sql(
         """
-        ATTACH DATABASE \(bind: path) AS \(quote: .sqliteDataCloudKitSchemaName)
+        ATTACH DATABASE \(bind: path) AS \(quote: .sqliteCloudKitSchemaName)
         """
       )
       .execute(self)
@@ -2450,7 +2454,7 @@
     record: CKRecord,
     columnNames: some Collection<String>,
     dataManager: some DataManager
-  ) -> QueryFragment {
+  ) -> ISO_9075.Fragment {
     let setColumnNames = T.TableColumns.writableColumns.map(\.name)
       .filter { record.hasSet(key: $0) }
     guard !setColumnNames.isEmpty
@@ -2459,15 +2463,15 @@
     }
     let columnNames = columnNames.filter { setColumnNames.contains($0) }
     let hasNonPrimaryKeyColumns = columnNames.contains { $0 != T.primaryKey.name }
-    var query: QueryFragment = "INSERT INTO \(T.self) ("
+    var query: ISO_9075.Fragment = "INSERT INTO \(T.self) ("
     query.append(setColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
     query.append(") VALUES (")
     query.append(
       setColumnNames
         .map { columnName in
           if let asset = record[columnName] as? CKAsset {
-            return (try? asset.fileURL.map { try dataManager.load($0) })?
-              .queryFragment ?? "NULL"
+            return (try? asset.fileURL.map { try dataManager.load($0) })
+              .map { [Byte]($0).queryFragment } ?? "NULL"
           } else {
             return record.encryptedValues[columnName]?.queryFragment ?? "NULL"
           }
@@ -2495,11 +2499,11 @@
 
   @TaskLocal package var _isSynchronizingChanges = false
   @TaskLocal package var _currentZoneID: CKRecordZone.ID?
-  @DatabaseFunction("sqlitedata_icloud_currentZoneName")
+  @DatabaseFunction("sqlite_icloud_currentZoneName")
   func currentZoneName() -> String? {
     _currentZoneID?.zoneName
   }
-  @DatabaseFunction("sqlitedata_icloud_currentOwnerName")
+  @DatabaseFunction("sqlite_icloud_currentOwnerName")
   func currentOwnerName() -> String? {
     _currentZoneID?.ownerName
   }

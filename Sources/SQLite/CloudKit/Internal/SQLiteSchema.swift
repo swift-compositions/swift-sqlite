@@ -1,6 +1,7 @@
 #if CloudKit
 #if canImport(CloudKit)
   package import SQL
+  import SQL_Macros
 
   @Table("sqlite_schema")
   package struct SQLiteSchema {

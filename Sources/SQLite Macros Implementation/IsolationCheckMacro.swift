@@ -51,7 +51,7 @@ func isolationCheck(
   for node: AttributeSyntax,
   in context: some MacroExpansionContext
 ) -> String {
-  let check = "#StructuredQueriesIsolationCheck(\(label): \(reference))"
+  let check = "#SQLiteIsolationCheck(\(label): \(reference))"
   guard
     let location = context.location(of: node, at: .afterLeadingTrivia, filePathMode: .filePath)
   else {

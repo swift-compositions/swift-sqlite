@@ -135,7 +135,7 @@ extension DatabaseFunctionMacro: PeerMacro {
           baseIsWeak
           ? #"""
           guard let base else {
-          throw StructuredQueriesSQLiteCore._DatabaseFunctionDeallocated(
+          throw SQLite::_DatabaseFunctionDeallocated(
           """
           Failed to invoke '\#(rawDeclarationName.trimmed)'; '\#(baseType)' was deallocated
           """
@@ -215,25 +215,25 @@ extension DatabaseFunctionMacro: PeerMacro {
       decls.append(
         """
         \(attributes)\(access)\(nonisolated)struct \(functionTypeName): \
-        StructuredQueriesSQLiteCore.ScalarDatabaseFunction, \
-        StructuredQueriesCore.QueryExpression {
+        SQLite::ScalarDatabaseFunction, \
+        SQL::QueryExpression {
         public typealias Input = ()
         public typealias Output = \(raw: representableOutputType)
         public typealias QueryValue = Output
-        public var name: String {
+        public var name: Swift.String {
         \(databaseFunctionName)
         }
-        public var argumentCount: Int? { 0 }
-        public var isDeterministic: Bool {
+        public var argumentCount: Swift.Int? { 0 }
+        public var isDeterministic: Swift.Bool {
         \(raw: isDeterministic)
         }
         \(raw: storage)
         public func invoke(
-        _ decoder: inout some StructuredQueriesCore.QueryDecoder
-        ) throws -> StructuredQueriesCore.QueryBinding {
+        _ decoder: inout some SQL::QueryDecoder
+        ) throws -> ISO_9075_Foundation::ISO_9075.Value {
         \(raw: invocation)
         }
-        public var queryFragment: StructuredQueriesCore.QueryFragment {
+        public var queryFragment: ISO_9075_Foundation::ISO_9075.Fragment {
         "\\(quote: self.name)()"
         }
         }
@@ -455,7 +455,7 @@ extension DatabaseFunctionMacro: PeerMacro {
 
         argumentCounts.append("\(type)")
         decodings.append(
-          "let \(secondName) = try decoder.decode(_requireQueryRepresentable(\(type).self))"
+          "let \(secondName) = try decoder.decode(SQLite::_requireQueryRepresentable(\(type).self))"
         )
         decodingUnwrappings.append(
           "guard let \(secondName) else { throw InvalidInvocation() }"
@@ -480,10 +480,10 @@ extension DatabaseFunctionMacro: PeerMacro {
         FunctionParameterSyntax(
           firstName: "order",
           colon: .colonToken(),
-          type: "(some QueryExpression)?" as TypeSyntax,
+          type: "(some SQL::QueryExpression)?" as TypeSyntax,
           defaultValue: InitializerClauseSyntax(
             equal: .equalToken(leadingTrivia: .space, trailingTrivia: .space),
-            value: "Bool?.none" as ExprSyntax
+            value: "Swift.Bool?.none" as ExprSyntax
           ),
           trailingComma: .commaToken(),
           trailingTrivia: .space
@@ -493,10 +493,10 @@ extension DatabaseFunctionMacro: PeerMacro {
         FunctionParameterSyntax(
           firstName: "filter",
           colon: .colonToken(trailingTrivia: .space),
-          type: "(some QueryExpression<Bool>)?" as TypeSyntax,
+          type: "(some SQL::QueryExpression<Swift.Bool>)?" as TypeSyntax,
           defaultValue: InitializerClauseSyntax(
             equal: .equalToken(leadingTrivia: .space, trailingTrivia: .space),
-            value: "Bool?.none" as ExprSyntax
+            value: "Swift.Bool?.none" as ExprSyntax
           )
         )
       )
@@ -548,7 +548,7 @@ extension DatabaseFunctionMacro: PeerMacro {
 
         argumentCounts.append("\(type)")
         decodings.append(
-          "let \(parameterName) = try decoder.decode(_requireQueryRepresentable(\(type).self))"
+          "let \(parameterName) = try decoder.decode(SQLite::_requireQueryRepresentable(\(type).self))"
         )
         decodingUnwrappings.append("guard let \(parameterName) else { throw InvalidInvocation() }")
         canThrowInvalidInvocation = true
@@ -591,7 +591,7 @@ extension DatabaseFunctionMacro: PeerMacro {
       ? "0"
       : """
       var argumentCount = 0
-      \(argumentCounts.map { "argumentCount += _columnWidth(\($0).self)\n" }.joined())\
+      \(argumentCounts.map { "argumentCount += SQLite::_columnWidth(\($0).self)\n" }.joined())\
       return argumentCount
       """
 
@@ -600,10 +600,12 @@ extension DatabaseFunctionMacro: PeerMacro {
       baseGuard = #"""
         guard let base else {
         return .invalid(
-        StructuredQueriesSQLiteCore._DatabaseFunctionDeallocated(
+        ISO_9075_Foundation::ISO_9075.Value.Failure(
+        SQLite::_DatabaseFunctionDeallocated(
         """
         Failed to invoke '\#(declaration.name.trimmed)'; '\#(baseType)' was deallocated
         """
+        )
         )
         )
         }
@@ -639,8 +641,8 @@ extension DatabaseFunctionMacro: PeerMacro {
         let arguments = (parameters + extraArguments).joined(separator: ", ")
         return """
           \(raw: availability)public func callAsFunction\(signature.trimmed) {
-          StructuredQueriesCore.$_isSelecting.withValue(false) {
-          StructuredQueriesCore.AggregateFunctionExpression(
+          SQL::$_isSelecting.withValue(false) {
+          SQL::AggregateFunctionExpression(
           self.name, \
           \(raw: arguments)
           )
@@ -652,25 +654,25 @@ extension DatabaseFunctionMacro: PeerMacro {
       let orderParameter = FunctionParameterSyntax(
         firstName: "order",
         colon: .colonToken(trailingTrivia: .space),
-        type: "some QueryExpression" as TypeSyntax
+        type: "some SQL::QueryExpression" as TypeSyntax
       )
       let optionalFilterParameter = FunctionParameterSyntax(
         firstName: "filter",
         colon: .colonToken(trailingTrivia: .space),
-        type: "(some QueryExpression<Bool>)?" as TypeSyntax,
+        type: "(some SQL::QueryExpression<Swift.Bool>)?" as TypeSyntax,
         defaultValue: InitializerClauseSyntax(
           equal: .equalToken(leadingTrivia: .space, trailingTrivia: .space),
-          value: "Bool?.none" as ExprSyntax
+          value: "Swift.Bool?.none" as ExprSyntax
         )
       )
 
       let defaultedOrderParameter = FunctionParameterSyntax(
         firstName: "order",
         colon: .colonToken(trailingTrivia: .space),
-        type: "(some QueryExpression)?" as TypeSyntax,
+        type: "(some SQL::QueryExpression)?" as TypeSyntax,
         defaultValue: InitializerClauseSyntax(
           equal: .equalToken(leadingTrivia: .space, trailingTrivia: .space),
-          value: "Bool?.none" as ExprSyntax
+          value: "Swift.Bool?.none" as ExprSyntax
         )
       )
       methods.append(
@@ -691,7 +693,7 @@ extension DatabaseFunctionMacro: PeerMacro {
       methods.append(
         """
         public func step(
-        _ decoder: inout some StructuredQueriesCore.QueryDecoder
+        _ decoder: inout some SQL::QueryDecoder
         ) throws -> \(raw: rowType) {
         \(raw: (decodings + decodingUnwrappings).map { "\($0)\n" }.joined())\
         \(raw: stepReturnClause)\
@@ -720,13 +722,13 @@ extension DatabaseFunctionMacro: PeerMacro {
           do {
           \(invocationBody)
           } catch {
-          return .invalid(error)
+          return .invalid(ISO_9075_Foundation::ISO_9075.Value.Failure(error))
           }
           """
       }
       methods.append(
         """
-        public func invoke(\(parameter)) -> QueryBinding {
+        public func invoke(\(parameter)) throws -> ISO_9075_Foundation::ISO_9075.Value {
         \(raw: baseGuard)\(raw: invocationBody)
         }
         """
@@ -735,8 +737,8 @@ extension DatabaseFunctionMacro: PeerMacro {
       methods.append(
         """
         public func callAsFunction\(signature.trimmed) {
-        StructuredQueriesCore.$_isSelecting.withValue(false) {
-        StructuredQueriesCore.SQLQueryExpression(
+        SQL::$_isSelecting.withValue(false) {
+        SQL::SQLQueryExpression(
         "\\(quote: self.name)(\(raw: parameters.map { "\\(\($0))" }.joined(separator: ", ")))"
         )
         }
@@ -777,7 +779,7 @@ extension DatabaseFunctionMacro: PeerMacro {
           do {
           \(invocationBody)
           } catch {
-          return .invalid(error)
+          return .invalid(ISO_9075_Foundation::ISO_9075.Value.Failure(error))
           }
           """
       }
@@ -785,8 +787,8 @@ extension DatabaseFunctionMacro: PeerMacro {
       methods.append(
         """
         public func invoke(
-        _ decoder: inout some StructuredQueriesCore.QueryDecoder
-        ) throws -> StructuredQueriesCore.QueryBinding {
+        _ decoder: inout some SQL::QueryDecoder
+        ) throws -> ISO_9075_Foundation::ISO_9075.Value {
         \(raw: (decodings + decodingUnwrappings).map { "\($0)\n" }.joined())\
         \(raw: baseGuard)\(raw: invocationBody)
         }
@@ -871,21 +873,21 @@ extension DatabaseFunctionMacro: PeerMacro {
     decls.append(
       """
       \(attributes)\(access)\(nonisolated)struct \(functionTypeName): \
-      StructuredQueriesSQLiteCore.\(raw: isAggregate ? "Aggregate" : "Scalar")DatabaseFunction {
+      SQLite::\(raw: isAggregate ? "Aggregate" : "Scalar")DatabaseFunction {
       public typealias Input = \(raw: representableInputType)
       public typealias Output = \(representableOutputType)
-      public var name: String {
+      public var name: Swift.String {
       \(databaseFunctionName)
       }
-      public var argumentCount: Int? {
+      public var argumentCount: Swift.Int? {
       \(raw: argumentCount)
       }
-      public var isDeterministic: Bool {
+      public var isDeterministic: Swift.Bool {
       \(raw: isDeterministic)
       }
       \(raw: storage)
       \(raw: methods.map(\.description).joined(separator: "\n"))\
-      \(raw: canThrowInvalidInvocation ? "\nprivate struct InvalidInvocation: Error {}" : "")
+      \(raw: canThrowInvalidInvocation ? "\nprivate struct InvalidInvocation: Swift.Error {}" : "")
       }
       """
     )
@@ -922,7 +924,7 @@ extension TypeSyntaxProtocol {
   fileprivate func asQueryExpression(any: Bool = false) -> TypeSyntax {
     """
     \(raw: `any` ? "any" : "some") \
-    StructuredQueriesCore.QueryExpression<\(trimmed)>\(trailingTrivia)
+    SQL::QueryExpression<\(trimmed)>\(trailingTrivia)
     """
   }
 }

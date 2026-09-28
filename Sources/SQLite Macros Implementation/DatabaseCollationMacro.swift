@@ -25,7 +25,7 @@ extension DatabaseCollationMacro: PeerMacro {
       return []
     }
 
-    let collationOrder: TypeSyntax = "CollationOrder"
+    let collationOrder: TypeSyntax = "Comparison::Comparison"
     guard let returnClause = declaration.signature.returnClause
     else {
       var signature = declaration.signature
@@ -39,11 +39,11 @@ extension DatabaseCollationMacro: PeerMacro {
         Diagnostic(
           node: declaration.signature,
           message: MacroExpansionErrorMessage(
-            "'@DatabaseCollation' functions must return 'CollationOrder'"
+            "'@DatabaseCollation' functions must return 'Comparison'"
           ),
           fixIts: [
             .replace(
-              message: MacroExpansionFixItMessage("Return 'CollationOrder'"),
+              message: MacroExpansionFixItMessage("Return 'Comparison'"),
               oldNode: declaration.signature,
               newNode: signature
             )
@@ -53,19 +53,19 @@ extension DatabaseCollationMacro: PeerMacro {
       return []
     }
     guard
-      ["CollationOrder", "StructuredQueriesCore.CollationOrder"]
+      ["Comparison", "Comparison.Comparison", "Comparison::Comparison"]
         .contains(returnClause.type.trimmedDescription)
     else {
       context.diagnose(
         Diagnostic(
           node: returnClause.type,
           message: MacroExpansionErrorMessage(
-            "'@DatabaseCollation' functions must return 'CollationOrder'"
+            "'@DatabaseCollation' functions must return 'Comparison'"
           ),
           fixIts: [
             .replace(
               message: MacroExpansionFixItMessage(
-                "Replace '\(returnClause.type.trimmedDescription)' with 'CollationOrder'"
+                "Replace '\(returnClause.type.trimmedDescription)' with 'Comparison'"
               ),
               oldNode: returnClause.type,
               newNode: collationOrder.with(\.trailingTrivia, returnClause.type.trailingTrivia)
@@ -235,10 +235,10 @@ extension DatabaseCollationMacro: PeerMacro {
 
     func argument(_ name: String) -> String {
       switch argumentType {
-      case .string: "String(decoding: \(name), as: UTF8.self)"
+      case .string: "Swift.String(decoding: \(name), as: Swift.UTF8.self)"
       case .unsafeRawBufferPointer: name
       case .utf8Span: "\(name)Span"
-      case .byteSpan: "\(name).assumingMemoryBound(to: UInt8.self).span"
+      case .byteSpan: "\(name).assumingMemoryBound(to: Swift.UInt8.self).span"
       }
     }
 
@@ -261,13 +261,13 @@ extension DatabaseCollationMacro: PeerMacro {
       case .utf8Span:
         return """
           \(prologue)do {
-          let lhsSpan = try UTF8Span(validating: lhs.assumingMemoryBound(to: UInt8.self).span)
-          let rhsSpan = try UTF8Span(validating: rhs.assumingMemoryBound(to: UInt8.self).span)
+          let lhsSpan = try Swift.UTF8Span(validating: lhs.assumingMemoryBound(to: Swift.UInt8.self).span)
+          let rhsSpan = try Swift.UTF8Span(validating: rhs.assumingMemoryBound(to: Swift.UInt8.self).span)
           \(invocation)
           } catch {
           return lhs.elementsEqual(rhs)
-          ? .same
-          : lhs.lexicographicallyPrecedes(rhs) ? .ascending : .descending
+          ? .equal
+          : lhs.lexicographicallyPrecedes(rhs) ? .less : .greater
           }
           """
       }
@@ -329,14 +329,11 @@ extension DatabaseCollationMacro: PeerMacro {
         baseIsWeak
         ? #"""
         guard let base else {
-        reportIssue(
+        Swift.preconditionFailure(
         """
         Failed to invoke '\#(declaration.name.trimmed)'; '\#(baseType)' was deallocated
         """
         )
-        return lhs.elementsEqual(rhs)
-        ? .same
-        : lhs.lexicographicallyPrecedes(rhs) ? .ascending : .descending
         }
 
         """#
@@ -372,14 +369,14 @@ extension DatabaseCollationMacro: PeerMacro {
     decls.append(
       """
       \(attributes)\(access)\(nonisolated)struct \(collationTypeName): \
-      StructuredQueriesSQLiteCore.DatabaseCollation {
-      public var name: String {
+      SQLite::DatabaseCollation {
+      public var name: Swift.String {
       \(databaseCollationName)
       }
       \(raw: storage)
       public func compare(
-      _ lhs: UnsafeRawBufferPointer, _ rhs: UnsafeRawBufferPointer
-      ) -> \(returnClause.type.trimmed) {
+      _ lhs: Swift.UnsafeRawBufferPointer, _ rhs: Swift.UnsafeRawBufferPointer
+      ) -> Comparison::Comparison {
       \(raw: compareBody)
       }
       }

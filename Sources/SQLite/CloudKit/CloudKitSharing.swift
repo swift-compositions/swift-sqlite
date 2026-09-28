@@ -234,16 +234,16 @@
     public struct CloudSharingView: View {
       let sharedRecord: SharedRecord
       let availablePermissions: UICloudSharingController.PermissionOptions
-      let didFinish: (Result<Void, any Error>) -> Void
+      let didFinish: (Result<Void, SyncEngine.Error>) -> Void
       let didStopSharing: () -> Void
       let syncEngine: SyncEngine
       @Environment(\.dismiss) var dismiss
       public init(
+        syncEngine: SyncEngine,
         sharedRecord: SharedRecord,
         availablePermissions: UICloudSharingController.PermissionOptions = [],
-        didFinish: @escaping (Result<Void, any Error>) -> Void = { _ in },
-        didStopSharing: @escaping () -> Void = {},
-        syncEngine: SyncEngine
+        didFinish: @escaping (Result<Void, SyncEngine.Error>) -> Void = { _ in },
+        didStopSharing: @escaping () -> Void = {}
       ) {
         self.sharedRecord = sharedRecord
         self.didFinish = didFinish
@@ -254,11 +254,11 @@
       public var body: some View {
         if syncEngine.context == .live {
           CloudSharingViewRepresentable(
+            syncEngine: syncEngine,
             sharedRecord: sharedRecord,
             availablePermissions: availablePermissions,
             didFinish: didFinish,
-            didStopSharing: didStopSharing,
-            syncEngine: syncEngine
+            didStopSharing: didStopSharing
           )
         } else {
           NavigationStack {
@@ -340,7 +340,7 @@
             do {
               try await syncEngine.fetchChanges()
             } catch {
-              syncEngine.surface(error)
+              syncEngine.surface(SyncEngine.Error(error))
             }
           }
         }
@@ -350,15 +350,15 @@
     private struct CloudSharingViewRepresentable: UIViewControllerRepresentable {
       let sharedRecord: SharedRecord
       let availablePermissions: UICloudSharingController.PermissionOptions
-      let didFinish: (Result<Void, any Error>) -> Void
+      let didFinish: (Result<Void, SyncEngine.Error>) -> Void
       let didStopSharing: () -> Void
       let syncEngine: SyncEngine
       public init(
+        syncEngine: SyncEngine,
         sharedRecord: SharedRecord,
         availablePermissions: UICloudSharingController.PermissionOptions = [],
-        didFinish: @escaping (Result<Void, any Error>) -> Void = { _ in },
-        didStopSharing: @escaping () -> Void = {},
-        syncEngine: SyncEngine
+        didFinish: @escaping (Result<Void, SyncEngine.Error>) -> Void = { _ in },
+        didStopSharing: @escaping () -> Void = {}
       ) {
         self.sharedRecord = sharedRecord
         self.didFinish = didFinish
@@ -395,12 +395,12 @@
 
     public final class _CloudSharingDelegate: NSObject, UICloudSharingControllerDelegate {
       let share: CKShare
-      let didFinish: (Result<Void, any Error>) -> Void
+      let didFinish: (Result<Void, SyncEngine.Error>) -> Void
       let didStopSharing: () -> Void
       let syncEngine: SyncEngine
       init(
         share: CKShare,
-        didFinish: @escaping (Result<Void, any Error>) -> Void,
+        didFinish: @escaping (Result<Void, SyncEngine.Error>) -> Void,
         didStopSharing: @escaping () -> Void,
         syncEngine: SyncEngine
       ) {
@@ -427,7 +427,7 @@
           do {
             try await syncEngine.deleteShare(shareRecordID: share.recordID)
           } catch {
-            syncEngine.surface(error)
+            syncEngine.surface(SyncEngine.Error(error))
           }
         }
         didStopSharing()
@@ -437,7 +437,7 @@
         _ csc: UICloudSharingController,
         failedToSaveShareWithError error: any Error
       ) {
-        didFinish(.failure(error))
+        didFinish(.failure(SyncEngine.Error(error)))
       }
     }
   #endif

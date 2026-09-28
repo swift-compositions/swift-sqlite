@@ -19,7 +19,7 @@
         do {
           try await syncEngine.deleteLocalData()
         } catch {
-          syncEngine.surface(error)
+          syncEngine.surface(SyncEngine.Error(error))
         }
       case .signIn:
         break

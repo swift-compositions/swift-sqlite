@@ -491,7 +491,7 @@
 
   private func rootServerRecord(
     recordName: some QueryExpression<String>
-  ) -> some QueryExpression<CKRecord?.SystemFieldsRepresentation> {
+  ) -> some QueryExpression<_SystemFieldsRepresentation<CKRecord>?> {
     With {
       SyncMetadata
         .where { $0.recordName.eq(recordName) }
@@ -512,7 +512,7 @@
   private func parentLastKnownServerRecord(
     parentRecordPrimaryKey: some QueryExpression<String?>,
     parentRecordType: some QueryExpression<String?>
-  ) -> some QueryExpression<CKRecord?.SystemFieldsRepresentation> {
+  ) -> some QueryExpression<_SystemFieldsRepresentation<CKRecord>?> {
     SyncMetadata
       .select(\.lastKnownServerRecord)
       .where {
@@ -547,7 +547,7 @@
   private struct AncestorMetadata {
     let recordName: String
     let parentRecordName: String?
-    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    @Column(as: _SystemFieldsRepresentation<CKRecord>?.self)
     let lastKnownServerRecord: CKRecord?
   }
 
@@ -555,17 +555,17 @@
   struct RecordWithRoot {
     let parentRecordName: String?
     let recordName: String
-    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    @Column(as: _SystemFieldsRepresentation<CKRecord>?.self)
     let lastKnownServerRecord: CKRecord?
     let rootRecordName: String
-    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    @Column(as: _SystemFieldsRepresentation<CKRecord>?.self)
     let rootLastKnownServerRecord: CKRecord?
   }
 
   @Selection
   private struct RootShare {
     let parentRecordName: String?
-    @Column(as: CKShare?.SystemFieldsRepresentation.self)
+    @Column(as: _SystemFieldsRepresentation<CKShare>?.self)
     let share: CKShare?
   }
 #endif

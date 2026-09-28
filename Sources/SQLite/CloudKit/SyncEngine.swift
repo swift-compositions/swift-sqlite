@@ -74,7 +74,7 @@
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
       startImmediately: Bool? = nil,
       delegate: (any SyncEngineDelegate)? = nil,
-      logger: Logger = Logger(subsystem: "SQLiteData", category: "CloudKit"),
+      logger: Logger = Logger(subsystem: "SQLite", category: "CloudKit"),
       context: Context = .live,
       notificationCenter: NotificationCenter = .default,
       dataManager: some DataManager = LiveDataManager(),

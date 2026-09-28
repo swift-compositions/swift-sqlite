@@ -5,17 +5,17 @@
   public import SQL
 
   extension CKRecord {
-    public typealias _AllFieldsRepresentation = SQLiteData._AllFieldsRepresentation<CKRecord>
+    public typealias _AllFieldsRepresentation = SQLite::_AllFieldsRepresentation<CKRecord>
     public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<CKRecord>
   }
 
   extension CKShare {
-    public typealias _AllFieldsRepresentation = SQLiteData._AllFieldsRepresentation<CKShare>
+    public typealias _AllFieldsRepresentation = SQLite::_AllFieldsRepresentation<CKShare>
     public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<CKShare>
   }
 
   extension Optional where Wrapped: CKRecord {
-    public typealias _AllFieldsRepresentation = SQLiteData._AllFieldsRepresentation<Wrapped>?
+    public typealias _AllFieldsRepresentation = SQLite::_AllFieldsRepresentation<Wrapped>?
     public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<Wrapped>?
   }
 

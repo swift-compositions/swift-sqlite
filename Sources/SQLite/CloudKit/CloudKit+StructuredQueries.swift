@@ -4,21 +4,6 @@
   import CryptoKit
   public import SQL
 
-  extension CKRecord {
-    public typealias _AllFieldsRepresentation = SQLite::_AllFieldsRepresentation<CKRecord>
-    public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<CKRecord>
-  }
-
-  extension CKShare {
-    public typealias _AllFieldsRepresentation = SQLite::_AllFieldsRepresentation<CKShare>
-    public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<CKShare>
-  }
-
-  extension Optional where Wrapped: CKRecord {
-    public typealias _AllFieldsRepresentation = SQLite::_AllFieldsRepresentation<Wrapped>?
-    public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<Wrapped>?
-  }
-
   public struct _SystemFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
     public let queryOutput: Record
 
@@ -245,7 +230,7 @@
       userModificationTime: Int64,
       dataManager: some DataManager
     ) throws {
-      var failures: [String: any Error] = [:]
+      var failures: [String: SyncEngine.Error] = [:]
       for column in T.TableColumns.writableColumns {
         func open<Root, Value>(
           _ column: some WritableTableColumnExpression<Root, Value>
@@ -288,7 +273,7 @@
         do {
           try open(column)
         } catch {
-          failures[column.name] = error
+          failures[column.name] = SyncEngine.Error(error)
         }
       }
       guard failures.isEmpty
@@ -306,7 +291,7 @@
     ) throws {
       typealias EquatableCKRecordValueProtocol = CKRecordValueProtocol & Equatable
 
-      var failures: [String: any Error] = [:]
+      var failures: [String: SyncEngine.Error] = [:]
       self.userModificationTime = other.userModificationTime
       for column in T.TableColumns.writableColumns {
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
@@ -348,7 +333,7 @@
             case .uuid(let value):
               return other.encryptedValues[key] != value.uuidString.lowercased()
             case .invalid(let error):
-              failures[key] = error
+              failures[key] = SyncEngine.Error(error)
               return false
             }
           }

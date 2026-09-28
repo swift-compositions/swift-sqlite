@@ -41,13 +41,13 @@
     @Column(generated: .virtual)
     public let parentRecordName: String?
 
-    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    @Column(as: _SystemFieldsRepresentation<CKRecord>?.self)
     public let lastKnownServerRecord: CKRecord?
 
-    @Column(as: CKRecord?._AllFieldsRepresentation.self)
+    @Column(as: _AllFieldsRepresentation<CKRecord>?.self)
     public let _lastKnownServerRecordAllFields: CKRecord?
 
-    @Column(as: CKShare?.SystemFieldsRepresentation.self)
+    @Column(as: _SystemFieldsRepresentation<CKShare>?.self)
     public let share: CKShare?
 
     public let _isDeleted: Bool

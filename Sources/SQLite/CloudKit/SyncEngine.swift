@@ -39,7 +39,7 @@
     private let notificationsObserver = Mutex<(any NSObjectProtocol)?>(nil)
     private let activityCounts = Mutex(ActivityCounts())
     private let startTask = Mutex<Task<Void, Never>?>(nil)
-    private let _lastError = Mutex<(any Swift.Error)?>(nil)
+    private let _lastError = Mutex<Error?>(nil)
     #if DEBUG && canImport(DeveloperToolsSupport)
       private let previewTimerTask = Mutex<Task<Void, Never>?>(nil)
     #endif
@@ -53,15 +53,32 @@
     public enum Error: Swift.Error {
       case accountUnavailable(CKAccountStatus)
       case assetDataNotFound(column: String)
-      case unencodableColumns(recordName: String, [String: any Swift.Error])
-      case unknownDeletionReason(String)
-      case unrecognizedEvent(String)
+      case cancelled
+      case cloudKit(CKError)
+      case database(DatabaseError)
+      case schema(SchemaError)
+      case underlying(NSError)
+      case unencodableColumns(recordName: String, [String: Error])
+      case unknownDeletionReason(CKDatabase.DatabaseChange.Deletion.Reason)
+      case unrecognizedEvent(CKSyncEngine.Event)
+
+      init(_ error: any Swift.Error) {
+        self =
+          switch error {
+          case let error as Error: error
+          case let error as CKError: .cloudKit(error)
+          case let error as DatabaseError: .database(error)
+          case let error as SchemaError: .schema(error)
+          case is CancellationError: .cancelled
+          default: .underlying(error as NSError)
+          }
+      }
     }
 
     public static let writePermissionError =
-      "co.pointfree.SQLiteData.CloudKit.write-permission-error"
+      "org.swift-institute.SQLite.CloudKit.write-permission-error"
     public static let invalidRecordNameError =
-      "co.pointfree.SQLiteData.CloudKit.invalid-record-name-error"
+      "org.swift-institute.SQLite.CloudKit.invalid-record-name-error"
 
     public convenience init<
       each T1: PrimaryKeyedTable & _SendableMetatype,
@@ -71,10 +88,10 @@
       tables: repeat (each T1).Type,
       privateTables: repeat (each T2).Type,
       containerIdentifier: String? = nil,
-      defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
+      defaultZone: CKRecordZone = CKRecordZone(zoneName: "org.swift-institute.SQLite.defaultZone"),
       startImmediately: Bool? = nil,
       delegate: (any SyncEngineDelegate)? = nil,
-      logger: Logger = Logger(subsystem: "SQLite", category: "CloudKit"),
+      logger: Logger = Logger(subsystem: "org.swift-institute.SQLite", category: "CloudKit"),
       context: Context = .live,
       notificationCenter: NotificationCenter = .default,
       dataManager: some DataManager = LiveDataManager(),
@@ -106,7 +123,7 @@
         let privateDatabase = MockCloudDatabase(databaseScope: .private, dataManager: dataManager)
         let sharedDatabase = MockCloudDatabase(databaseScope: .shared, dataManager: dataManager)
         let container = MockCloudContainer(
-          containerIdentifier: containerIdentifier ?? "iCloud.co.pointfree.SQLiteData.Tests",
+          containerIdentifier: containerIdentifier ?? "iCloud.org.swift-institute.SQLite.tests",
           privateCloudDatabase: privateDatabase,
           sharedCloudDatabase: sharedDatabase
         )
@@ -415,12 +432,12 @@
       }
     }
 
-    public var lastError: (any Swift.Error)? {
+    public var lastError: Error? {
       observationRegistrar.access(self, keyPath: \.lastError)
       return _lastError.withLock { $0 }
     }
 
-    func surface(_ error: any Swift.Error) {
+    func surface(_ error: Error) {
       logger.error("\(String.sqliteDataCloudKitFailure): \(String(describing: error))")
       observationRegistrar.withMutation(of: self, keyPath: \.lastError) {
         _lastError.withLock { $0 = error }
@@ -499,7 +516,7 @@
                 }
               } catch is CancellationError {
               } catch {
-                self?.surface(error)
+                self?.surface(Error(error))
               }
             }
           }
@@ -522,7 +539,7 @@
           )
           try await cacheUserTables(recordTypes: currentRecordTypes)
         } catch {
-          surface(error)
+          surface(Error(error))
         }
       }
       self.startTask.withLock {
@@ -712,7 +729,7 @@
               do {
                 try T.delete().execute(db)
               } catch {
-                surface(error)
+                surface(Error(error))
               }
             }
             open(table)
@@ -720,7 +737,7 @@
           try setUpSyncEngine(writableDB: db)
         }
       } catch {
-        surface(error)
+        surface(Error(error))
       }
       try await start()
     }
@@ -788,7 +805,7 @@
                 .execute(db)
             }
           } catch {
-            surface(error)
+            surface(Error(error))
           }
         }
         return
@@ -805,7 +822,7 @@
 
     @DatabaseFunction(
       "sqlitedata_icloud_didDelete",
-      as: ((String, CKRecord?.SystemFieldsRepresentation, CKShare?.SystemFieldsRepresentation)
+      as: ((String, _SystemFieldsRepresentation<CKRecord>?, _SystemFieldsRepresentation<CKShare>?)
         -> Void).self
     )
     func didDelete(recordName: String, record: CKRecord?, share: CKShare?) {
@@ -830,7 +847,7 @@
                 .execute(db)
             }
           } catch {
-            surface(error)
+            surface(Error(error))
           }
         }
         return
@@ -937,7 +954,7 @@
   extension SyncEngine: CKSyncEngineDelegate {
     public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
       guard let event = Event(event)
-      else { return surface(Error.unrecognizedEvent(String(describing: event))) }
+      else { return surface(.unrecognizedEvent(event)) }
       await handleEvent(event, syncEngine: syncEngine)
     }
 
@@ -1065,7 +1082,7 @@
           if let tabularDescription = state.tabularDescription {
             logger.debug(
               """
-              SQLiteData (\(syncEngine.database.databaseScope.label).db) \
+              SQLite (\(syncEngine.database.databaseScope.label).db) \
               nextRecordZoneChangeBatch: \(reason)
                 \(tabularDescription)
               """
@@ -1084,7 +1101,7 @@
               .fetchOne(db)
           }
         } catch {
-          surface(error)
+          surface(Error(error))
           metadataAndAllFields = nil
         }
         guard let (metadata, allFields) = metadataAndAllFields
@@ -1137,7 +1154,7 @@
                 .fetchOne(db)
             }
           } catch {
-            surface(error)
+            surface(Error(error))
           }
           guard let row
           else {
@@ -1173,7 +1190,7 @@
               dataManager: dataManager
             )
           } catch {
-            surface(error)
+            surface(Error(error))
           }
           await refreshLastKnownServerRecord(record)
           sentRecord = recordID
@@ -1254,7 +1271,7 @@
               return (sharesToDelete, recordsWithRoot)
             }
           } catch {
-            surface(error)
+            surface(Error(error))
           }
         }
 
@@ -1285,7 +1302,7 @@
               .execute(db)
           }
         } catch {
-          surface(error)
+          surface(Error(error))
         }
       }
 
@@ -1305,7 +1322,7 @@
         do {
           try await enqueueUnknownRecordsForCloudKit()
         } catch {
-          surface(error)
+          surface(Error(error))
         }
         await delegate?.syncEngine(self, accountChanged: changeType)
       case .signOut, .switchAccounts:
@@ -1314,7 +1331,7 @@
           do {
             try await deleteLocalData()
           } catch {
-            surface(error)
+            surface(Error(error))
           }
           return
         }
@@ -1340,7 +1357,7 @@
           .execute(db)
         }
       } catch {
-        surface(error)
+        surface(Error(error))
       }
     }
 
@@ -1363,13 +1380,13 @@
             case .encryptedDataReset:
               try uploadRecords(in: zoneID, db: db)
             @unknown default:
-              surface(Error.unknownDeletionReason(String(describing: reason)))
+              surface(.unknownDeletionReason(reason))
             }
           }
           return defaultZoneDeleted
         }
       } catch {
-        surface(error)
+        surface(Error(error))
         defaultZoneDeleted = false
       }
       if defaultZoneDeleted {
@@ -1395,7 +1412,7 @@
             do {
               try T.unscoped.where { #sql("\($0.primaryKey)").in(primaryKeys) }.delete().execute(db)
             } catch {
-              surface(error)
+              surface(Error(error))
             }
           }
           open(table)
@@ -1422,7 +1439,7 @@
                 }
               )
             } catch {
-              surface(error)
+              surface(Error(error))
             }
           }
           open(table)
@@ -1469,7 +1486,7 @@
                   .execute(db)
               }
             } catch {
-              surface(error)
+              surface(Error(error))
             }
           }
           await open(table)
@@ -1478,7 +1495,7 @@
             do {
               try await deleteShare(shareRecordID: shareRecordID)
             } catch {
-              surface(error)
+              surface(Error(error))
             }
           }
         } else {
@@ -1490,7 +1507,7 @@
                 .execute(db)
             }
           } catch {
-            surface(error)
+            surface(Error(error))
           }
         }
       }
@@ -1545,7 +1562,7 @@
         }
         unsyncedRecords = records
       } catch {
-        surface(error)
+        surface(Error(error))
         unsyncedRecords = []
       }
 
@@ -1578,7 +1595,7 @@
           return shares
         }
       } catch {
-        surface(error)
+        surface(Error(error))
         shares = []
       }
 
@@ -1590,7 +1607,7 @@
               do {
                 try await self.cacheShare(share)
               } catch {
-                self.surface(error)
+                self.surface(Error(error))
               }
             case .reference(let shareReference):
               guard
@@ -1600,7 +1617,7 @@
               do {
                 try await self.cacheShare(share)
               } catch {
-                self.surface(error)
+                self.surface(Error(error))
               }
             }
           }
@@ -1656,7 +1673,7 @@
                 .execute(db)
             }
           } catch {
-            surface(error)
+            surface(Error(error))
           }
         }
 
@@ -1739,7 +1756,7 @@
           do {
             try await open(table)
           } catch {
-            surface(error)
+            surface(Error(error))
           }
 
         case .permissionFailure:
@@ -1766,7 +1783,7 @@
           do {
             try await open(table)
           } catch {
-            surface(error)
+            surface(Error(error))
           }
 
         case .batchRequestFailed:
@@ -1830,7 +1847,7 @@
           return enqueuedUnsyncedRecordID
         }
       } catch {
-        surface(error)
+        surface(Error(error))
         enqueuedUnsyncedRecordID = false
       }
       if enqueuedUnsyncedRecordID {
@@ -1890,7 +1907,7 @@
           upsertFromServerRecord(serverRecord, force: force, db: db)
         }
       } catch {
-        surface(error)
+        surface(Error(error))
       }
     }
 
@@ -1958,7 +1975,7 @@
                 dataManager: dataManager
               )
             } catch {
-              surface(error)
+              surface(Error(error))
             }
           }
 
@@ -1996,7 +2013,7 @@
         }
         try open(table)
       } catch {
-        surface(error)
+        surface(Error(error))
       }
     }
 
@@ -2020,7 +2037,7 @@
           }
         }
       } catch {
-        surface(error)
+        surface(Error(error))
       }
     }
 
@@ -2124,7 +2141,7 @@
 
   extension String {
     package static let sqliteDataCloudKitSchemaName = "sqlitedata_icloud"
-    package static let sqliteDataCloudKitFailure = "SQLiteData CloudKit Failure"
+    package static let sqliteDataCloudKitFailure = "SQLite CloudKit Failure"
   }
 
   extension URL {
@@ -2235,7 +2252,7 @@
   }
 
   extension SyncEngine {
-    package struct SchemaError: LocalizedError {
+    public struct SchemaError: LocalizedError {
       package enum Reason {
         case cycleDetected
         case invalidForeignKey(ForeignKey)
@@ -2248,9 +2265,9 @@
         case uniquenessConstraint
       }
       package let reason: Reason
-      package let debugDescription: String
+      public let debugDescription: String
 
-      package var errorDescription: String? {
+      public var errorDescription: String? {
         "Could not synchronize data with iCloud."
       }
 

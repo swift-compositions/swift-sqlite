@@ -6,7 +6,7 @@
 
   extension Logger {
     func log(_ event: SyncEngine.Event, syncEngine: any SyncEngineProtocol) {
-      let prefix = "SQLiteData (\(syncEngine.database.databaseScope.label).db)"
+      let prefix = "SQLite (\(syncEngine.database.databaseScope.label).db)"
       var actions: [String] = []
       var recordTypes: [String] = []
       var recordNames: [String] = []

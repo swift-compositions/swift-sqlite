@@ -52,7 +52,7 @@ let package = Package(
                 .product(name: "Comparison", package: "swift-comparison"),
                 .product(name: "Time", package: "swift-time"),
                 .product(name: "RFC 4122", package: "swift-rfc-4122"),
-                .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["GRDB"])),
+                .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["GRDB", "Observation", "CloudKit"])),
                 .product(
                     name: "OrderedCollections",
                     package: "swift-collections",

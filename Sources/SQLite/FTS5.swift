@@ -76,7 +76,7 @@ where
   }
 
   public func match(_ pattern: some StringProtocol) -> some QueryExpression<Bool> {
-    Root.columns.match("\(name):\(pattern.quoted(.identifier))")
+    Root.columns.match("\(name):\(ISO_9075.Identifier("\(pattern)").delimited)")
   }
 
   public func snippet(

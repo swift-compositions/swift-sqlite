@@ -25,14 +25,14 @@ extension RFC_4122.UUID {
 }
 
 extension RFC_4122.UUID.BytesRepresentation: QueryBindable {
-    public var queryBinding: ISO_9075.Value { .blob(queryOutput.byteArray.map(Byte.init)) }
+    public var queryBinding: ISO_9075.Value { .blob(queryOutput.byteArray.map(Byte.init(bitPattern:))) }
 }
 
 extension RFC_4122.UUID.BytesRepresentation: QueryDecodable {
     public init(decoder: inout some QueryDecoder) throws(QueryDecodingError) {
         let bytes = try [Byte](decoder: &decoder)
         do {
-            self.init(queryOutput: try RFC_4122.UUID(bytes.map(\.underlying)))
+            self.init(queryOutput: try RFC_4122.UUID(bytes.map(\.bitPattern)))
         } catch {
             throw .dataCorrupted("\(bytes.count) bytes as a UUID")
         }

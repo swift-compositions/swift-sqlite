@@ -1,5 +1,4 @@
 public import ISO_9075_Foundation
-import IssueReporting
 public import SQL
 
 extension QueryExpression where QueryValue: _AnyJSONRepresentable {
@@ -28,7 +27,7 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   public func jsonGroupArray(
     distinct isDistinct: Bool = false,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue.QueryOutput].JSONRepresentation> {
+  ) -> some QueryExpression<JSONRepresentation<[QueryValue.QueryOutput]>> {
     _jsonGroupArray(isDistinct: isDistinct, order: Bool?.none, filter: filter)
   }
 
@@ -36,7 +35,7 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
     distinct isDistinct: Bool = false,
     order: some QueryExpression,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue.QueryOutput].JSONRepresentation> {
+  ) -> some QueryExpression<JSONRepresentation<[QueryValue.QueryOutput]>> {
     _jsonGroupArray(isDistinct: isDistinct, order: order, filter: filter)
   }
 }
@@ -67,7 +66,7 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   public func jsonbGroupArray(
     distinct isDistinct: Bool = false,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue.QueryOutput].JSONBRepresentation> {
+  ) -> some QueryExpression<JSONBRepresentation<[QueryValue.QueryOutput]>> {
     _jsonbGroupArray(isDistinct: isDistinct, order: Bool?.none, filter: filter)
   }
 
@@ -75,7 +74,7 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
     distinct isDistinct: Bool = false,
     order: some QueryExpression,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue.QueryOutput].JSONBRepresentation> {
+  ) -> some QueryExpression<JSONBRepresentation<[QueryValue.QueryOutput]>> {
     _jsonbGroupArray(isDistinct: isDistinct, order: order, filter: filter)
   }
 }
@@ -573,7 +572,7 @@ where QueryValue: SQL::_OptionalProtocol, QueryValue.Wrapped: _AnyJSONRepresenta
   public func jsonGroupArray(
     distinct isDistinct: Bool = false,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue.Wrapped.QueryOutput?].JSONRepresentation> {
+  ) -> some QueryExpression<JSONRepresentation<[QueryValue.Wrapped.QueryOutput?]>> {
     _jsonGroupArray(isDistinct: isDistinct, order: Bool?.none, filter: filter)
   }
 
@@ -581,7 +580,7 @@ where QueryValue: SQL::_OptionalProtocol, QueryValue.Wrapped: _AnyJSONRepresenta
     distinct isDistinct: Bool = false,
     order: some QueryExpression,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue.Wrapped.QueryOutput?].JSONRepresentation> {
+  ) -> some QueryExpression<JSONRepresentation<[QueryValue.Wrapped.QueryOutput?]>> {
     _jsonGroupArray(isDistinct: isDistinct, order: order, filter: filter)
   }
 }
@@ -598,7 +597,7 @@ where QueryValue: SQL::_OptionalProtocol, QueryValue.Wrapped: _AnyJSONRepresenta
   public func jsonbGroupArray(
     distinct isDistinct: Bool = false,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue.Wrapped.QueryOutput?].JSONBRepresentation> {
+  ) -> some QueryExpression<JSONBRepresentation<[QueryValue.Wrapped.QueryOutput?]>> {
     _jsonbGroupArray(isDistinct: isDistinct, order: Bool?.none, filter: filter)
   }
 
@@ -606,7 +605,7 @@ where QueryValue: SQL::_OptionalProtocol, QueryValue.Wrapped: _AnyJSONRepresenta
     distinct isDistinct: Bool = false,
     order: some QueryExpression,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue.Wrapped.QueryOutput?].JSONBRepresentation> {
+  ) -> some QueryExpression<JSONBRepresentation<[QueryValue.Wrapped.QueryOutput?]>> {
     _jsonbGroupArray(isDistinct: isDistinct, order: order, filter: filter)
   }
 }
@@ -665,7 +664,7 @@ extension QueryExpression {
   ) -> AggregateFunctionExpression<Result> {
     AggregateFunctionExpression(
       "json_group_array",
-      isDistinct: isDistinct,
+      distinct: isDistinct,
       ["json(\(argumentFragment))"],
       order: order?.queryFragment,
       filter: filter?.queryFragment
@@ -679,7 +678,7 @@ extension QueryExpression {
   ) -> AggregateFunctionExpression<Result> {
     AggregateFunctionExpression(
       "jsonb_group_array",
-      isDistinct: isDistinct,
+      distinct: isDistinct,
       ["jsonb(\(argumentFragment))"],
       order: order?.queryFragment,
       filter: filter?.queryFragment
@@ -692,12 +691,11 @@ extension QueryExpression where QueryValue: Codable & QueryBindable {
   public func jsonGroupArray(
     distinct isDistinct: Bool = false,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue].JSONRepresentation> {
+  ) -> some QueryExpression<JSONRepresentation<[QueryValue]>> {
     AggregateFunctionExpression(
       "json_group_array",
-      isDistinct: isDistinct,
+      distinct: isDistinct,
       [queryFragment],
-      order: nil,
       filter: filter?.queryFragment
     )
   }
@@ -706,10 +704,10 @@ extension QueryExpression where QueryValue: Codable & QueryBindable {
     distinct isDistinct: Bool = false,
     order: some QueryExpression,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue].JSONRepresentation> {
+  ) -> some QueryExpression<JSONRepresentation<[QueryValue]>> {
     AggregateFunctionExpression(
       "json_group_array",
-      isDistinct: isDistinct,
+      distinct: isDistinct,
       [queryFragment],
       order: order.queryFragment,
       filter: filter?.queryFragment
@@ -722,12 +720,11 @@ extension QueryExpression where QueryValue: Codable & QueryBindable {
   public func jsonbGroupArray(
     distinct isDistinct: Bool = false,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue].JSONBRepresentation> {
+  ) -> some QueryExpression<JSONBRepresentation<[QueryValue]>> {
     AggregateFunctionExpression(
       "jsonb_group_array",
-      isDistinct: isDistinct,
+      distinct: isDistinct,
       [queryFragment],
-      order: nil,
       filter: filter?.queryFragment
     )
   }
@@ -736,10 +733,10 @@ extension QueryExpression where QueryValue: Codable & QueryBindable {
     distinct isDistinct: Bool = false,
     order: some QueryExpression,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue].JSONBRepresentation> {
+  ) -> some QueryExpression<JSONBRepresentation<[QueryValue]>> {
     AggregateFunctionExpression(
       "jsonb_group_array",
-      isDistinct: isDistinct,
+      distinct: isDistinct,
       [queryFragment],
       order: order.queryFragment,
       filter: filter?.queryFragment
@@ -752,12 +749,11 @@ extension TableDefinition where QueryValue: Codable {
   public func jsonGroupArray(
     distinct isDistinct: Bool = false,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue].JSONRepresentation> {
+  ) -> some QueryExpression<JSONRepresentation<[QueryValue]>> {
     AggregateFunctionExpression(
       "json_group_array",
-      isDistinct: isDistinct,
+      distinct: isDistinct,
       [jsonObject().queryFragment],
-      order: nil,
       filter: filter?.queryFragment
     )
   }
@@ -767,10 +763,10 @@ extension TableDefinition where QueryValue: Codable {
     distinct isDistinct: Bool = false,
     order: some QueryExpression,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue].JSONRepresentation> {
+  ) -> some QueryExpression<JSONRepresentation<[QueryValue]>> {
     AggregateFunctionExpression(
       "json_group_array",
-      isDistinct: isDistinct,
+      distinct: isDistinct,
       [jsonObject().queryFragment],
       order: order.queryFragment,
       filter: filter?.queryFragment
@@ -783,12 +779,11 @@ extension TableDefinition where QueryValue: Codable {
   public func jsonbGroupArray(
     distinct isDistinct: Bool = false,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue].JSONBRepresentation> {
+  ) -> some QueryExpression<JSONBRepresentation<[QueryValue]>> {
     AggregateFunctionExpression(
       "jsonb_group_array",
-      isDistinct: isDistinct,
+      distinct: isDistinct,
       [jsonbObject().queryFragment],
-      order: nil,
       filter: filter?.queryFragment
     )
   }
@@ -798,10 +793,10 @@ extension TableDefinition where QueryValue: Codable {
     distinct isDistinct: Bool = false,
     order: some QueryExpression,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[QueryValue].JSONBRepresentation> {
+  ) -> some QueryExpression<JSONBRepresentation<[QueryValue]>> {
     AggregateFunctionExpression(
       "jsonb_group_array",
-      isDistinct: isDistinct,
+      distinct: isDistinct,
       [jsonbObject().queryFragment],
       order: order.queryFragment,
       filter: filter?.queryFragment
@@ -813,7 +808,7 @@ extension TableDefinition where QueryValue: SQL::_OptionalProtocol & Codable {
   public func jsonGroupArray<Wrapped: Codable>(
     distinct isDistinct: Bool = false,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[Wrapped].JSONRepresentation>
+  ) -> some QueryExpression<JSONRepresentation<[Wrapped]>>
   where QueryValue == Wrapped? {
     let rowFilter = rowid.isNot(nil)
     let filterQueryFragment =
@@ -829,7 +824,7 @@ extension TableDefinition where QueryValue: SQL::_OptionalProtocol & Codable {
     distinct isDistinct: Bool = false,
     order: some QueryExpression,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[Wrapped].JSONRepresentation>
+  ) -> some QueryExpression<JSONRepresentation<[Wrapped]>>
   where QueryValue == Wrapped? {
     let rowFilter = rowid.isNot(nil)
     let filterQueryFragment =
@@ -849,11 +844,11 @@ extension TableDefinition where QueryValue: SQL::_OptionalProtocol & Codable {
     isDistinct: Bool,
     order: ISO_9075.Fragment?,
     filter: ISO_9075.Fragment?
-  ) -> AggregateFunctionExpression<[Wrapped].JSONRepresentation>
+  ) -> AggregateFunctionExpression<JSONRepresentation<[Wrapped]>>
   where QueryValue == Wrapped? {
     AggregateFunctionExpression(
       "json_group_array",
-      isDistinct: isDistinct,
+      distinct: isDistinct,
       [QueryValue.columns.jsonObject().queryFragment],
       order: order,
       filter: filter
@@ -865,7 +860,7 @@ extension TableDefinition where QueryValue: SQL::_OptionalProtocol & Codable {
   public func jsonbGroupArray<Wrapped: Codable>(
     distinct isDistinct: Bool = false,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[Wrapped].JSONBRepresentation>
+  ) -> some QueryExpression<JSONBRepresentation<[Wrapped]>>
   where QueryValue == Wrapped? {
     let rowFilter = rowid.isNot(nil)
     let filterQueryFragment =
@@ -881,7 +876,7 @@ extension TableDefinition where QueryValue: SQL::_OptionalProtocol & Codable {
     distinct isDistinct: Bool = false,
     order: some QueryExpression,
     filter: (some QueryExpression<Bool>)? = Bool?.none
-  ) -> some QueryExpression<[Wrapped].JSONBRepresentation>
+  ) -> some QueryExpression<JSONBRepresentation<[Wrapped]>>
   where QueryValue == Wrapped? {
     let rowFilter = rowid.isNot(nil)
     let filterQueryFragment =
@@ -901,11 +896,11 @@ extension TableDefinition where QueryValue: SQL::_OptionalProtocol & Codable {
     isDistinct: Bool,
     order: ISO_9075.Fragment?,
     filter: ISO_9075.Fragment?
-  ) -> AggregateFunctionExpression<[Wrapped].JSONBRepresentation>
+  ) -> AggregateFunctionExpression<JSONBRepresentation<[Wrapped]>>
   where QueryValue == Wrapped? {
     AggregateFunctionExpression(
       "jsonb_group_array",
-      isDistinct: isDistinct,
+      distinct: isDistinct,
       [QueryValue.columns.jsonbObject().queryFragment],
       order: order,
       filter: filter
@@ -919,13 +914,9 @@ extension TableDefinition where QueryValue: Codable {
   }
 
   fileprivate var _jsonObjectArguments: ISO_9075.Fragment {
-    func open<TableColumn: TableColumnExpression>(_ column: TableColumn) -> ISO_9075.Fragment {
-      let value = TableColumn.QueryValue._queryFragment(jsonEncoding: "\(column)")
-      return "\(text: column.name), \(value)"
-    }
-    return $_isSelecting.withValue(false) {
+    $_isSelecting.withValue(false) {
       Self.allColumns
-        .map { open($0) }
+        .map { "\(text: $0.name), \($0.jsonEncoding($0.queryFragment))" as ISO_9075.Fragment }
         .joined(separator: ", ")
     }
   }
@@ -1062,7 +1053,7 @@ public struct JSONPath<Context, QueryValue> {
     Member._Optionalized == Member?
   {
     JSONPath<Context._Member, JSONRepresentation<Member>>(
-      components: components + [.member(Object.columns[keyPath: keyPath].name)]
+      components: components + [.member(Object.columns[keyPath: keyPath].groupName)]
     )
   }
 
@@ -1075,7 +1066,7 @@ public struct JSONPath<Context, QueryValue> {
     Member.QueryOutput == Member
   {
     JSONPath<Context._Member, JSONRepresentation<Member>?>(
-      components: components + [.member(Object.columns[keyPath: keyPath].name)]
+      components: components + [.member(Object.columns[keyPath: keyPath].groupName)]
     )
   }
 
@@ -1089,7 +1080,7 @@ public struct JSONPath<Context, QueryValue> {
     Member._Optionalized == Member?
   {
     JSONPath<Context._Member, JSONBRepresentation<Member>>(
-      components: components + [.member(Object.columns[keyPath: keyPath].name)]
+      components: components + [.member(Object.columns[keyPath: keyPath].groupName)]
     )
   }
 
@@ -1102,7 +1093,7 @@ public struct JSONPath<Context, QueryValue> {
     Member.QueryOutput == Member
   {
     JSONPath<Context._Member, JSONBRepresentation<Member>?>(
-      components: components + [.member(Object.columns[keyPath: keyPath].name)]
+      components: components + [.member(Object.columns[keyPath: keyPath].groupName)]
     )
   }
 

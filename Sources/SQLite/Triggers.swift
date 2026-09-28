@@ -82,7 +82,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
     public typealias New = TableAlias<On, _New>.TableColumns
 
     public static func insert(
-      @QueryFragmentBuilder<any Statement>
+      @QueryFragmentBuilder<_StatementClause>
       forEachRow perform: (_ new: New) -> [ISO_9075.Fragment],
       when condition: ((_ new: New) -> any QueryExpression<Bool>)? = nil
     ) -> Self {
@@ -132,7 +132,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
     }
 
     public static func update(
-      @QueryFragmentBuilder<any Statement>
+      @QueryFragmentBuilder<_StatementClause>
       forEachRow perform: (_ old: Old, _ new: New) -> [ISO_9075.Fragment],
       when condition: ((_ old: Old, _ new: New) -> any QueryExpression<Bool>)? = nil
     ) -> Self {
@@ -145,7 +145,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
 
     public static func update<each Column: _TableColumnExpression>(
       of columns: (On.TableColumns) -> (repeat each Column),
-      @QueryFragmentBuilder<any Statement>
+      @QueryFragmentBuilder<_StatementClause>
       forEachRow perform: (_ old: Old, _ new: New) -> [ISO_9075.Fragment],
       when condition: ((_ old: Old, _ new: New) -> any QueryExpression<Bool>)? = nil
     ) -> Self {
@@ -249,7 +249,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
     }
 
     public static func delete(
-      @QueryFragmentBuilder<any Statement>
+      @QueryFragmentBuilder<_StatementClause>
       forEachRow perform: (_ old: Old) -> [ISO_9075.Fragment],
       when condition: ((_ old: Old) -> any QueryExpression<Bool>)? = nil
     ) -> Self {

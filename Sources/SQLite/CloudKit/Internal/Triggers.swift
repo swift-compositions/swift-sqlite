@@ -197,7 +197,7 @@
           $0.parentRecordType
         )
       } select: {
-        Values(
+        Select(
           #sql("\(new.primaryKey)"),
           T.tableName,
           zoneName ?? defaultZoneName,
@@ -252,7 +252,7 @@
         ifNotExists: true,
         after: .insert { new in
           validate(recordName: new.recordName)
-          Values(
+          Select(
             syncEngine.$didUpdate(
               recordName: new.recordName,
               zoneName: new.zoneName,
@@ -312,7 +312,7 @@
           }
 
           validate(recordName: new.recordName)
-          Values(
+          Select(
             syncEngine.$didUpdate(
               recordName: new.recordName,
               zoneName: new.zoneName,
@@ -335,7 +335,7 @@
         "\(String.sqliteCloudKitSchemaName)_after_delete_on_sqlite_icloud_metadata",
         ifNotExists: true,
         after: .update(of: \._isDeleted) { _, new in
-          Values(
+          Select(
             syncEngine.$didDelete(
               recordName: new.recordName,
               record: new.lastKnownServerRecord

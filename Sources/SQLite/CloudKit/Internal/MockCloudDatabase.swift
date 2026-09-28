@@ -1,15 +1,13 @@
 #if CloudKit
 #if canImport(CloudKit)
-  package import ConcurrencyExtras
   package import CloudKit
-  import Dependencies
-  import IssueReporting
+  package import Synchronization
 
   package final class MockCloudDatabase: CloudDatabase {
-    package let state = LockIsolated(State())
+    package let state = Mutex(State())
     package let databaseScope: CKDatabase.Scope
     let _container = IsolatedWeakVar<MockCloudContainer>()
-    let dataManager = Dependency(\.dataManager)
+    let dataManager: any DataManager
 
     package struct State {
       private var lastRecordChangeTag = 0
@@ -32,8 +30,12 @@
       package var records: [CKRecord.ID: CKRecord] = [:]
     }
 
-    package init(databaseScope: CKDatabase.Scope) {
+    package init(
+      databaseScope: CKDatabase.Scope,
+      dataManager: some DataManager = InMemoryDataManager()
+    ) {
       self.databaseScope = databaseScope
+      self.dataManager = dataManager
     }
 
     package func set(container: MockCloudContainer) {
@@ -48,7 +50,7 @@
       let accountStatus = container.accountStatus()
       guard accountStatus == .available
       else { throw ckError(forAccountStatus: accountStatus) }
-      let record = try state.withValue { state in
+      let record = try state.withLock { state throws -> CKRecord in
         guard let zone = state.storage[recordID.zoneID]
         else { throw CKError(.zoneNotFound) }
         guard let record = zone.records[recordID]
@@ -58,12 +60,12 @@
         return record
       }
 
-      try state.withValue { state in
+      try state.withLock { state throws in
         for key in record.allKeys() {
           guard let assetData = state.assets[AssetID(recordID: record.recordID, key: key)]
           else { continue }
-          let url = dataManager.wrappedValue.temporaryDirectory.appending(path: UUID().uuidString)
-          try dataManager.wrappedValue.save(assetData, to: url)
+          let url = dataManager.temporaryDirectory.appending(path: UUID().uuidString)
+          try dataManager.save(assetData, to: url)
           record[key] = CKAsset(fileURL: url)
         }
       }
@@ -107,7 +109,7 @@
         throw CKError(.limitExceeded)
       }
 
-      return state.withValue { state in
+      return state.withLock { state in
         let previousStorage = state.storage
         var saveResults: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
         var deleteResults: [CKRecord.ID: Result<Void, any Error>] = [:]
@@ -196,7 +198,7 @@
                 guard let assetURL = (databaseCopy[key] as? CKAsset)?.fileURL
                 else { continue }
                 state.assets[AssetID(recordID: databaseCopy.recordID, key: key)] =
-                  try? dataManager.wrappedValue
+                  try? dataManager
                   .load(assetURL)
               }
 
@@ -368,7 +370,7 @@
       guard accountStatus == .available
       else { throw ckError(forAccountStatus: accountStatus) }
 
-      return state.withValue { state in
+      return state.withLock { state in
         var saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>] = [:]
         var deleteResults: [CKRecordZone.ID: Result<Void, any Error>] = [:]
 

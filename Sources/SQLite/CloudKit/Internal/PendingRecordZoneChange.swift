@@ -1,10 +1,7 @@
 #if CloudKit
 #if canImport(CloudKit)
   package import CloudKit
-  import StructuredQueries
-  #if EXCLUDE_EXPORTS
-    public import StructuredQueriesCore
-  #endif
+  public import SQL
 
   @Table("sqlitedata_icloud_pendingRecordZoneChanges")
   package struct PendingRecordZoneChange {
@@ -26,7 +23,7 @@
         self.queryOutput = queryOutput
       }
 
-      package var queryBinding: StructuredQueriesCore.QueryBinding {
+      package var queryBinding: SQL.QueryBinding {
         let archiver = NSKeyedArchiver(requiringSecureCoding: true)
         switch queryOutput {
         case .saveRecord(let recordID):
@@ -41,12 +38,12 @@
         return archiver.encodedData.queryBinding
       }
 
-      package init?(queryBinding: StructuredQueriesCore.QueryBinding) {
+      package init?(queryBinding: SQL.QueryBinding) {
         guard case .blob(let bytes) = queryBinding else { return nil }
         try? self.init(data: Data(bytes))
       }
 
-      package init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+      package init(decoder: inout some SQL.QueryDecoder) throws {
         try self.init(data: Data(decoder: &decoder))
       }
 

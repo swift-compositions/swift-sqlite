@@ -1,20 +1,14 @@
 #if CloudKit
 #if canImport(CloudKit)
   public import CloudKit
-  import ConcurrencyExtras
   import GRDB
-  import IssueReporting
-  public import StructuredQueries
+  public import SQL
 
   #if canImport(SwiftUI) && canImport(UIKit) && !os(tvOS) && !os(watchOS)
-    public import Dependencies
     public import SwiftUI
     public import UIKit
   #endif
 
-  /// A shared record that can be used to present a ``CloudSharingView``.
-  ///
-  /// See <doc:CloudKitSharing#Creating-CKShare-records> for more information.,
   public struct SharedRecord: Hashable, Identifiable, Sendable {
     let container: any CloudContainer
     public let share: CKShare
@@ -39,6 +33,7 @@
         case recordNotRoot([ForeignKey])
         case recordTableNotSynchronized
         case recordTablePrivate
+        case shareNotFound
         case syncEngineNotRunning
       }
 
@@ -52,25 +47,6 @@
       }
     }
 
-    /// Shares a record in CloudKit.
-    ///
-    /// This method will thrown an error if:
-    ///
-    /// * The table the `record` belongs to is not synchronized to CloudKit.
-    /// * The `record` has any foreign keys. Only root records are shareable in CloudKit.
-    /// * The table the `record` belongs to is a "private" table as determined by the
-    /// [`SyncEngine` initializer](<doc:SyncEngine/init(for:tables:privateTables:containerIdentifier:defaultZone:startImmediately:delegate:logger:)>).
-    /// * The `record` is being shared before it has been synchronized to CloudKit.
-    /// * Any of the CloudKit APIs invoked throw an error.
-    ///
-    /// The value returned from this method can be used to present a ``CloudSharingView`` which
-    /// allows the user to send a share URL to another user.
-    ///
-    /// - Parameters:
-    ///   - record: The record to be shared on CloudKit.
-    ///   - configure: A trailing closure that can customize the `CKShare` sent to CloudKit. See
-    ///   [Apple's documentation](https://developer.apple.com/documentation/cloudkit/ckshare/systemfieldkey)
-    ///   for more info on what can be configured.
     public func share<T: PrimaryKeyedTable>(
       record: T,
       configure: @Sendable (CKShare) -> Void
@@ -228,56 +204,46 @@
       }
       guard let share
       else {
-        reportIssue(
-          """
-          No share found associated with record.
-          """
+        throw SharingError(
+          recordTableName: T.tableName,
+          recordPrimaryKey: record.primaryKey.rawIdentifier,
+          reason: .shareNotFound,
+          debugDescription: """
+            No share found associated with record.
+            """
         )
-        return
       }
 
       try await unshare(share: share)
     }
 
     func unshare(share: CKShare) async throws {
-      let result = try await syncEngines.private?.database.modifyRecords(
+      let result = try await syncEngines.withLock { $0.private }?.database.modifyRecords(
         saving: [],
         deleting: [share.recordID]
       )
       try result?.deleteResults.values.forEach { _ = try $0.get() }
     }
 
-    /// Accepts a shared record.
-    ///
-    /// This method should be invoked from various delegate methods on the scene delegate of the
-    /// app. See <doc:CloudKitSharing#Accepting-shared-records> for more info.
     public func acceptShare(metadata: CKShare.Metadata) async throws {
       try await acceptShare(metadata: ShareMetadata(rawValue: metadata))
     }
   }
 
   #if canImport(SwiftUI) && canImport(UIKit) && !os(tvOS) && !os(watchOS)
-    /// A view that presents standard screens for adding and removing people from a CloudKit share \
-    /// record.
-    ///
-    /// See <doc:CloudKitSharing#Creating-CKShare-records> for more info.
     public struct CloudSharingView: View {
       let sharedRecord: SharedRecord
       let availablePermissions: UICloudSharingController.PermissionOptions
       let didFinish: (Result<Void, any Error>) -> Void
       let didStopSharing: () -> Void
       let syncEngine: SyncEngine
-      @Dependency(\.context) var context
       @Environment(\.dismiss) var dismiss
       public init(
         sharedRecord: SharedRecord,
         availablePermissions: UICloudSharingController.PermissionOptions = [],
         didFinish: @escaping (Result<Void, any Error>) -> Void = { _ in },
         didStopSharing: @escaping () -> Void = {},
-        syncEngine: SyncEngine = {
-          @Dependency(\.defaultSyncEngine) var defaultSyncEngine
-          return defaultSyncEngine
-        }()
+        syncEngine: SyncEngine
       ) {
         self.sharedRecord = sharedRecord
         self.didFinish = didFinish
@@ -286,7 +252,7 @@
         self.syncEngine = syncEngine
       }
       public var body: some View {
-        if context == .live {
+        if syncEngine.context == .live {
           CloudSharingViewRepresentable(
             sharedRecord: sharedRecord,
             availablePermissions: availablePermissions,
@@ -371,8 +337,10 @@
             }
           }
           .task {
-            await withErrorReporting {
+            do {
               try await syncEngine.fetchChanges()
+            } catch {
+              syncEngine.surface(error)
             }
           }
         }
@@ -390,10 +358,7 @@
         availablePermissions: UICloudSharingController.PermissionOptions = [],
         didFinish: @escaping (Result<Void, any Error>) -> Void = { _ in },
         didStopSharing: @escaping () -> Void = {},
-        syncEngine: SyncEngine = {
-          @Dependency(\.defaultSyncEngine) var defaultSyncEngine
-          return defaultSyncEngine
-        }()
+        syncEngine: SyncEngine
       ) {
         self.sharedRecord = sharedRecord
         self.didFinish = didFinish
@@ -459,8 +424,10 @@
 
       public func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
         Task {
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
+          do {
             try await syncEngine.deleteShare(shareRecordID: share.recordID)
+          } catch {
+            syncEngine.surface(error)
           }
         }
         didStopSharing()

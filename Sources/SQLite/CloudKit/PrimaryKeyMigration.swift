@@ -2,8 +2,7 @@
 #if canImport(CloudKit) && canImport(CryptoKit)
   import CryptoKit
   public import Foundation
-  public import StructuredQueriesCore
-  public import StructuredQueriesSQLite
+  public import SQL
 
   #if EXCLUDE_EXPORTS
     // NB: This 'public import' breaks the '@_exported import'.
@@ -11,49 +10,6 @@
   #endif
 
   extension SyncEngine {
-    /// Migrates integer primary-keyed tables and tables without primary keys to
-    /// CloudKit-compatible, UUID primary keys.
-    ///
-    /// To synchronize a table to CloudKit it must have a primary key, and that primary key must
-    /// be a globally unique identifier, such as a UUID. However, changing the type of a column
-    /// in SQLite is a [multi-step process] that must be followed very carefully, otherwise you run
-    /// the risk of corrupting your users' data.
-    ///
-    /// [multi-step process]: https://sqlite.org/lang_altertable.html#making_other_kinds_of_table_schema_changes
-    ///
-    /// This method is a general purpose tool that analyzes a set of tables to try to automatically
-    /// perform that migration for you. It performs the following steps:
-    ///
-    ///   * Computes a random salt to use for backfilling existing integer primary keys with UUIDs.
-    ///   * For each table passed to this method:
-    ///     * Creates a new table with essentially the same schema, but the following changes:
-    ///       * A new temporary name is given to the table.
-    ///       * If an integer primary key exists, it is changed to a "TEXT" column with a
-    ///         "NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT" constraint, and a default of
-    ///         "uuid()" if no `uuid` argument is given, otherwise the argument is used.
-    ///       * If no primary key exists, one is added with the same constraints as above.
-    ///       * All integer foreign keys are changed to "TEXT" columns with no other changes.
-    ///     * All data from the existing table is copied over into the new table, but all integer
-    ///       IDs (both primary and foreign keys) are transformed into UUIDs by MD5 hashing the
-    ///       integer, the table name, and the salt mentioned above, and turning that hash into a
-    ///       UUID.
-    ///     * The existing table is dropped.
-    ///     * Thew new table is renamed to have the same name as the table just dropped.
-    ///   * Any indexes and stored triggers that were removed from dropping tables in the steps
-    ///     above are recreated.
-    ///   * Executes a "PRAGMA foreign_key_check;" query to make sure that the integrity of the data
-    ///     is preserved.
-    ///
-    /// If all of those steps are performed without throwing an error, then your schema and data
-    /// should have been successfully migrated to UUIDs. If an error is thrown for any reason,
-    /// then it means the tool was not able to safely migrate your data and so you will need to
-    /// perform the migration [manually](<doc:ManuallyMigratingPrimaryKeys>).
-    ///
-    /// - Parameters:
-    ///   - db: A database connection.
-    ///   - tables: Tables to migrate.
-    ///   - uuidFunction: A UUID function to use for the default value of primary keys in your
-    ///     tables' schemas. If `nil`, SQLite's `uuid` function will be used.
     public static func migratePrimaryKeys<each T: PrimaryKeyedTable>(
       _ db: Database,
       tables: repeat (each T).Type,

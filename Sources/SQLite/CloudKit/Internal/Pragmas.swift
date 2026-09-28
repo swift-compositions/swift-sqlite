@@ -1,9 +1,6 @@
 #if CloudKit
 #if canImport(CloudKit)
-  import StructuredQueries
-  #if EXCLUDE_EXPORTS
-    public import StructuredQueriesCore
-  #endif
+  public import SQL
 
   @Table
   struct PragmaDatabaseList {

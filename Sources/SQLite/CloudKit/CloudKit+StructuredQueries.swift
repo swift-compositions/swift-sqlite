@@ -2,9 +2,7 @@
 #if canImport(CloudKit)
   public import CloudKit
   import CryptoKit
-  import Dependencies
-  import IssueReporting
-  public import StructuredQueriesCore
+  public import SQL
 
   extension CKRecord {
     public typealias _AllFieldsRepresentation = SQLiteData._AllFieldsRepresentation<CKRecord>
@@ -27,8 +25,8 @@
     public var queryBinding: QueryBinding {
       let archiver = NSKeyedArchiver(requiringSecureCoding: true)
       queryOutput.encodeSystemFields(with: archiver)
-      if isTesting {
-        archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
+      if let recordChangeTag = queryOutput._recordChangeTag {
+        archiver.encode(recordChangeTag, forKey: "_recordChangeTag")
       }
       return archiver.encodedData.queryBinding
     }
@@ -42,7 +40,7 @@
       try? self.init(data: Data(bytes))
     }
 
-    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+    public init(decoder: inout some SQL.QueryDecoder) throws {
       try self.init(data: try Data(decoder: &decoder))
     }
 
@@ -52,10 +50,10 @@
       guard let queryOutput = Record(coder: coder) else {
         throw DecodingError()
       }
-      if isTesting {
-        queryOutput._recordChangeTag =
-          coder
-          .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
+      if let recordChangeTag = coder
+        .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
+      {
+        queryOutput._recordChangeTag = recordChangeTag
       }
       self.init(queryOutput: queryOutput)
     }
@@ -69,8 +67,8 @@
     public var queryBinding: QueryBinding {
       let archiver = NSKeyedArchiver(requiringSecureCoding: true)
       queryOutput.encode(with: archiver)
-      if isTesting {
-        archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
+      if let recordChangeTag = queryOutput._recordChangeTag {
+        archiver.encode(recordChangeTag, forKey: "_recordChangeTag")
       }
       return archiver.encodedData.queryBinding
     }
@@ -84,7 +82,7 @@
       try? self.init(data: Data(bytes))
     }
 
-    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+    public init(decoder: inout some SQL.QueryDecoder) throws {
       try self.init(data: try Data(decoder: &decoder))
     }
 
@@ -94,10 +92,10 @@
       guard let queryOutput = Record(coder: coder) else {
         throw DecodingError()
       }
-      if isTesting {
-        queryOutput._recordChangeTag =
-          coder
-          .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
+      if let recordChangeTag = coder
+        .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
+      {
+        queryOutput._recordChangeTag = recordChangeTag
       }
       self.init(queryOutput: queryOutput)
     }
@@ -171,9 +169,9 @@
     package func setAsset(
       _ newValue: CKAsset,
       forKey key: CKRecord.FieldKey,
-      at userModificationTime: Int64
+      at userModificationTime: Int64,
+      dataManager: some DataManager
     ) -> Bool {
-      @Dependency(\.dataManager) var dataManager
       guard
         let fileURL = newValue.fileURL,
         let hash = dataManager.sha256(of: fileURL)
@@ -194,12 +192,12 @@
     package func setBytes(
       _ newValue: [UInt8],
       forKey key: CKRecord.FieldKey,
-      at userModificationTime: Int64
-    ) -> Bool {
+      at userModificationTime: Int64,
+      dataManager: some DataManager
+    ) throws -> Bool {
       guard encryptedValues[at: key] <= userModificationTime
       else { return false }
 
-      @Dependency(\.dataManager) var dataManager
       let hash = newValue.sha256
       let fileURL = dataManager.temporaryDirectory.appending(
         component:
@@ -208,15 +206,12 @@
           .joined()
       )
       let asset = CKAsset(fileURL: fileURL)
-      return withErrorReporting(.sqliteDataCloudKitFailure) {
-        try dataManager.save(Data(newValue), to: fileURL)
-        self[key] = asset
-        encryptedValues[at: key] = userModificationTime
-        encryptedValues[hash: key] = hash
-        self.userModificationTime = userModificationTime
-        return true
-      }
-        ?? false
+      try dataManager.save(Data(newValue), to: fileURL)
+      self[key] = asset
+      encryptedValues[at: key] = userModificationTime
+      encryptedValues[hash: key] = hash
+      self.userModificationTime = userModificationTime
+      return true
     }
 
     @discardableResult
@@ -245,15 +240,27 @@
       return false
     }
 
-    func update<T: PrimaryKeyedTable>(with row: T, userModificationTime: Int64) {
+    func update<T: PrimaryKeyedTable>(
+      with row: T,
+      userModificationTime: Int64,
+      dataManager: some DataManager
+    ) throws {
+      var failures: [String: any Error] = [:]
       for column in T.TableColumns.writableColumns {
-        func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
+        func open<Root, Value>(
+          _ column: some WritableTableColumnExpression<Root, Value>
+        ) throws {
           let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
           let column = column as! any WritableTableColumnExpression<T, Value>
           let value = Value(queryOutput: row[keyPath: keyPath])
           switch value.queryBinding {
           case .blob(let value):
-            setBytes(value, forKey: column.name, at: userModificationTime)
+            try setBytes(
+              value,
+              forKey: column.name,
+              at: userModificationTime,
+              dataManager: dataManager
+            )
           case .bool(let value):
             setValue(value, forKey: column.name, at: userModificationTime)
           case .double(let value):
@@ -275,10 +282,18 @@
               at: userModificationTime
             )
           case .invalid(let error):
-            reportIssue(error)
+            throw error
           }
         }
-        open(column)
+        do {
+          try open(column)
+        } catch {
+          failures[column.name] = error
+        }
+      }
+      guard failures.isEmpty
+      else {
+        throw SyncEngine.Error.unencodableColumns(recordName: recordID.recordName, failures)
       }
     }
 
@@ -286,10 +301,12 @@
       with other: CKRecord,
       row: T,
       columnNames: inout [String],
-      parentForeignKey: ForeignKey?
-    ) {
+      parentForeignKey: ForeignKey?,
+      dataManager: some DataManager
+    ) throws {
       typealias EquatableCKRecordValueProtocol = CKRecordValueProtocol & Equatable
 
+      var failures: [String: any Error] = [:]
       self.userModificationTime = other.userModificationTime
       for column in T.TableColumns.writableColumns {
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
@@ -297,7 +314,12 @@
           let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
           let didSet: Bool
           if let value = other[key] as? CKAsset {
-            didSet = setAsset(value, forKey: key, at: other.encryptedValues[at: key])
+            didSet = setAsset(
+              value,
+              forKey: key,
+              at: other.encryptedValues[at: key],
+              dataManager: dataManager
+            )
           } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
             didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key])
           } else if other.encryptedValues[key] == nil {
@@ -305,7 +327,6 @@
           } else {
             didSet = false
           }
-          /// The row value has been modified more recently than the last known record.
           var isRowValueModified: Bool {
             switch Value(queryOutput: row[keyPath: keyPath]).queryBinding {
             case .blob(let value):
@@ -327,7 +348,7 @@
             case .uuid(let value):
               return other.encryptedValues[key] != value.uuidString.lowercased()
             case .invalid(let error):
-              reportIssue(error)
+              failures[key] = error
               return false
             }
           }
@@ -339,6 +360,10 @@
           }
         }
         open(column)
+      }
+      guard failures.isEmpty
+      else {
+        throw SyncEngine.Error.unencodableColumns(recordName: recordID.recordName, failures)
       }
     }
 

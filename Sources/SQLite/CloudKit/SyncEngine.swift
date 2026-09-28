@@ -5,6 +5,7 @@
   public import GRDB
   import OrderedCollections
   public import OSLog
+  public import RFC_4122
   import Observation
   public import SQL
   import SQL_Macros
@@ -36,6 +37,7 @@
     let notificationCenter: NotificationCenter
     let dataManager: any DataManager
     let now: @Sendable () -> Date
+    let uuid: @Sendable () -> RFC_4122.UUID
     let clock: any Clock<Duration>
     private let observationRegistrar = ObservationRegistrar()
     private let notificationsObserver = Mutex<(any NSObjectProtocol)?>(nil)
@@ -100,6 +102,7 @@
       notificationCenter: NotificationCenter = .default,
       dataManager: some DataManager = LiveDataManager(),
       now: @escaping @Sendable () -> Date = Date.init,
+      uuid: @escaping @Sendable () -> RFC_4122.UUID = systemRandomUUID,
       clock: some Clock<Duration> = ContinuousClock()
     ) throws
     where
@@ -159,6 +162,7 @@
           notificationCenter: notificationCenter,
           dataManager: dataManager,
           now: now,
+          uuid: uuid,
           clock: clock
         )
         try setUpSyncEngine()
@@ -213,6 +217,7 @@
         notificationCenter: notificationCenter,
         dataManager: dataManager,
         now: now,
+        uuid: uuid,
         clock: clock
       )
       try setUpSyncEngine()
@@ -238,6 +243,7 @@
       notificationCenter: NotificationCenter = .default,
       dataManager: some DataManager = LiveDataManager(),
       now: @escaping @Sendable () -> Date = Date.init,
+      uuid: @escaping @Sendable () -> RFC_4122.UUID = systemRandomUUID,
       clock: some Clock<Duration> = ContinuousClock()
     ) throws {
       let allTables = OrderedSet((tables + privateTables).map(HashableSynchronizedTable.init))
@@ -282,6 +288,7 @@
       self.notificationCenter = notificationCenter
       self.dataManager = dataManager
       self.now = now
+      self.uuid = uuid
       self.clock = clock
       self.metadatabase = try defaultMetadatabase(
         logger: logger,

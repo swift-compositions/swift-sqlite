@@ -5,7 +5,6 @@
   import Dependencies
   package import Foundation
 
-  @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   package protocol DataManager: Sendable {
     func load(_ url: URL) throws -> Data
     func save(_ data: Data, to url: URL) throws
@@ -13,7 +12,6 @@
     var temporaryDirectory: URL { get }
   }
 
-  @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   struct LiveDataManager: DataManager {
     func load(_ url: URL) throws -> Data {
       try Data(contentsOf: url)
@@ -49,7 +47,6 @@
     }
   }
 
-  @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   package struct InMemoryDataManager: DataManager {
     package let storage = LockIsolated<[URL: Data]>([:])
 
@@ -83,7 +80,6 @@
     }
   }
 
-  @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   private enum DataManagerKey: DependencyKey {
     static var liveValue: any DataManager {
       LiveDataManager()
@@ -96,7 +92,6 @@
     }
   }
 
-  @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   extension DependencyValues {
     package var dataManager: any DataManager {
       get { self[DataManagerKey.self] }

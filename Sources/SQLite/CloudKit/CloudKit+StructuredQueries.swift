@@ -131,7 +131,6 @@
     }
   }
 
-  @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   extension CKRecordKeyValueSetting {
     fileprivate subscript(at key: String) -> Int64 {
       get {
@@ -147,7 +146,6 @@
     }
   }
 
-  @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   extension CKRecord {
     func hasSet(key: String) -> Bool {
       self.encryptedValues["\(CKRecord.userModificationTimeKey)_\(key)"] != nil

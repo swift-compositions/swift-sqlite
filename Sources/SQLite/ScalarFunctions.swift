@@ -40,9 +40,6 @@ where QueryValue: _OptionalPromotable, QueryValue._Optionalized.Wrapped: Numeric
 }
 
 extension QueryExpression where QueryValue: _OptionalPromotable<String?> {
-  #if !SuppressPlatformSQLiteAvailability
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  #endif
   public func unhex(
     _ characters: (some QueryExpression<String>)? = String?.none
   ) -> some QueryExpression<[UInt8]?> {

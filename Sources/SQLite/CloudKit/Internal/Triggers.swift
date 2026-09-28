@@ -5,7 +5,6 @@
   import StructuredQueries
   import StructuredQueriesSQLite
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension PrimaryKeyedTable {
     static func metadataTriggers(
       parentForeignKey: ForeignKey?,
@@ -167,7 +166,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {
     fileprivate static func insert<T: PrimaryKeyedTable, Name>(
       new: StructuredQueriesCore.TableAlias<T, Name>.TableColumns,
@@ -237,7 +235,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {
     static func callbackTriggers(for syncEngine: SyncEngine) -> [TemporaryTrigger<Self>] {
       [
@@ -353,7 +350,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func parentFields<Base, Name>(
     alias: StructuredQueriesCore.TableAlias<Base, Name>.TableColumns,
     parentForeignKey: ForeignKey?,
@@ -405,7 +401,6 @@
       )
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func validate(
     recordName: some QueryExpression<String>
   ) -> some StructuredQueriesCore.Statement<Never> {
@@ -418,7 +413,6 @@
     )
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func checkWritePermissions<Base, Name>(
     alias: StructuredQueriesCore.TableAlias<Base, Name>.TableColumns,
     parentForeignKey: ForeignKey?,
@@ -463,7 +457,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func descendantRecordNames<T>(
     recordName: some QueryExpression<String>,
     includeSelf: Bool,
@@ -497,7 +490,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func rootServerRecord(
     recordName: some QueryExpression<String>
   ) -> some QueryExpression<CKRecord?.SystemFieldsRepresentation> {
@@ -518,7 +510,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func parentLastKnownServerRecord(
     parentRecordPrimaryKey: some QueryExpression<String?>,
     parentRecordType: some QueryExpression<String?>
@@ -531,7 +522,6 @@
       }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension AncestorMetadata.Selection {
     init(_ metadata: SyncMetadata.TableColumns) {
       self.init(
@@ -542,7 +532,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension QueryExpression<String> {
     fileprivate var isValidCloudKitRecordName: some QueryExpression<Bool> {
       substr(1, 1).neq("_") && octetLength().lte(255) && octetLength().eq(length())
@@ -555,7 +544,6 @@
     let parentRecordName: String?
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Selection
   private struct AncestorMetadata {
     let recordName: String
@@ -564,7 +552,6 @@
     let lastKnownServerRecord: CKRecord?
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Selection
   struct RecordWithRoot {
     let parentRecordName: String?
@@ -576,7 +563,6 @@
     let rootLastKnownServerRecord: CKRecord?
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Selection
   private struct RootShare {
     let parentRecordName: String?

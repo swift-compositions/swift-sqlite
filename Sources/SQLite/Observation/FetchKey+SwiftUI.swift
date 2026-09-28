@@ -4,7 +4,6 @@
   import Sharing
   package import SwiftUI
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SharedReaderKey {
     static func fetch<Value>(
       _ request: some FetchKeyRequest<Value>,
@@ -37,7 +36,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension AnimatedScheduler: Hashable {}
 
   extension ValueObservationScheduler where Self == AnimatedScheduler {

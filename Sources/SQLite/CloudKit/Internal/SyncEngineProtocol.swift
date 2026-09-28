@@ -2,7 +2,6 @@
 #if canImport(CloudKit)
   package import CloudKit
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package protocol SyncEngineProtocol<Database, State>: AnyObject, Sendable {
     associatedtype State: CKSyncEngineStateProtocol
     associatedtype Database: CloudDatabase
@@ -19,7 +18,6 @@
     func sendChanges(_ options: CKSyncEngine.SendChangesOptions) async throws
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package protocol CKSyncEngineStateProtocol: Sendable {
     var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] { get }
     var pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] { get }

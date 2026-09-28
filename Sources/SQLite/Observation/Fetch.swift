@@ -220,7 +220,6 @@ extension Fetch: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init(
       wrappedValue: Value,
       _ request: some FetchKeyRequest<Value>,
@@ -243,7 +242,6 @@ extension Fetch: Equatable where Value: Equatable {
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     /// - Returns: A subscription associated with the observation.
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @discardableResult
     public func load(
       _ request: some FetchKeyRequest<Value>,

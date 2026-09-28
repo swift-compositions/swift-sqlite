@@ -7,20 +7,17 @@
   #endif
 
   @Table("sqlitedata_icloud_pendingRecordZoneChanges")
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package struct PendingRecordZoneChange {
     @Column(as: CKSyncEngine.PendingRecordZoneChange.DataRepresentation.self)
     package let pendingRecordZoneChange: CKSyncEngine.PendingRecordZoneChange
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension PendingRecordZoneChange {
     package init(_ pendingRecordZoneChange: CKSyncEngine.PendingRecordZoneChange) {
       self.pendingRecordZoneChange = pendingRecordZoneChange
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension CKSyncEngine.PendingRecordZoneChange {
     package struct DataRepresentation: QueryBindable, QueryRepresentable {
       package var queryOutput: CKSyncEngine.PendingRecordZoneChange

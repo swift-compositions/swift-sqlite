@@ -1,12 +1,11 @@
 public import ISO_9075_Foundation
-import IssueReporting
 public import SQL
 
 public protocol FTS5: Table {}
 
 extension TableDefinition where QueryValue: FTS5 {
   public func bm25(
-    _ rankings: KeyValuePairs<PartialKeyPath<Self>, Double> = [:]
+    _ rankings: KeyValuePairs<PartialKeyPath<QueryValue>, Double> = [:]
   ) -> some QueryExpression<Double> {
     var queryFragments: [ISO_9075.Fragment] = ["\(quote: QueryValue.tableName)"]
     if !rankings.isEmpty {
@@ -14,16 +13,8 @@ extension TableDefinition where QueryValue: FTS5 {
         CASE "name"
         """
       for (keyPath, ranking) in rankings {
-        guard let column = self[keyPath: keyPath] as? any WritableTableColumnExpression
-        else {
-          reportIssue(
-            """
-            Key path cannot be used in 'bm25' function: \(keyPath)
-
-            Must be a key path to a table column on '\(QueryValue.self)'.
-            """
-          )
-          continue
+        guard let column = Self.allColumns.first(where: { $0.keyPath == keyPath }) else {
+          preconditionFailure("Key path cannot be used in 'bm25': \(keyPath) is not a column of \(QueryValue.self)")
         }
         columnNameToRanking.append(
           """
@@ -36,7 +27,7 @@ extension TableDefinition where QueryValue: FTS5 {
         queryFragments.append(
           """
           (SELECT \(columnNameToRanking) \
-          FROM pragma_table_info(\(quote: QueryValue.tableName, delimiter: .text)) \
+          FROM pragma_table_info(\(text: QueryValue.tableName)) \
           WHERE "cid" = \(offset))
           """
         )
@@ -77,8 +68,8 @@ where
       highlight(\
       \(quote: Root.tableName), \
       (\(cid)),
-      \(quote: "\(open)", delimiter: .text), \
-      \(quote: "\(close)", delimiter: .text)\
+      \(text: "\(open)"), \
+      \(text: "\(close)")\
       )
       """
     )
@@ -99,9 +90,9 @@ where
       snippet(\
       \(quote: Root.tableName), \
       (\(cid)),
-      \(quote: "\(open)", delimiter: .text), \
-      \(quote: "\(close)", delimiter: .text), \
-      \(quote: "\(ellipsis)", delimiter: .text), \
+      \(text: "\(open)"), \
+      \(text: "\(close)"), \
+      \(text: "\(ellipsis)"), \
       \(raw: tokens)\
       )
       """
@@ -113,8 +104,8 @@ extension TableColumnExpression {
   fileprivate var cid: some Statement<Int> {
     SQLQueryExpression(
       """
-      SELECT "cid" FROM pragma_table_info(\(quote: Root.tableName, delimiter: .text)) \
-      WHERE "name" = \(quote: name, delimiter: .text)
+      SELECT "cid" FROM pragma_table_info(\(text: Root.tableName)) \
+      WHERE "name" = \(text: name)
       """
     )
   }

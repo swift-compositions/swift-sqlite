@@ -97,7 +97,6 @@ extension StructuredQueriesCore.Statement {
   }
 }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension StructuredQueriesCore.Statement {
   /// Returns an array of all values fetched from the database.
   ///
@@ -207,7 +206,6 @@ extension SelectStatement where QueryValue == (), From: PrimaryKeyedTable, Joins
   }
 }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SelectStatement where QueryValue == () {
   /// Returns an array of all values fetched from the database.
   ///

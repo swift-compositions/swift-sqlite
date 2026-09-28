@@ -5,7 +5,6 @@
   import IssueReporting
   package import OrderedCollections
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package final class MockSyncEngine: SyncEngineProtocol {
     package let database: MockCloudDatabase
     package let parentSyncEngine: SyncEngine
@@ -135,7 +134,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package final class MockSyncEngineState: CKSyncEngineStateProtocol {
     package let changeTag = LockIsolated(0)
     package let _pendingRecordZoneChanges = LockIsolated<
@@ -200,7 +198,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine {
     package struct SendRecordsCallback {
       fileprivate let operation: @Sendable () async -> Void

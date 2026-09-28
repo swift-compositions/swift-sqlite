@@ -34,7 +34,7 @@ where QueryValue: _AnyJSONRepresentable & _JSONDictionaryRepresentation {
 
 extension QueryExpression
 where
-  QueryValue: StructuredQueriesCore._OptionalProtocol,
+  QueryValue: SQL::_OptionalProtocol,
   QueryValue.Wrapped: _JSONArrayRepresentation
 {
   public func jsonEach<Element: Table & Codable>()
@@ -51,7 +51,7 @@ where
 
 extension QueryExpression
 where
-  QueryValue: StructuredQueriesCore._OptionalProtocol,
+  QueryValue: SQL::_OptionalProtocol,
   QueryValue.Wrapped: _JSONDictionaryRepresentation
 {
   public func jsonEach<Element: Table & Codable>()
@@ -138,7 +138,7 @@ where QueryValue: _AnyJSONRepresentable & _JSONDictionaryRepresentation {
 
 extension QueryExpression
 where
-  QueryValue: StructuredQueriesCore._OptionalProtocol,
+  QueryValue: SQL::_OptionalProtocol,
   QueryValue.Wrapped: _JSONArrayRepresentation
 {
   public func jsonbEach<Element: Table & Codable>()
@@ -155,7 +155,7 @@ where
 
 extension QueryExpression
 where
-  QueryValue: StructuredQueriesCore._OptionalProtocol,
+  QueryValue: SQL::_OptionalProtocol,
   QueryValue.Wrapped: _JSONDictionaryRepresentation
 {
   public func jsonbEach<Element: Table & Codable>()

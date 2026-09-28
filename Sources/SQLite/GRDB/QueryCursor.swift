@@ -136,7 +136,6 @@ final class QuerySectionedCursor<
   }
 }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 @usableFromInline
 final class QueryPackCursor<
   each QueryValue: QueryRepresentable

@@ -664,39 +664,22 @@ extension DatabaseFunctionMacro: PeerMacro {
         )
       )
 
-      #if SuppressPlatformSQLiteAvailability
-        let defaultedOrderParameter = FunctionParameterSyntax(
-          firstName: "order",
-          colon: .colonToken(trailingTrivia: .space),
-          type: "(some QueryExpression)?" as TypeSyntax,
-          defaultValue: InitializerClauseSyntax(
-            equal: .equalToken(leadingTrivia: .space, trailingTrivia: .space),
-            value: "Bool?.none" as ExprSyntax
-          )
+      let defaultedOrderParameter = FunctionParameterSyntax(
+        firstName: "order",
+        colon: .colonToken(trailingTrivia: .space),
+        type: "(some QueryExpression)?" as TypeSyntax,
+        defaultValue: InitializerClauseSyntax(
+          equal: .equalToken(leadingTrivia: .space, trailingTrivia: .space),
+          value: "Bool?.none" as ExprSyntax
         )
-        methods.append(
-          aggregateMethod(
-            availability: "",
-            extraParameters: [defaultedOrderParameter, optionalFilterParameter],
-            extraArguments: ["order: order", "filter: filter"]
-          )
+      )
+      methods.append(
+        aggregateMethod(
+          availability: "",
+          extraParameters: [defaultedOrderParameter, optionalFilterParameter],
+          extraArguments: ["order: order", "filter: filter"]
         )
-      #else
-        methods.append(
-          aggregateMethod(
-            availability: "",
-            extraParameters: [optionalFilterParameter],
-            extraArguments: ["filter: filter"]
-          )
-        )
-        methods.append(
-          aggregateMethod(
-            availability: "@available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)\n",
-            extraParameters: [orderParameter, optionalFilterParameter],
-            extraArguments: ["order: order", "filter: filter"]
-          )
-        )
-      #endif
+      )
 
       let stepReturnClause: String
       switch parameters.count {

@@ -1,5 +1,5 @@
 public import ISO_9075_Foundation
-public import Foundation
+public import Time
 public import SQL
 
 public protocol _DateTimeModifiable<QueryValue>: QueryExpression
@@ -58,15 +58,15 @@ extension QueryExpression where QueryValue: _SQLiteDateRepresentation {
   }
 }
 
-extension QueryExpression where Self == _ModifiedDate<Date> {
+extension QueryExpression where Self == _ModifiedDate<Instant> {
   public static var now: Self { Self() }
 }
 
-extension QueryExpression where Self == _ModifiedDate<Date.UnixTimeRepresentation> {
+extension QueryExpression where Self == _ModifiedDate<Instant.UnixTimeRepresentation> {
   public static var now: Self { Self() }
 }
 
-extension QueryExpression where Self == _ModifiedDate<Date.JulianDayRepresentation> {
+extension QueryExpression where Self == _ModifiedDate<Instant.JulianDayRepresentation> {
   public static var now: Self { Self() }
 }
 
@@ -89,18 +89,12 @@ public struct DateTimeModifier: Sendable {
 
   public static func years(_ count: Int) -> Self { Self().years(count) }
 
-  #if !SuppressPlatformSQLiteAvailability
-    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-  #endif
   public static func years(_ count: Int, _ overflow: Overflow) -> Self {
     Self().years(count, overflow)
   }
 
   public static func months(_ count: Int) -> Self { Self().months(count) }
 
-  #if !SuppressPlatformSQLiteAvailability
-    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-  #endif
   public static func months(_ count: Int, _ overflow: Overflow) -> Self {
     Self().months(count, overflow)
   }
@@ -125,18 +119,12 @@ public struct DateTimeModifier: Sendable {
 
   public func years(_ count: Int) -> Self { appending("'\(raw: count) years'") }
 
-  #if !SuppressPlatformSQLiteAvailability
-    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-  #endif
   public func years(_ count: Int, _ overflow: Overflow) -> Self {
     years(count).appending(overflow.fragment)
   }
 
   public func months(_ count: Int) -> Self { appending("'\(raw: count) months'") }
 
-  #if !SuppressPlatformSQLiteAvailability
-    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-  #endif
   public func months(_ count: Int, _ overflow: Overflow) -> Self {
     months(count).appending(overflow.fragment)
   }
@@ -175,7 +163,7 @@ public struct DateTimeModifier: Sendable {
   }
 }
 
-public protocol _SQLiteDateRepresentation: QueryRepresentable where QueryOutput == Date {
+public protocol _SQLiteDateRepresentation: QueryRepresentable where QueryOutput == Instant {
   static var _timeValueModifiers: [ISO_9075.Fragment] { get }
   static func _dateStorage(_ arguments: [ISO_9075.Fragment]) -> ISO_9075.Fragment
 }
@@ -197,7 +185,7 @@ public struct _ModifiedDate<QueryValue: _SQLiteDateRepresentation>: QueryExpress
   }
 }
 
-extension Date: _SQLiteDateRepresentation {
+extension Instant: _SQLiteDateRepresentation {
   public static var _timeValueModifiers: [ISO_9075.Fragment] { [] }
   public static func _dateStorage(_ arguments: [ISO_9075.Fragment]) -> ISO_9075.Fragment {
     subsecDateTime(arguments)
@@ -205,22 +193,17 @@ extension Date: _SQLiteDateRepresentation {
 }
 
 func subsecDateTime(_ arguments: [ISO_9075.Fragment] = []) -> ISO_9075.Fragment {
-  #if !SuppressPlatformSQLiteAvailability
-    guard #available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) else {
-      return "strftime(\((["'%Y-%m-%d %H:%M:%f'"] + arguments).joined(separator: ", ")))"
-    }
-  #endif
   return "datetime(\((arguments + ["'subsec'"]).joined(separator: ", ")))"
 }
 
-extension Date.UnixTimeRepresentation: _SQLiteDateRepresentation {
+extension Instant.UnixTimeRepresentation: _SQLiteDateRepresentation {
   public static var _timeValueModifiers: [ISO_9075.Fragment] { ["'unixepoch'"] }
   public static func _dateStorage(_ arguments: [ISO_9075.Fragment]) -> ISO_9075.Fragment {
     "unixepoch(\(arguments.joined(separator: ", ")))"
   }
 }
 
-extension Date.JulianDayRepresentation: _SQLiteDateRepresentation {
+extension Instant.JulianDayRepresentation: _SQLiteDateRepresentation {
   public static var _timeValueModifiers: [ISO_9075.Fragment] { [] }
   public static func _dateStorage(_ arguments: [ISO_9075.Fragment]) -> ISO_9075.Fragment {
     "julianday(\(arguments.joined(separator: ", ")))"

@@ -4,7 +4,6 @@
   package import CloudKit
   import Dependencies
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package final class MockCloudContainer: CloudContainer {
     package let _accountStatus: LockIsolated<CKAccountStatus>
     package let containerIdentifier: String?
@@ -110,7 +109,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private enum MockCloudContainersKey: DependencyKey {
     static var liveValue: LockIsolated<[String: MockCloudContainer]> {
       LockIsolated<[String: MockCloudContainer]>([:])
@@ -121,7 +119,6 @@
   }
 
   extension DependencyValues {
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     fileprivate var mockCloudContainers: LockIsolated<[String: MockCloudContainer]> {
       get {
         self[MockCloudContainersKey.self]

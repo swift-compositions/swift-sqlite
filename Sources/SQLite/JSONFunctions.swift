@@ -1,12 +1,11 @@
 public import ISO_9075_Foundation
-import Foundation
 import IssueReporting
 public import SQL
 
 extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   public func jsonExtract<Context, Member: QueryRepresentable>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >
   ) -> some QueryExpression<Member> {
@@ -19,7 +18,7 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
     Member: QueryRepresentable
   >(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >
   ) -> some QueryExpression<Member._Optionalized> {
@@ -33,9 +32,6 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
     _jsonGroupArray(isDistinct: isDistinct, order: Bool?.none, filter: filter)
   }
 
-  #if !SuppressPlatformSQLiteAvailability
-    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-  #endif
   public func jsonGroupArray(
     distinct isDistinct: Bool = false,
     order: some QueryExpression,
@@ -45,13 +41,10 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
 extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   public func jsonbExtract<Context, Member: QueryRepresentable>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONBRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONBRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >
   ) -> some QueryExpression<Member> {
@@ -64,7 +57,7 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
     Member: QueryRepresentable
   >(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONBRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONBRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >
   ) -> some QueryExpression<Member._Optionalized> {
@@ -90,11 +83,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
 extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   public func jsonSet<Context: _RequiredJSONPathContext, Member: QueryBindable>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member>
-  ) -> _JSONSetExpression<_CodableJSONRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONSetExpression<JSONRepresentation<QueryValue.QueryOutput>> {
     _JSONSetExpression(
       function: "json_set",
       base: argumentFragment,
@@ -105,11 +98,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   @_documentation(visibility: private)
   public func jsonSet<Member: QueryBindable>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONRepresentation<QueryValue.QueryOutput>>,
       JSONPath<_JSONPathCase, Member>
     >,
     _ value: some QueryExpression<Member>
-  ) -> _JSONSetExpression<_CodableJSONRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONSetExpression<JSONRepresentation<QueryValue.QueryOutput>> {
     _JSONSetExpression(
       function: "json_set",
       base: argumentFragment,
@@ -119,11 +112,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
 
   public func jsonInsert<Member: QueryBindable & StructuredQueriesCore._OptionalProtocol>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONRepresentation<QueryValue.QueryOutput>>,
       JSONPath<_JSONPathMember, Member>
     >,
     _ value: some QueryExpression<Member.Wrapped>
-  ) -> _JSONInsertExpression<_CodableJSONRepresentation<QueryValue.QueryOutput>>
+  ) -> _JSONInsertExpression<JSONRepresentation<QueryValue.QueryOutput>>
   where Member.Wrapped: QueryBindable {
     _JSONInsertExpression(
       function: "json_insert",
@@ -134,11 +127,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
 
   public func jsonAppend<Context: _RequiredJSONPathContext, Member: _JSONArrayRepresentation>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member._Element>
-  ) -> _JSONInsertExpression<_CodableJSONRepresentation<QueryValue.QueryOutput>>
+  ) -> _JSONInsertExpression<JSONRepresentation<QueryValue.QueryOutput>>
   where Member._Element: QueryBindable {
     _JSONInsertExpression(
       function: "json_insert",
@@ -150,11 +143,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   @_documentation(visibility: private)
   public func jsonAppend<Context: _RequiredJSONPathContext, Member: _JSONArrayRepresentation>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member._ElementRepresentation>
-  ) -> _JSONInsertExpression<_CodableJSONRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONInsertExpression<JSONRepresentation<QueryValue.QueryOutput>> {
     _JSONInsertExpression(
       function: "json_insert",
       base: argumentFragment,
@@ -167,11 +160,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
     Context: _RequiredJSONPathContext, Member: StructuredQueriesCore._OptionalProtocol
   >(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member.Wrapped._Element>
-  ) -> _JSONInsertExpression<_CodableJSONRepresentation<QueryValue.QueryOutput>>
+  ) -> _JSONInsertExpression<JSONRepresentation<QueryValue.QueryOutput>>
   where Member.Wrapped: _JSONArrayRepresentation, Member.Wrapped._Element: QueryBindable {
     _JSONInsertExpression(
       function: "json_insert",
@@ -185,11 +178,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
     Context: _RequiredJSONPathContext, Member: StructuredQueriesCore._OptionalProtocol
   >(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member.Wrapped._ElementRepresentation>
-  ) -> _JSONInsertExpression<_CodableJSONRepresentation<QueryValue.QueryOutput>>
+  ) -> _JSONInsertExpression<JSONRepresentation<QueryValue.QueryOutput>>
   where Member.Wrapped: _JSONArrayRepresentation {
     _JSONInsertExpression(
       function: "json_insert",
@@ -202,10 +195,10 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
     Context: _JSONPathMemberContext, Member: StructuredQueriesCore._OptionalProtocol
   >(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >
-  ) -> _JSONRemoveExpression<_CodableJSONRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONRemoveExpression<JSONRepresentation<QueryValue.QueryOutput>> {
     _JSONRemoveExpression(
       function: "json_remove",
       base: argumentFragment,
@@ -215,10 +208,10 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
 
   public func jsonRemove<Context: _JSONPathElementContext, Member>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >
-  ) -> _JSONRemoveExpression<_CodableJSONRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONRemoveExpression<JSONRepresentation<QueryValue.QueryOutput>> {
     _JSONRemoveExpression(
       function: "json_remove",
       base: argumentFragment,
@@ -228,11 +221,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
 
   public func jsonReplace<Context: _JSONPathMemberContext, Member: QueryBindable>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member.Wrapped>
-  ) -> _JSONReplaceExpression<_CodableJSONRepresentation<QueryValue.QueryOutput>>
+  ) -> _JSONReplaceExpression<JSONRepresentation<QueryValue.QueryOutput>>
   where Member: StructuredQueriesCore._OptionalProtocol, Member.Wrapped: QueryBindable {
     _JSONReplaceExpression(
       function: "json_replace",
@@ -243,11 +236,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
 
   public func jsonReplace<Context: _JSONPathElementContext, Member: QueryBindable>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member>
-  ) -> _JSONReplaceExpression<_CodableJSONRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONReplaceExpression<JSONRepresentation<QueryValue.QueryOutput>> {
     _JSONReplaceExpression(
       function: "json_replace",
       base: argumentFragment,
@@ -261,11 +254,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
     Context: _JSONPathMemberContext & _OptionalJSONPathContext, Member: QueryBindable
   >(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member>
-  ) -> _JSONReplaceExpression<_CodableJSONRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONReplaceExpression<JSONRepresentation<QueryValue.QueryOutput>> {
     _JSONReplaceExpression(
       function: "json_replace",
       base: argumentFragment,
@@ -315,30 +308,27 @@ where
 {
   public func jsonAppend(
     _ value: some QueryExpression<QueryValue.QueryOutput.Element>
-  ) -> _JSONInsertExpression<_CodableJSONRepresentation<QueryValue.QueryOutput>>
+  ) -> _JSONInsertExpression<JSONRepresentation<QueryValue.QueryOutput>>
   where QueryValue.QueryOutput.Element: QueryBindable {
     jsonAppend(\.self, value)
   }
 
   @_documentation(visibility: private)
   public func jsonAppend(
-    _ value: some QueryExpression<_CodableJSONRepresentation<QueryValue.QueryOutput.Element>>
-  ) -> _JSONInsertExpression<_CodableJSONRepresentation<QueryValue.QueryOutput>> {
+    _ value: some QueryExpression<JSONRepresentation<QueryValue.QueryOutput.Element>>
+  ) -> _JSONInsertExpression<JSONRepresentation<QueryValue.QueryOutput>> {
     jsonAppend(\.self, value)
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 27, macOS 27, tvOS 27, watchOS 27, *)
-#endif
 extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   public func jsonArrayInsert<Context: _JSONPathElementContext, Member: QueryBindable>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member>
-  ) -> _JSONArrayInsertExpression<_CodableJSONRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONArrayInsertExpression<JSONRepresentation<QueryValue.QueryOutput>> {
     _JSONArrayInsertExpression(
       function: "json_array_insert",
       base: argumentFragment,
@@ -347,17 +337,14 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
 extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   public func jsonbSet<Context: _RequiredJSONPathContext, Member: QueryBindable>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONBRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONBRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member>
-  ) -> _JSONSetExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONSetExpression<JSONBRepresentation<QueryValue.QueryOutput>> {
     _JSONSetExpression(
       function: "jsonb_set",
       base: argumentFragment,
@@ -368,11 +355,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   @_documentation(visibility: private)
   public func jsonbSet<Member: QueryBindable>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONBRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONBRepresentation<QueryValue.QueryOutput>>,
       JSONPath<_JSONPathCase, Member>
     >,
     _ value: some QueryExpression<Member>
-  ) -> _JSONSetExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONSetExpression<JSONBRepresentation<QueryValue.QueryOutput>> {
     _JSONSetExpression(
       function: "jsonb_set",
       base: argumentFragment,
@@ -382,11 +369,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
 
   public func jsonbInsert<Member: QueryBindable & StructuredQueriesCore._OptionalProtocol>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONBRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONBRepresentation<QueryValue.QueryOutput>>,
       JSONPath<_JSONPathMember, Member>
     >,
     _ value: some QueryExpression<Member.Wrapped>
-  ) -> _JSONInsertExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput>>
+  ) -> _JSONInsertExpression<JSONBRepresentation<QueryValue.QueryOutput>>
   where Member.Wrapped: QueryBindable {
     _JSONInsertExpression(
       function: "jsonb_insert",
@@ -397,11 +384,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
 
   public func jsonbAppend<Context: _RequiredJSONPathContext, Member: _JSONArrayRepresentation>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONBRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONBRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member._Element>
-  ) -> _JSONInsertExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput>>
+  ) -> _JSONInsertExpression<JSONBRepresentation<QueryValue.QueryOutput>>
   where Member._Element: QueryBindable {
     _JSONInsertExpression(
       function: "jsonb_insert",
@@ -413,11 +400,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   @_documentation(visibility: private)
   public func jsonbAppend<Context: _RequiredJSONPathContext, Member: _JSONArrayRepresentation>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONBRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONBRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member._ElementRepresentation>
-  ) -> _JSONInsertExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONInsertExpression<JSONBRepresentation<QueryValue.QueryOutput>> {
     _JSONInsertExpression(
       function: "jsonb_insert",
       base: argumentFragment,
@@ -430,11 +417,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
     Context: _RequiredJSONPathContext, Member: StructuredQueriesCore._OptionalProtocol
   >(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONBRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONBRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member.Wrapped._Element>
-  ) -> _JSONInsertExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput>>
+  ) -> _JSONInsertExpression<JSONBRepresentation<QueryValue.QueryOutput>>
   where Member.Wrapped: _JSONArrayRepresentation, Member.Wrapped._Element: QueryBindable {
     _JSONInsertExpression(
       function: "jsonb_insert",
@@ -448,11 +435,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
     Context: _RequiredJSONPathContext, Member: StructuredQueriesCore._OptionalProtocol
   >(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONBRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONBRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member.Wrapped._ElementRepresentation>
-  ) -> _JSONInsertExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput>>
+  ) -> _JSONInsertExpression<JSONBRepresentation<QueryValue.QueryOutput>>
   where Member.Wrapped: _JSONArrayRepresentation {
     _JSONInsertExpression(
       function: "jsonb_insert",
@@ -465,10 +452,10 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
     Context: _JSONPathMemberContext, Member: StructuredQueriesCore._OptionalProtocol
   >(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONBRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONBRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >
-  ) -> _JSONRemoveExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONRemoveExpression<JSONBRepresentation<QueryValue.QueryOutput>> {
     _JSONRemoveExpression(
       function: "jsonb_remove",
       base: argumentFragment,
@@ -478,10 +465,10 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
 
   public func jsonbRemove<Context: _JSONPathElementContext, Member>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONBRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONBRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >
-  ) -> _JSONRemoveExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONRemoveExpression<JSONBRepresentation<QueryValue.QueryOutput>> {
     _JSONRemoveExpression(
       function: "jsonb_remove",
       base: argumentFragment,
@@ -491,11 +478,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
 
   public func jsonbReplace<Context: _JSONPathMemberContext, Member: QueryBindable>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONBRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONBRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member.Wrapped>
-  ) -> _JSONReplaceExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput>>
+  ) -> _JSONReplaceExpression<JSONBRepresentation<QueryValue.QueryOutput>>
   where Member: StructuredQueriesCore._OptionalProtocol, Member.Wrapped: QueryBindable {
     _JSONReplaceExpression(
       function: "jsonb_replace",
@@ -506,11 +493,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
 
   public func jsonbReplace<Context: _JSONPathElementContext, Member: QueryBindable>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONBRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONBRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member>
-  ) -> _JSONReplaceExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONReplaceExpression<JSONBRepresentation<QueryValue.QueryOutput>> {
     _JSONReplaceExpression(
       function: "jsonb_replace",
       base: argumentFragment,
@@ -524,11 +511,11 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
     Context: _JSONPathMemberContext & _OptionalJSONPathContext, Member: QueryBindable
   >(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONBRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONBRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member>
-  ) -> _JSONReplaceExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONReplaceExpression<JSONBRepresentation<QueryValue.QueryOutput>> {
     _JSONReplaceExpression(
       function: "jsonb_replace",
       base: argumentFragment,
@@ -537,9 +524,6 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
 extension QueryExpression
 where
   QueryValue: _AnyJSONRepresentable,
@@ -548,30 +532,27 @@ where
 {
   public func jsonbAppend(
     _ value: some QueryExpression<QueryValue.QueryOutput.Element>
-  ) -> _JSONInsertExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput>>
+  ) -> _JSONInsertExpression<JSONBRepresentation<QueryValue.QueryOutput>>
   where QueryValue.QueryOutput.Element: QueryBindable {
     jsonbAppend(\.self, value)
   }
 
   @_documentation(visibility: private)
   public func jsonbAppend(
-    _ value: some QueryExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput.Element>>
-  ) -> _JSONInsertExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput>> {
+    _ value: some QueryExpression<JSONBRepresentation<QueryValue.QueryOutput.Element>>
+  ) -> _JSONInsertExpression<JSONBRepresentation<QueryValue.QueryOutput>> {
     jsonbAppend(\.self, value)
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 27, macOS 27, tvOS 27, watchOS 27, *)
-#endif
 extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   public func jsonbArrayInsert<Context: _JSONPathElementContext, Member: QueryBindable>(
     _ path: KeyPath<
-      JSONPath<_JSONPathRoot, _CodableJSONBRepresentation<QueryValue.QueryOutput>>,
+      JSONPath<_JSONPathRoot, JSONBRepresentation<QueryValue.QueryOutput>>,
       JSONPath<Context, Member>
     >,
     _ value: some QueryExpression<Member>
-  ) -> _JSONArrayInsertExpression<_CodableJSONBRepresentation<QueryValue.QueryOutput>> {
+  ) -> _JSONArrayInsertExpression<JSONBRepresentation<QueryValue.QueryOutput>> {
     _JSONArrayInsertExpression(
       function: "jsonb_array_insert",
       base: argumentFragment,
@@ -596,9 +577,6 @@ where QueryValue: StructuredQueriesCore._OptionalProtocol, QueryValue.Wrapped: _
     _jsonGroupArray(isDistinct: isDistinct, order: Bool?.none, filter: filter)
   }
 
-  #if !SuppressPlatformSQLiteAvailability
-    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-  #endif
   public func jsonGroupArray(
     distinct isDistinct: Bool = false,
     order: some QueryExpression,
@@ -608,9 +586,6 @@ where QueryValue: StructuredQueriesCore._OptionalProtocol, QueryValue.Wrapped: _
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
 extension QueryExpression
 where QueryValue: StructuredQueriesCore._OptionalProtocol, QueryValue.Wrapped: _AnyJSONRepresentable
 {
@@ -663,7 +638,7 @@ extension QueryExpression {
       """
       json_array_length(\
       \(argumentFragment), \
-      \(quote: JSONPath()[keyPath: path].pathString, delimiter: .text)\
+      \(text: JSONPath()[keyPath: path].pathString)\
       )
       """
     )
@@ -677,7 +652,7 @@ extension QueryExpression {
       jsonDecoding: """
         \(function)(\
         \(argumentFragment), \
-        \(quote: JSONPath()[keyPath: path].pathString, delimiter: .text)\
+        \(text: JSONPath()[keyPath: path].pathString)\
         )
         """
     )
@@ -727,9 +702,6 @@ extension QueryExpression where QueryValue: Codable & QueryBindable {
     )
   }
 
-  #if !SuppressPlatformSQLiteAvailability
-    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-  #endif
   public func jsonGroupArray(
     distinct isDistinct: Bool = false,
     order: some QueryExpression,
@@ -745,9 +717,6 @@ extension QueryExpression where QueryValue: Codable & QueryBindable {
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
 extension QueryExpression where QueryValue: Codable & QueryBindable {
   @_disfavoredOverload
   public func jsonbGroupArray(
@@ -793,9 +762,6 @@ extension TableDefinition where QueryValue: Codable {
     )
   }
 
-  #if !SuppressPlatformSQLiteAvailability
-    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-  #endif
   @_disfavoredOverload
   public func jsonGroupArray(
     distinct isDistinct: Bool = false,
@@ -812,9 +778,6 @@ extension TableDefinition where QueryValue: Codable {
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
 extension TableDefinition where QueryValue: Codable {
   @_disfavoredOverload
   public func jsonbGroupArray(
@@ -862,9 +825,6 @@ extension TableDefinition where QueryValue: StructuredQueriesCore._OptionalProto
     return _jsonGroupArray(isDistinct: isDistinct, order: nil, filter: filterQueryFragment)
   }
 
-  #if !SuppressPlatformSQLiteAvailability
-    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-  #endif
   public func jsonGroupArray<Wrapped: Codable>(
     distinct isDistinct: Bool = false,
     order: some QueryExpression,
@@ -901,9 +861,6 @@ extension TableDefinition where QueryValue: StructuredQueriesCore._OptionalProto
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
 extension TableDefinition where QueryValue: StructuredQueriesCore._OptionalProtocol & Codable {
   public func jsonbGroupArray<Wrapped: Codable>(
     distinct isDistinct: Bool = false,
@@ -957,14 +914,14 @@ extension TableDefinition where QueryValue: StructuredQueriesCore._OptionalProto
 }
 
 extension TableDefinition where QueryValue: Codable {
-  public func jsonObject() -> some QueryExpression<_CodableJSONRepresentation<QueryValue>> {
+  public func jsonObject() -> some QueryExpression<JSONRepresentation<QueryValue>> {
     QueryFunction("json_object", SQLQueryExpression(_jsonObjectArguments))
   }
 
   fileprivate var _jsonObjectArguments: ISO_9075.Fragment {
     func open<TableColumn: TableColumnExpression>(_ column: TableColumn) -> ISO_9075.Fragment {
       let value = TableColumn.QueryValue._queryFragment(jsonEncoding: "\(column)")
-      return "\(quote: column.name, delimiter: .text), \(value)"
+      return "\(text: column.name), \(value)"
     }
     return $_isSelecting.withValue(false) {
       Self.allColumns
@@ -974,26 +931,20 @@ extension TableDefinition where QueryValue: Codable {
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
 extension TableDefinition where QueryValue: Codable {
-  public func jsonbObject() -> some QueryExpression<_CodableJSONBRepresentation<QueryValue>> {
+  public func jsonbObject() -> some QueryExpression<JSONBRepresentation<QueryValue>> {
     QueryFunction("jsonb_object", SQLQueryExpression(_jsonObjectArguments))
   }
 }
 
 extension Optional.TableColumns where QueryValue: Codable {
-  public func jsonObject() -> some QueryExpression<_CodableJSONRepresentation<Wrapped>?> {
+  public func jsonObject() -> some QueryExpression<JSONRepresentation<Wrapped>?> {
     Case().when(rowid.isNot(nil), then: Wrapped.columns.jsonObject())
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
 extension Optional.TableColumns where QueryValue: Codable {
-  public func jsonbObject() -> some QueryExpression<_CodableJSONBRepresentation<Wrapped>?> {
+  public func jsonbObject() -> some QueryExpression<JSONBRepresentation<Wrapped>?> {
     Case().when(rowid.isNot(nil), then: Wrapped.columns.jsonbObject())
   }
 }
@@ -1103,60 +1054,54 @@ public struct JSONPath<Context, QueryValue> {
 
   public subscript<Object: Table & Codable, Member: Table & Codable>(
     dynamicMember keyPath: KeyPath<Object.TableColumns, ColumnGroup<Object, Member>>
-  ) -> JSONPath<Context._Member, _CodableJSONRepresentation<Member>>
+  ) -> JSONPath<Context._Member, JSONRepresentation<Member>>
   where
     Context: _JSONPathContext,
-    QueryValue == _CodableJSONRepresentation<Object>,
+    QueryValue == JSONRepresentation<Object>,
     Member.QueryOutput == Member,
     Member._Optionalized == Member?
   {
-    JSONPath<Context._Member, _CodableJSONRepresentation<Member>>(
+    JSONPath<Context._Member, JSONRepresentation<Member>>(
       components: components + [.member(Object.columns[keyPath: keyPath].name)]
     )
   }
 
   public subscript<Object: Table & Codable, Member: Table & Codable>(
     dynamicMember keyPath: KeyPath<Object.TableColumns, ColumnGroup<Object, Member?>>
-  ) -> JSONPath<Context._Member, _CodableJSONRepresentation<Member>?>
+  ) -> JSONPath<Context._Member, JSONRepresentation<Member>?>
   where
     Context: _JSONPathContext,
-    QueryValue == _CodableJSONRepresentation<Object>,
+    QueryValue == JSONRepresentation<Object>,
     Member.QueryOutput == Member
   {
-    JSONPath<Context._Member, _CodableJSONRepresentation<Member>?>(
+    JSONPath<Context._Member, JSONRepresentation<Member>?>(
       components: components + [.member(Object.columns[keyPath: keyPath].name)]
     )
   }
 
-  #if !SuppressPlatformSQLiteAvailability
-    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-  #endif
   public subscript<Object: Table & Codable, Member: Table & Codable>(
     dynamicMember keyPath: KeyPath<Object.TableColumns, ColumnGroup<Object, Member>>
-  ) -> JSONPath<Context._Member, _CodableJSONBRepresentation<Member>>
+  ) -> JSONPath<Context._Member, JSONBRepresentation<Member>>
   where
     Context: _JSONPathContext,
-    QueryValue == _CodableJSONBRepresentation<Object>,
+    QueryValue == JSONBRepresentation<Object>,
     Member.QueryOutput == Member,
     Member._Optionalized == Member?
   {
-    JSONPath<Context._Member, _CodableJSONBRepresentation<Member>>(
+    JSONPath<Context._Member, JSONBRepresentation<Member>>(
       components: components + [.member(Object.columns[keyPath: keyPath].name)]
     )
   }
 
-  #if !SuppressPlatformSQLiteAvailability
-    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-  #endif
   public subscript<Object: Table & Codable, Member: Table & Codable>(
     dynamicMember keyPath: KeyPath<Object.TableColumns, ColumnGroup<Object, Member?>>
-  ) -> JSONPath<Context._Member, _CodableJSONBRepresentation<Member>?>
+  ) -> JSONPath<Context._Member, JSONBRepresentation<Member>?>
   where
     Context: _JSONPathContext,
-    QueryValue == _CodableJSONBRepresentation<Object>,
+    QueryValue == JSONBRepresentation<Object>,
     Member.QueryOutput == Member
   {
-    JSONPath<Context._Member, _CodableJSONBRepresentation<Member>?>(
+    JSONPath<Context._Member, JSONBRepresentation<Member>?>(
       components: components + [.member(Object.columns[keyPath: keyPath].name)]
     )
   }
@@ -1227,32 +1172,29 @@ public struct JSONPath<Context, QueryValue> {
 
     public subscript<Object: Table & Codable, Member: Table & Codable>(
       dynamicMember keyPath: KeyPath<Object.TableColumns, CaseColumnGroup<Object, Member>>
-    ) -> JSONPath<Context._Case, _CodableJSONRepresentation<Member>>
+    ) -> JSONPath<Context._Case, JSONRepresentation<Member>>
     where
       Context: _JSONPathContext,
-      QueryValue == _CodableJSONRepresentation<Object>,
+      QueryValue == JSONRepresentation<Object>,
       Member.QueryOutput == Member
     {
       let name = Object.columns[keyPath: keyPath].name
-      return JSONPath<Context._Case, _CodableJSONRepresentation<Member>>(
+      return JSONPath<Context._Case, JSONRepresentation<Member>>(
         components: components + [.member(name)],
         caseName: name
       )
     }
 
-    #if !SuppressPlatformSQLiteAvailability
-      @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-    #endif
     public subscript<Object: Table & Codable, Member: Table & Codable>(
       dynamicMember keyPath: KeyPath<Object.TableColumns, CaseColumnGroup<Object, Member>>
-    ) -> JSONPath<Context._Case, _CodableJSONBRepresentation<Member>>
+    ) -> JSONPath<Context._Case, JSONBRepresentation<Member>>
     where
       Context: _JSONPathContext,
-      QueryValue == _CodableJSONBRepresentation<Object>,
+      QueryValue == JSONBRepresentation<Object>,
       Member.QueryOutput == Member
     {
       let name = Object.columns[keyPath: keyPath].name
-      return JSONPath<Context._Case, _CodableJSONBRepresentation<Member>>(
+      return JSONPath<Context._Case, JSONBRepresentation<Member>>(
         components: components + [.member(name)],
         caseName: name
       )
@@ -1356,9 +1298,6 @@ where QueryValue: _JSONRepresentable & _JSONArrayRepresentation {
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
 extension _JSONInsertExpression where QueryValue: _JSONBRepresentable {
   public func jsonbInsert<Member: QueryBindable & StructuredQueriesCore._OptionalProtocol>(
     _ path: KeyPath<JSONPath<_JSONPathRoot, QueryValue>, JSONPath<_JSONPathMember, Member>>,
@@ -1404,9 +1343,6 @@ extension _JSONInsertExpression where QueryValue: _JSONBRepresentable {
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
 extension _JSONInsertExpression
 where QueryValue: _JSONBRepresentable & _JSONArrayRepresentation {
   public func jsonbAppend(
@@ -1429,9 +1365,6 @@ public struct _JSONArrayInsertExpression<QueryValue: QueryRepresentable>: _JSONM
   let arguments: [ISO_9075.Fragment]
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 27, macOS 27, tvOS 27, watchOS 27, *)
-#endif
 extension _JSONArrayInsertExpression where QueryValue: _JSONRepresentable {
   public func jsonArrayInsert<Context: _JSONPathElementContext, Member: QueryBindable>(
     _ path: KeyPath<JSONPath<_JSONPathRoot, QueryValue>, JSONPath<Context, Member>>,
@@ -1441,9 +1374,6 @@ extension _JSONArrayInsertExpression where QueryValue: _JSONRepresentable {
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 27, macOS 27, tvOS 27, watchOS 27, *)
-#endif
 extension _JSONArrayInsertExpression where QueryValue: _JSONBRepresentable {
   public func jsonbArrayInsert<Context: _JSONPathElementContext, Member: QueryBindable>(
     _ path: KeyPath<JSONPath<_JSONPathRoot, QueryValue>, JSONPath<Context, Member>>,
@@ -1475,9 +1405,6 @@ extension _JSONRemoveExpression where QueryValue: _JSONRepresentable {
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
 extension _JSONRemoveExpression where QueryValue: _JSONBRepresentable {
   public func jsonbRemove<
     Context: _JSONPathMemberContext, Member: StructuredQueriesCore._OptionalProtocol
@@ -1527,9 +1454,6 @@ extension _JSONReplaceExpression where QueryValue: _JSONRepresentable {
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
 extension _JSONReplaceExpression where QueryValue: _JSONBRepresentable {
   public func jsonbReplace<Context: _JSONPathMemberContext, Member: QueryBindable>(
     _ path: KeyPath<JSONPath<_JSONPathRoot, QueryValue>, JSONPath<Context, Member>>,
@@ -1579,9 +1503,6 @@ extension _JSONSetExpression where QueryValue: _JSONRepresentable {
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
 extension _JSONSetExpression where QueryValue: _JSONBRepresentable {
   public func jsonbSet<Context: _RequiredJSONPathContext, Member: QueryBindable>(
     _ path: KeyPath<JSONPath<_JSONPathRoot, QueryValue>, JSONPath<Context, Member>>,
@@ -1650,23 +1571,17 @@ public protocol _JSONObjectRepresentation<_Object> {
 public protocol _AnyJSONRepresentable: QueryRepresentable where QueryOutput: Codable {}
 
 public protocol _JSONRepresentable: _AnyJSONRepresentable {}
-extension _CodableJSONRepresentation: _JSONRepresentable {}
+extension JSONRepresentation: _JSONRepresentable {}
 
 public protocol _JSONBRepresentable: _AnyJSONRepresentable {}
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
-extension _CodableJSONBRepresentation: _JSONBRepresentable {}
+extension JSONBRepresentation: _JSONBRepresentable {}
 
-extension _CodableJSONRepresentation: _JSONObjectRepresentation where QueryOutput: Table {
+extension JSONRepresentation: _JSONObjectRepresentation where QueryOutput: Table {
   public typealias _Object = QueryOutput
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
-extension _CodableJSONBRepresentation: _JSONObjectRepresentation where QueryOutput: Table {
+extension JSONBRepresentation: _JSONObjectRepresentation where QueryOutput: Table {
   public typealias _Object = QueryOutput
 }
 
@@ -1688,36 +1603,30 @@ public protocol _DictionaryProtocol<Key, Value> {
 
 extension Dictionary: _DictionaryProtocol {}
 
-extension _CodableJSONRepresentation: _JSONArrayRepresentation
+extension JSONRepresentation: _JSONArrayRepresentation
 where QueryOutput: RangeReplaceableCollection, QueryOutput.Element: Codable {
   public typealias _Element = QueryOutput.Element
-  public typealias _ElementRepresentation = _CodableJSONRepresentation<QueryOutput.Element>
+  public typealias _ElementRepresentation = JSONRepresentation<QueryOutput.Element>
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
-extension _CodableJSONBRepresentation: _JSONArrayRepresentation
+extension JSONBRepresentation: _JSONArrayRepresentation
 where QueryOutput: RangeReplaceableCollection, QueryOutput.Element: Codable {
   public typealias _Element = QueryOutput.Element
-  public typealias _ElementRepresentation = _CodableJSONBRepresentation<QueryOutput.Element>
+  public typealias _ElementRepresentation = JSONBRepresentation<QueryOutput.Element>
 }
 
-extension _CodableJSONRepresentation: _JSONDictionaryRepresentation
+extension JSONRepresentation: _JSONDictionaryRepresentation
 where QueryOutput: _DictionaryProtocol, QueryOutput.Key == String, QueryOutput.Value: Codable {
   public typealias _Key = String
   public typealias _Value = QueryOutput.Value
-  public typealias _ValueRepresentation = _CodableJSONRepresentation<QueryOutput.Value>
+  public typealias _ValueRepresentation = JSONRepresentation<QueryOutput.Value>
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-#endif
-extension _CodableJSONBRepresentation: _JSONDictionaryRepresentation
+extension JSONBRepresentation: _JSONDictionaryRepresentation
 where QueryOutput: _DictionaryProtocol, QueryOutput.Key == String, QueryOutput.Value: Codable {
   public typealias _Key = String
   public typealias _Value = QueryOutput.Value
-  public typealias _ValueRepresentation = _CodableJSONBRepresentation<QueryOutput.Value>
+  public typealias _ValueRepresentation = JSONBRepresentation<QueryOutput.Value>
 }
 
 extension ISO_9075.Fragment {
@@ -1735,11 +1644,11 @@ extension ISO_9075.Fragment {
     let path = JSONPath()[keyPath: path]
     guard let caseName = path.caseName
     else {
-      return "\(quote: path.pathString, delimiter: .text), \(value)"
+      return "\(text: path.pathString), \(value)"
     }
     return """
-      \(quote: "$" + path.components.dropLast().joined(), delimiter: .text), \
-      \(objectFunction)(\(quote: caseName, delimiter: .text), \(value))
+      \(text: "$" + path.components.dropLast().joined()), \
+      \(objectFunction)(\(text: caseName), \(value))
       """
   }
 
@@ -1747,7 +1656,7 @@ extension ISO_9075.Fragment {
     _ path: KeyPath<JSONPath<_JSONPathRoot, Root>, JSONPath<Context, Member>>,
     appending suffix: String = ""
   ) -> ISO_9075.Fragment {
-    "\(quote: JSONPath()[keyPath: path].pathString + suffix, delimiter: .text)"
+    "\(text: JSONPath()[keyPath: path].pathString + suffix)"
   }
 
   fileprivate static func jsonArguments<Root, Context, Member>(

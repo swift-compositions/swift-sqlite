@@ -103,7 +103,7 @@ extension RawRepresentable where RawValue: SQLiteType {
   public static var typeAffinity: SQLiteTypeAffinity { RawValue.typeAffinity }
 }
 
-extension _CodableJSONRepresentation: SQLiteType {
+extension JSONRepresentation: SQLiteType {
   public static var typeAffinity: SQLiteTypeAffinity {
     .text
   }

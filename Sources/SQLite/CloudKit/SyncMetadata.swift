@@ -12,7 +12,6 @@
   /// in a database separate from your app's database.
   ///
   /// See <doc:CloudKitSync#Accessing-CloudKit-metadata> for more info.
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Table("sqlitedata_icloud_metadata")
   public struct SyncMetadata: Hashable, Identifiable, Sendable {
     /// A selection of columns representing a synchronized record's unique identifier and type.
@@ -123,7 +122,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata.TableColumns {
     public var recordPrimaryKey: TableColumn<SyncMetadata, String> {
       id.recordPrimaryKey
@@ -160,7 +158,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {
     package init(
       recordPrimaryKey: String,
@@ -216,7 +213,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension PrimaryKeyedTable where PrimaryKey.QueryOutput: IdentifierStringConvertible {
     /// A query for finding the metadata associated with a record.
     ///
@@ -250,7 +246,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension PrimaryKeyedTableDefinition where PrimaryKey.QueryOutput: IdentifierStringConvertible {
     /// A query expression for whether or not this row has associated sync metadata.
     ///
@@ -285,7 +280,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension PrimaryKeyedTableDefinition {
     var _recordName: some QueryExpression<String> {
       #sql("\(primaryKey) || ':' || \(quote: QueryValue.tableName, delimiter: .text)")

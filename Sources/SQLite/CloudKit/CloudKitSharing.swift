@@ -15,7 +15,6 @@
   /// A shared record that can be used to present a ``CloudSharingView``.
   ///
   /// See <doc:CloudKitSharing#Creating-CKShare-records> for more information.,
-  @available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
   public struct SharedRecord: Hashable, Identifiable, Sendable {
     let container: any CloudContainer
     public let share: CKShare
@@ -32,7 +31,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine {
     private struct SharingError: LocalizedError {
       enum Reason {
@@ -263,7 +261,6 @@
     /// record.
     ///
     /// See <doc:CloudKitSharing#Creating-CKShare-records> for more info.
-    @available(iOS 17, macOS 14, tvOS 17, *)
     public struct CloudSharingView: View {
       let sharedRecord: SharedRecord
       let availablePermissions: UICloudSharingController.PermissionOptions
@@ -382,7 +379,6 @@
       }
     }
 
-    @available(iOS 17, macOS 14, tvOS 17, *)
     private struct CloudSharingViewRepresentable: UIViewControllerRepresentable {
       let sharedRecord: SharedRecord
       let availablePermissions: UICloudSharingController.PermissionOptions
@@ -432,7 +428,6 @@
       }
     }
 
-    @available(iOS 17, macOS 14, tvOS 17, *)
     public final class _CloudSharingDelegate: NSObject, UICloudSharingControllerDelegate {
       let share: CKShare
       let didFinish: (Result<Void, any Error>) -> Void

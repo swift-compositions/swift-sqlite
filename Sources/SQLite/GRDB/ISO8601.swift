@@ -69,7 +69,6 @@ extension DateFormatter {
   }()
 }
 
-@available(iOS 15, macOS 12, tvOS 15, watchOS 8, *)
 extension Date.ISO8601FormatStyle {
   fileprivate func currentTimestamp(includingFractionalSeconds: Bool) -> Self {
     year().month().day()

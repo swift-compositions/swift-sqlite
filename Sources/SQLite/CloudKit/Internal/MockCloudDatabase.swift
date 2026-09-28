@@ -5,7 +5,6 @@
   import Dependencies
   import IssueReporting
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package final class MockCloudDatabase: CloudDatabase {
     package let state = LockIsolated(State())
     package let databaseScope: CKDatabase.Scope
@@ -402,7 +401,6 @@
     }
   }
 
-  @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   private func ckError(forAccountStatus accountStatus: CKAccountStatus) -> CKError {
     switch accountStatus {
     case .couldNotDetermine, .restricted, .noAccount:

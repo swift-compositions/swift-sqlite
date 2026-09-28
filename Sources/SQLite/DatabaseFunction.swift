@@ -53,9 +53,6 @@ extension AggregateDatabaseFunction {
     }
   }
 
-  #if !SuppressPlatformSQLiteAvailability
-    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-  #endif
   @_disfavoredOverload
   public func callAsFunction(
     _ input: some QueryExpression<Input>,
@@ -82,9 +79,6 @@ extension AggregateDatabaseFunction {
     }
   }
 
-  #if !SuppressPlatformSQLiteAvailability
-    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-  #endif
   @_disfavoredOverload
   public func callAsFunction<each T: QueryExpression>(
     _ input: repeat each T,

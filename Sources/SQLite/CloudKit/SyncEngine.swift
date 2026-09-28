@@ -23,7 +23,6 @@
   /// An object that manages the synchronization of local and remote SQLite data.
   ///
   /// See <doc:CloudKitSync> for more information.
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Observable, Sendable {
     package let userDatabase: UserDatabase
     package let logger: Logger
@@ -948,7 +947,6 @@
   }
 
   extension PrimaryKeyedTable {
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     fileprivate static func createTriggers(
       foreignKeysByTableName: [String: [ForeignKey]],
       tablesByName: [String: any SynchronizableTable],
@@ -970,7 +968,6 @@
       }
     }
 
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     fileprivate static func dropTriggers(
       defaultZone: CKRecordZone,
       privateTables: [any SynchronizableTable],
@@ -987,7 +984,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine: CKSyncEngineDelegate {
     public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
       guard let event = Event(event)
@@ -2090,7 +2086,6 @@
     }
   }
 
-  @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
   extension CKSyncEngine.PendingRecordZoneChange {
     var id: CKRecord.ID? {
       switch self {
@@ -2132,7 +2127,6 @@
     package static let sqliteDataCloudKitFailure = "SQLiteData CloudKit Failure"
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension URL {
     package static func metadatabase(
       databasePath: String,
@@ -2166,7 +2160,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package struct SyncEngines {
     private let rawValue: (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)?
     init() {
@@ -2200,7 +2193,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension Database {
     /// Attaches the metadatabase to an existing database connection.
     ///
@@ -2267,7 +2259,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine {
     package struct SchemaError: LocalizedError {
       package enum Reason {
@@ -2390,7 +2381,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func tablesByOrder(
     userDatabase: UserDatabase,
     tables: [any SynchronizableTable],
@@ -2447,7 +2437,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension Updates<SyncMetadata> {
     mutating func setLastKnownServerRecord(_ lastKnownServerRecord: CKRecord?) {
       self.zoneName = lastKnownServerRecord?.recordID.zoneID.zoneName ?? self.zoneName
@@ -2464,7 +2453,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func upsert<T>(
     _: some SynchronizableTable<T>,
     record: CKRecord,
@@ -2514,14 +2502,11 @@
   }
 
   @TaskLocal package var _isSynchronizingChanges = false
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @TaskLocal package var _currentZoneID: CKRecordZone.ID?
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @DatabaseFunction("sqlitedata_icloud_currentZoneName")
   func currentZoneName() -> String? {
     _currentZoneID?.zoneName
   }
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @DatabaseFunction("sqlitedata_icloud_currentOwnerName")
   func currentOwnerName() -> String? {
     _currentZoneID?.ownerName
@@ -2533,7 +2518,6 @@
   }
 
   #if DEBUG
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     private struct NextRecordZoneChangeBatchLoggingState {
       var events: [String] = []
       var recordTypes: [String] = []

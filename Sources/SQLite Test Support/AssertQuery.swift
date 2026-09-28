@@ -45,7 +45,6 @@ import StructuredQueriesTestSupport
 ///   - function: The source `#function` associated with the assertion
 ///   - line: The source `#line` associated with the assertion.
 ///   - column: The source `#column` associated with the assertion.
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 @_disfavoredOverload
 public func assertQuery<
   each V: QueryRepresentable, S: StructuredQueriesCore.Statement<(repeat each V)>
@@ -178,7 +177,6 @@ public func assertQuery<
 ///   - function: The source `#function` associated with the assertion
 ///   - line: The source `#line` associated with the assertion.
 ///   - column: The source `#column` associated with the assertion.
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 public func assertQuery<S: SelectStatement, each J: StructuredQueriesCore.Table>(
   includeSQL: Bool = false,
   _ query: S,

@@ -4,7 +4,7 @@ public import SQL
 
 extension QueryExpression where QueryValue: _AnyJSONRepresentable & _JSONArrayRepresentation {
   public func jsonEach<Element: Table & Codable>()
-    -> SelectOf<JSONEach<Int, _CodableJSONRepresentation<Element>>>
+    -> SelectOf<JSONEach<Int, JSONRepresentation<Element>>>
   where QueryValue._ElementRepresentation: _JSONObjectRepresentation<Element> {
     JSONEach.select(from: "json_each(\(argumentFragment))")
   }
@@ -18,7 +18,7 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable & _JSONArrayRe
 extension QueryExpression
 where QueryValue: _AnyJSONRepresentable & _JSONDictionaryRepresentation {
   public func jsonEach<Element: Table & Codable>()
-    -> SelectOf<JSONEach<QueryValue._Key, _CodableJSONRepresentation<Element>>>
+    -> SelectOf<JSONEach<QueryValue._Key, JSONRepresentation<Element>>>
   where
     QueryValue._Key: QueryBindable,
     QueryValue._ValueRepresentation: _JSONObjectRepresentation<Element>
@@ -38,7 +38,7 @@ where
   QueryValue.Wrapped: _JSONArrayRepresentation
 {
   public func jsonEach<Element: Table & Codable>()
-    -> SelectOf<JSONEach<Int, _CodableJSONRepresentation<Element>>>
+    -> SelectOf<JSONEach<Int, JSONRepresentation<Element>>>
   where QueryValue.Wrapped._ElementRepresentation: _JSONObjectRepresentation<Element> {
     JSONEach.select(from: "json_each(\(argumentFragment))")
   }
@@ -55,7 +55,7 @@ where
   QueryValue.Wrapped: _JSONDictionaryRepresentation
 {
   public func jsonEach<Element: Table & Codable>()
-    -> SelectOf<JSONEach<QueryValue.Wrapped._Key, _CodableJSONRepresentation<Element>>>
+    -> SelectOf<JSONEach<QueryValue.Wrapped._Key, JSONRepresentation<Element>>>
   where
     QueryValue.Wrapped._Key: QueryBindable,
     QueryValue.Wrapped._ValueRepresentation: _JSONObjectRepresentation<Element>
@@ -76,7 +76,7 @@ where
 extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   public func jsonEach<Context, Member: _JSONArrayRepresentation, Element: Table & Codable>(
     _ path: KeyPath<JSONPath<_JSONPathRoot, QueryValue>, JSONPath<Context, Member>>
-  ) -> SelectOf<JSONEach<Int, _CodableJSONRepresentation<Element>>>
+  ) -> SelectOf<JSONEach<Int, JSONRepresentation<Element>>>
   where Member._ElementRepresentation: _JSONObjectRepresentation<Element> {
     JSONEach.select(from: jsonEachFragment(path))
   }
@@ -90,7 +90,7 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
 
   public func jsonEach<Context, Member: _JSONDictionaryRepresentation, Element: Table & Codable>(
     _ path: KeyPath<JSONPath<_JSONPathRoot, QueryValue>, JSONPath<Context, Member>>
-  ) -> SelectOf<JSONEach<Member._Key, _CodableJSONRepresentation<Element>>>
+  ) -> SelectOf<JSONEach<Member._Key, JSONRepresentation<Element>>>
   where
     Member._Key: QueryBindable,
     Member._ValueRepresentation: _JSONObjectRepresentation<Element>
@@ -106,12 +106,9 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 27, macOS 27, tvOS 27, watchOS 27, *)
-#endif
 extension QueryExpression where QueryValue: _AnyJSONRepresentable & _JSONArrayRepresentation {
   public func jsonbEach<Element: Table & Codable>()
-    -> SelectOf<JSONBEach<Int, _CodableJSONBRepresentation<Element>>>
+    -> SelectOf<JSONBEach<Int, JSONBRepresentation<Element>>>
   where QueryValue._ElementRepresentation: _JSONObjectRepresentation<Element> {
     JSONBEach.select(from: "jsonb_each(\(argumentFragment))")
   }
@@ -122,13 +119,10 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable & _JSONArrayRe
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 27, macOS 27, tvOS 27, watchOS 27, *)
-#endif
 extension QueryExpression
 where QueryValue: _AnyJSONRepresentable & _JSONDictionaryRepresentation {
   public func jsonbEach<Element: Table & Codable>()
-    -> SelectOf<JSONBEach<QueryValue._Key, _CodableJSONBRepresentation<Element>>>
+    -> SelectOf<JSONBEach<QueryValue._Key, JSONBRepresentation<Element>>>
   where
     QueryValue._Key: QueryBindable,
     QueryValue._ValueRepresentation: _JSONObjectRepresentation<Element>
@@ -142,16 +136,13 @@ where QueryValue: _AnyJSONRepresentable & _JSONDictionaryRepresentation {
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 27, macOS 27, tvOS 27, watchOS 27, *)
-#endif
 extension QueryExpression
 where
   QueryValue: StructuredQueriesCore._OptionalProtocol,
   QueryValue.Wrapped: _JSONArrayRepresentation
 {
   public func jsonbEach<Element: Table & Codable>()
-    -> SelectOf<JSONBEach<Int, _CodableJSONBRepresentation<Element>>>
+    -> SelectOf<JSONBEach<Int, JSONBRepresentation<Element>>>
   where QueryValue.Wrapped._ElementRepresentation: _JSONObjectRepresentation<Element> {
     JSONBEach.select(from: "jsonb_each(\(argumentFragment))")
   }
@@ -162,16 +153,13 @@ where
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 27, macOS 27, tvOS 27, watchOS 27, *)
-#endif
 extension QueryExpression
 where
   QueryValue: StructuredQueriesCore._OptionalProtocol,
   QueryValue.Wrapped: _JSONDictionaryRepresentation
 {
   public func jsonbEach<Element: Table & Codable>()
-    -> SelectOf<JSONBEach<QueryValue.Wrapped._Key, _CodableJSONBRepresentation<Element>>>
+    -> SelectOf<JSONBEach<QueryValue.Wrapped._Key, JSONBRepresentation<Element>>>
   where
     QueryValue.Wrapped._Key: QueryBindable,
     QueryValue.Wrapped._ValueRepresentation: _JSONObjectRepresentation<Element>
@@ -189,13 +177,10 @@ where
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 27, macOS 27, tvOS 27, watchOS 27, *)
-#endif
 extension QueryExpression where QueryValue: _AnyJSONRepresentable {
   public func jsonbEach<Context, Member: _JSONArrayRepresentation, Element: Table & Codable>(
     _ path: KeyPath<JSONPath<_JSONPathRoot, QueryValue>, JSONPath<Context, Member>>
-  ) -> SelectOf<JSONBEach<Int, _CodableJSONBRepresentation<Element>>>
+  ) -> SelectOf<JSONBEach<Int, JSONBRepresentation<Element>>>
   where Member._ElementRepresentation: _JSONObjectRepresentation<Element> {
     JSONBEach.select(from: jsonbEachFragment(path))
   }
@@ -209,7 +194,7 @@ extension QueryExpression where QueryValue: _AnyJSONRepresentable {
 
   public func jsonbEach<Context, Member: _JSONDictionaryRepresentation, Element: Table & Codable>(
     _ path: KeyPath<JSONPath<_JSONPathRoot, QueryValue>, JSONPath<Context, Member>>
-  ) -> SelectOf<JSONBEach<Member._Key, _CodableJSONBRepresentation<Element>>>
+  ) -> SelectOf<JSONBEach<Member._Key, JSONBRepresentation<Element>>>
   where
     Member._Key: QueryBindable,
     Member._ValueRepresentation: _JSONObjectRepresentation<Element>
@@ -289,9 +274,6 @@ extension JSONEach: Sendable where Key.QueryOutput: Sendable, Value.QueryOutput:
 
 extension JSONEach: Equatable where Key.QueryOutput: Equatable, Value.QueryOutput: Equatable {}
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 27, macOS 27, tvOS 27, watchOS 27, *)
-#endif
 public struct JSONBEach<
   Key: QueryRepresentable & QueryBindable,
   Value: QueryRepresentable & QueryBindable
@@ -341,16 +323,10 @@ public struct JSONBEach<
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 27, macOS 27, tvOS 27, watchOS 27, *)
-#endif
 extension JSONBEach: QueryRepresentable {
   public typealias QueryOutput = JSONBEach
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 27, macOS 27, tvOS 27, watchOS 27, *)
-#endif
 extension JSONBEach: QueryDecodable {
   public init(decoder: inout some QueryDecoder) throws {
     self.key = try Key(decoder: &decoder).queryOutput
@@ -358,14 +334,8 @@ extension JSONBEach: QueryDecodable {
   }
 }
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 27, macOS 27, tvOS 27, watchOS 27, *)
-#endif
 extension JSONBEach: Sendable where Key.QueryOutput: Sendable, Value.QueryOutput: Sendable {}
 
-#if !SuppressPlatformSQLiteAvailability
-  @available(iOS 27, macOS 27, tvOS 27, watchOS 27, *)
-#endif
 extension JSONBEach: Equatable where Key.QueryOutput: Equatable, Value.QueryOutput: Equatable {}
 
 extension QueryExpression {
@@ -392,7 +362,7 @@ extension QueryExpression {
     """
     \(function)(\
     \(argumentFragment), \
-    \(quote: JSONPath()[keyPath: path].pathString, delimiter: .text)\
+    \(text: JSONPath()[keyPath: path].pathString)\
     )
     """
   }

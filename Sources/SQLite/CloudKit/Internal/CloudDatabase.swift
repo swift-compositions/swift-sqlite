@@ -7,13 +7,11 @@
 
     func record(for recordID: CKRecord.ID) async throws -> CKRecord
 
-    @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
     func records(
       for ids: [CKRecord.ID],
       desiredKeys: [CKRecord.FieldKey]?
     ) async throws -> [CKRecord.ID: Result<CKRecord, any Error>]
 
-    @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
     func modifyRecords(
       saving recordsToSave: [CKRecord],
       deleting recordIDsToDelete: [CKRecord.ID],
@@ -24,7 +22,6 @@
       deleteResults: [CKRecord.ID: Result<Void, any Error>]
     )
 
-    @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
     func modifyRecordZones(
       saving recordZonesToSave: [CKRecordZone],
       deleting recordZoneIDsToDelete: [CKRecordZone.ID]
@@ -35,7 +32,6 @@
   }
 
   extension CloudDatabase {
-    @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
     func modifyRecords(
       saving recordsToSave: [CKRecord],
       deleting recordIDsToDelete: [CKRecord.ID]
@@ -51,7 +47,6 @@
       )
     }
 
-    @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
     package func records(
       for ids: [CKRecord.ID]
     ) async throws -> [CKRecord.ID: Result<CKRecord, any Error>] {
@@ -75,7 +70,6 @@
       try await rawValue.record(for: recordID)
     }
 
-    @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
     func records(
       for ids: [CKRecord.ID],
       desiredKeys: [CKRecord.FieldKey]?
@@ -83,7 +77,6 @@
       try await rawValue.records(for: ids)
     }
 
-    @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
     func modifyRecords(
       saving recordsToSave: [CKRecord],
       deleting recordIDsToDelete: [CKRecord.ID],
@@ -101,7 +94,6 @@
       )
     }
 
-    @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
     func modifyRecordZones(
       saving recordZonesToSave: [CKRecordZone],
       deleting recordZoneIDsToDelete: [CKRecordZone.ID]

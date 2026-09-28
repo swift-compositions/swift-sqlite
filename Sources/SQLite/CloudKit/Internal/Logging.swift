@@ -4,7 +4,6 @@
   import TabularData
   import os
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension Logger {
     func log(_ event: SyncEngine.Event, syncEngine: any SyncEngineProtocol) {
       let prefix = "SQLiteData (\(syncEngine.database.databaseScope.label).db)"
@@ -291,7 +290,6 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension CKDatabase.DatabaseChange.Deletion.Reason {
     fileprivate var loggingDescription: String {
       switch self {

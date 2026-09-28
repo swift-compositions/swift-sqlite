@@ -10,7 +10,6 @@
     public import class GRDB.Database
   #endif
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine {
     /// Migrates integer primary-keyed tables and tables without primary keys to
     /// CloudKit-compatible, UUID primary keys.
@@ -132,7 +131,6 @@
     }
   }
 
-  @available(iOS 16, macOS 13, tvOS 13, watchOS 9, *)
   extension PrimaryKeyedTable where TableColumns.PrimaryColumn: TableColumnExpression {
     fileprivate static func migratePrimaryKeyToUUID(
       db: Database,

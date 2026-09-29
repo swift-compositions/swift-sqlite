@@ -7,6 +7,8 @@ public struct SQLite: ISO_9075.Dialect {
 
     public var defaultPrimaryKey: String { "NULL" }
 
+    public var unboundedLimit: String { "-1" }
+
     public var jsonBooleanOpen: String { "json(CASE " }
 
     public var jsonBooleanClose: String { " WHEN 0 THEN 'false' WHEN 1 THEN 'true' END)" }

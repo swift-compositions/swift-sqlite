@@ -1,12 +1,14 @@
 #if GRDB
+    internal import Byte
     public import GRDB
     internal import GRDBSQLite
+    internal import ISO_9075_Call_Level_Interface
+    internal import RFC_4122
     public import SQL
 
     public class QueryCursor<Element>: DatabaseCursor {
         public var _isDone = false
         public let _statement: GRDB.Statement
-        @usableFromInline
         var decoder: SQLiteQueryDecoder
 
         @usableFromInline
@@ -23,7 +25,6 @@
             fatalError("Abstract method should be overridden in subclass")
         }
 
-        @usableFromInline
         func decoding<Value>(_ body: (inout SQLiteQueryDecoder) throws(QueryDecodingError) -> Value) throws -> Value {
             do {
                 let value = try body(&decoder)
@@ -45,7 +46,6 @@
             try super.init(db: db, query: query, cached: cached)
         }
 
-        @inlinable
         override func _element(sqliteStatement _: SQLiteStatement) throws -> QueryValue.QueryOutput {
             try decoding { decoder throws(QueryDecodingError) in try QueryValue(decoder: &decoder).queryOutput }
         }
@@ -61,7 +61,6 @@
             try super.init(db: db, query: query, cached: cached)
         }
 
-        @inlinable
         override func _element(
             sqliteStatement _: SQLiteStatement
         ) throws -> (Element.QueryOutput, SectionName.QueryOutput) {
@@ -80,7 +79,6 @@
             try super.init(db: db, query: query, cached: cached)
         }
 
-        @inlinable
         override func _element(sqliteStatement _: SQLiteStatement) throws -> (repeat (each QueryValue).QueryOutput) {
             try decoding { decoder throws(QueryDecodingError) in
                 try decoder.decodeColumns((repeat each QueryValue).self)
@@ -95,14 +93,12 @@
             try super.init(db: db, query: query, cached: cached)
         }
 
-        @inlinable
         override func _element(sqliteStatement _: SQLiteStatement) throws {
             try decoding { decoder throws(QueryDecodingError) in try decoder.decodeColumns(Void.self) }
         }
     }
 
     extension GRDB.Database {
-        @usableFromInline
         func prepare(
             _ rendering: ISO_9075.Rendering,
             cached: Bool
@@ -128,10 +124,10 @@
                 case .text(let text), .decimal(let text): text.bind(to: statement, at: index)
                 case .timestamp(let instant): try ISO_9075.Literal.timestamp(instant).bind(to: statement, at: index)
                 case .uuid(let uuid): String(uuid).lowercased().bind(to: statement, at: index)
-                case .json(let bytes): String(decoding: bytes.map(\.underlying), as: UTF8.self).bind(to: statement, at: index)
+                case .json(let bytes): String(decoding: bytes.map(\.bitPattern), as: UTF8.self).bind(to: statement, at: index)
                 case .blob(let blob) where blob.isEmpty: unsafe sqlite3_bind_zeroblob(statement, index, 0)
                 case .blob(let blob):
-                    unsafe blob.map(\.underlying).withUnsafeBytes {
+                    unsafe blob.map(\.bitPattern).withUnsafeBytes {
                         unsafe sqlite3_bind_blob(statement, index, $0.baseAddress, Int32($0.count), SQLITE_TRANSIENT)
                     }
                 case .array: throw ISO_9075.Error.binding(ISO_9075.Value.Failure("SQLite has no array values"))

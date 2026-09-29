@@ -2,7 +2,7 @@
 public import GRDB
 public import SQL
 
-extension SQL.Table {
+extension SQL::Table {
   @inlinable
   public static func fetchAll(_ db: GRDB.Database) throws -> [QueryOutput] {
     try all.fetchAll(db)
@@ -24,7 +24,7 @@ extension SQL.Table {
   }
 }
 
-extension SQL.PrimaryKeyedTable {
+extension SQL::PrimaryKeyedTable {
   @inlinable
   public static func find(
     _ db: GRDB.Database,

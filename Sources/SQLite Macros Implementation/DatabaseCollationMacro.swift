@@ -25,7 +25,7 @@ extension DatabaseCollationMacro: PeerMacro {
       return []
     }
 
-    let collationOrder: TypeSyntax = "Comparison::Comparison"
+    let collationOrder: TypeSyntax = "Order::Order.Comparison"
     guard let returnClause = declaration.signature.returnClause
     else {
       var signature = declaration.signature
@@ -39,11 +39,11 @@ extension DatabaseCollationMacro: PeerMacro {
         Diagnostic(
           node: declaration.signature,
           message: MacroExpansionErrorMessage(
-            "'@DatabaseCollation' functions must return 'Comparison'"
+            "'@DatabaseCollation' functions must return 'Order.Comparison'"
           ),
           fixIts: [
             .replace(
-              message: MacroExpansionFixItMessage("Return 'Comparison'"),
+              message: MacroExpansionFixItMessage("Return 'Order.Comparison'"),
               oldNode: declaration.signature,
               newNode: signature
             )
@@ -53,19 +53,19 @@ extension DatabaseCollationMacro: PeerMacro {
       return []
     }
     guard
-      ["Comparison", "Comparison.Comparison", "Comparison::Comparison"]
+      ["Order.Comparison", "Order::Order.Comparison"]
         .contains(returnClause.type.trimmedDescription)
     else {
       context.diagnose(
         Diagnostic(
           node: returnClause.type,
           message: MacroExpansionErrorMessage(
-            "'@DatabaseCollation' functions must return 'Comparison'"
+            "'@DatabaseCollation' functions must return 'Order.Comparison'"
           ),
           fixIts: [
             .replace(
               message: MacroExpansionFixItMessage(
-                "Replace '\(returnClause.type.trimmedDescription)' with 'Comparison'"
+                "Replace '\(returnClause.type.trimmedDescription)' with 'Order.Comparison'"
               ),
               oldNode: returnClause.type,
               newNode: collationOrder.with(\.trailingTrivia, returnClause.type.trailingTrivia)
@@ -376,7 +376,7 @@ extension DatabaseCollationMacro: PeerMacro {
       \(raw: storage)
       public func compare(
       _ lhs: Swift.UnsafeRawBufferPointer, _ rhs: Swift.UnsafeRawBufferPointer
-      ) -> Comparison::Comparison {
+      ) -> Order::Order.Comparison {
       \(raw: compareBody)
       }
       }

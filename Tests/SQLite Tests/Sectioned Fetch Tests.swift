@@ -15,8 +15,8 @@
     func chores() throws -> DatabaseQueue {
         let queue = try DatabaseQueue()
         try queue.write { database in
-            try database.execute(sql: #"CREATE TABLE "chores" ("id" INTEGER PRIMARY KEY, "title" TEXT NOT NULL, "list" TEXT)"#)
-            try database.execute(sql: #"INSERT INTO "chores" VALUES (1, 'Milk', 'Home'), (2, 'Report', 'Work'), (3, 'Bread', 'Home'), (4, 'Idea', NULL)"#)
+            try database.execute(sql: #"CREATE TABLE "chore" ("id" INTEGER PRIMARY KEY, "title" TEXT NOT NULL, "list" TEXT)"#)
+            try database.execute(sql: #"INSERT INTO "chore" VALUES (1, 'Milk', 'Home'), (2, 'Report', 'Work'), (3, 'Bread', 'Home'), (4, 'Idea', NULL)"#)
         }
         return queue
     }

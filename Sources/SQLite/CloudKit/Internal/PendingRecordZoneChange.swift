@@ -40,7 +40,7 @@
         return .blob([Byte](archiver.encodedData))
       }
 
-      package init(decoder: inout some SQL.QueryDecoder) throws(QueryDecodingError) {
+      package init(decoder: inout some SQL::QueryDecoder) throws(QueryDecodingError) {
         let bytes = try [Byte](decoder: &decoder)
         do {
           try self.init(data: Data(bytes))

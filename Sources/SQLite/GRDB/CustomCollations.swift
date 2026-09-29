@@ -1,6 +1,6 @@
 #if GRDB
 import GRDBSQLite
-public import Comparison
+public import Order
 public import GRDB
 public import SQL
 
@@ -53,7 +53,7 @@ public nonisolated struct CanonicalCollation: DatabaseCollation, Sendable {
   public init() {}
   public func compare(
     _ lhs: UnsafeRawBufferPointer, _ rhs: UnsafeRawBufferPointer
-  ) -> Comparison {
+  ) -> Order.Comparison {
     do {
       let lhsSpan = try UTF8Span(validating: lhs.assumingMemoryBound(to: UInt8.self).span)
       let rhsSpan = try UTF8Span(validating: rhs.assumingMemoryBound(to: UInt8.self).span)

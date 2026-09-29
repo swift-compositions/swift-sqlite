@@ -18,7 +18,7 @@
             queue = try DatabaseQueue()
             try queue.write { database in
                 try database.execute(
-                    sql: #"CREATE TABLE "records" ("id" INTEGER PRIMARY KEY, "value" TEXT NOT NULL)"#
+                    sql: #"CREATE TABLE "record" ("id" INTEGER PRIMARY KEY, "value" TEXT NOT NULL)"#
                 )
                 for id in 1...10 {
                     try Record.insert { Record(id: id, value: "value \(id)") }.execute(database)
@@ -60,7 +60,7 @@
         @Test func `survives a schema change between uses`() throws {
             try queue.write { database in
                 #expect(try Record.all.fetchCount(database) == 10)
-                try database.execute(sql: #"ALTER TABLE "records" ADD COLUMN "extra" TEXT"#)
+                try database.execute(sql: #"ALTER TABLE "record" ADD COLUMN "extra" TEXT"#)
                 #expect(try Record.all.fetchCount(database) == 10)
                 #expect(try Record.where { $0.id.eq(5) }.fetchOne(database)?.value == "value 5")
             }

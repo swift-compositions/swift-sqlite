@@ -18,7 +18,7 @@
             try database.write { db in
                 try #sql(
                     """
-                    CREATE TABLE "models" (
+                    CREATE TABLE "model" (
                       "date" TEXT NOT NULL
                     )
                     """
@@ -29,11 +29,11 @@
             let timestamp = 123.456
             try database.write { db in
                 try db.execute(
-                    literal: "INSERT INTO models (date) VALUES (\(Date(timeIntervalSince1970: timestamp)))"
+                    literal: "INSERT INTO model (date) VALUES (\(Date(timeIntervalSince1970: timestamp)))"
                 )
             }
             try database.read { db in
-                let grdbDate = try Date.fetchOne(db, sql: "SELECT * FROM models")
+                let grdbDate = try Date.fetchOne(db, sql: "SELECT * FROM model")
                 try #expect(abs(#require(grdbDate).timeIntervalSince1970 - timestamp) < 0.001)
 
                 let instant = try #require(try Model.all.fetchOne(db)).date

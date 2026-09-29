@@ -1,4 +1,5 @@
-#if Observation
+#if GRDB
+    internal import GRDB
     internal import OrderedCollections
 
     public struct ResultsSectionCollection<Element, SectionName: Hashable> {

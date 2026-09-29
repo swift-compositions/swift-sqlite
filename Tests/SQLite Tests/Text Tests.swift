@@ -21,7 +21,7 @@
             try queue.write { database in
                 try database.execute(
                     sql: """
-                        CREATE TABLE "records" (
+                        CREATE TABLE "record" (
                           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
                           "value" TEXT NOT NULL
                         ) STRICT

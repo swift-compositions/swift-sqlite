@@ -6,71 +6,22 @@ on:
       - main
   pull_request:
     branches:
-      - "*"
+      - main
+  merge_group:
+    types:
+      - checks_requested
   workflow_dispatch:
 
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  library:
-    name: macOS
-    strategy:
-      matrix:
-        xcode: ["26.6"]
-        config: ["debug", "release"]
-    runs-on: macos-26
-    steps:
-      - uses: actions/checkout@v5
-      - name: Select Xcode ${{ matrix.xcode }}
-        run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app
-      - name: Build ${{ matrix.config }} without exports
-        env:
-          EXCLUDE_EXPORTS: true
-        run: swift build -c ${{ matrix.config }}
-      - name: Run ${{ matrix.config }} tests
-        run: swift test -c ${{ matrix.config }} --traits SQLiteDataTagged
-
-  examples:
-    name: Examples
-    strategy:
-      matrix:
-        xcode: ["26.6"]
-        config: ["debug"]
-        scheme: ["Reminders", "CaseStudies", "SyncUps"]
-    runs-on: macos-26
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v5
-      - name: Select Xcode ${{ matrix.xcode }}
-        run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app
-      - name: List devices available
-        run: xcrun simctl list --json devices available 'iPhone'
-      - name: xcodebuild ${{ matrix.scheme }}
-        run: make DERIVED_DATA_PATH=~/.derivedData SCHEME="${{ matrix.scheme }}" xcodebuild-raw
-      - name: Output test failures
-        run: |
-          xcrun xcresulttool get test-results tests --path TestResults.xcresult --format json | jq -r '
-            .testNodes[]
-            | .. | objects | select(.nodeType=="Test Case")
-            | . as $tc
-            | ($tc.children // [])[]
-            | select(.nodeType=="Failure Message")
-            | "✘ Test \($tc.name) recorded an issue at \(.name)\n"
-          '
-        if: failure()
-
-  # NB: GRDB 7.6.1 does not currently build on Linux.
-  # linux:
-  #   name: Linux
-  #   strategy:
-  #     matrix:
-  #       swift:
-  #         - '6.1'
-  #   runs-on: ubuntu-latest
-  #   container: swift:${{ matrix.swift }}
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Install Build Dependencies
-  #       run: |
-  #         apt-get update
-  #         apt-get install -y libsqlite3-dev
-  #     - name: Build
-  #       run: swift build
+  ci:
+    if: ${{ !github.event.repository.private }}
+    name: ci / matrix
+    uses: swift-institute/.github/.github/workflows/swift-ci.yml@main

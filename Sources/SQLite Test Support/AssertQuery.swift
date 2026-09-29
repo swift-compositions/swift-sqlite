@@ -7,7 +7,7 @@ import SQLite
 import SQL_Test_Support
 
 @_disfavoredOverload
-public func assertQuery<each V: QueryRepresentable, S: SQL.Statement<(repeat each V)>>(
+public func assertQuery<each V: QueryRepresentable, S: SQL::Statement<(repeat each V)>>(
   includeSQL: Bool = false,
   _ query: S,
   database: some DatabaseReader,
@@ -33,7 +33,7 @@ public func assertQuery<each V: QueryRepresentable, S: SQL.Statement<(repeat eac
   )
 }
 
-public func assertQuery<S: SelectStatement, each J: SQL.Table>(
+public func assertQuery<S: SelectStatement, each J: SQL::Table>(
   includeSQL: Bool = false,
   _ query: S,
   database: some DatabaseReader,
@@ -59,7 +59,7 @@ public func assertQuery<S: SelectStatement, each J: SQL.Table>(
   )
 }
 
-public func assertQuery<each V: QueryRepresentable, S: SQL.Statement<(repeat each V)>>(
+public func assertQuery<each V: QueryRepresentable, S: SQL::Statement<(repeat each V)>>(
   includeSQL: Bool = false,
   _ statement: S,
   writing database: some DatabaseWriter,
@@ -85,7 +85,7 @@ public func assertQuery<each V: QueryRepresentable, S: SQL.Statement<(repeat eac
   )
 }
 
-private func assertStatement<each V: QueryRepresentable, S: SQL.Statement<(repeat each V)>>(
+private func assertStatement<each V: QueryRepresentable, S: SQL::Statement<(repeat each V)>>(
   includeSQL: Bool,
   _ statement: S,
   execute: (S) throws -> [(repeat (each V).QueryOutput)],

@@ -83,7 +83,7 @@
                             start: sqlite3_column_blob(handle, index),
                             count: Int(sqlite3_column_bytes(handle, index))
                         )
-                        .map(Byte.init)
+                        .map(Byte.init(bitPattern:))
                     )
                 default: .null
                 }

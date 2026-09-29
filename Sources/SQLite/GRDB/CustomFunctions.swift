@@ -1,8 +1,10 @@
 #if GRDB
+internal import Byte
 public import GRDB
 import GRDBSQLite
 import ISO_9075_Foundation
 public import SQL
+internal import RFC_4122
 
 extension GRDB.Database {
   public func add(function: some ScalarDatabaseFunction) {
@@ -185,11 +187,11 @@ extension ISO_9075.Value {
     case .uuid(let uuid):
       String(uuid).lowercased().result(db: db)
     case .json(let bytes):
-      String(decoding: bytes.map(\.underlying), as: UTF8.self).result(db: db)
+      String(decoding: bytes.map(\.bitPattern), as: UTF8.self).result(db: db)
     case .blob(let blob) where blob.isEmpty:
       sqlite3_result_zeroblob(db, 0)
     case .blob(let blob):
-      blob.map(\.underlying).withUnsafeBytes {
+      blob.map(\.bitPattern).withUnsafeBytes {
         sqlite3_result_blob(db, $0.baseAddress, Int32($0.count), SQLITE_TRANSIENT)
       }
     case .array:

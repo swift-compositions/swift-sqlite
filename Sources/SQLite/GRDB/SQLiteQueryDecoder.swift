@@ -31,7 +31,7 @@
             }
         }
 
-        private func text(_ statement: OpaquePointer, _ index: Int32) -> String {
+        private static func text(_ statement: OpaquePointer, _ index: Int32) -> String {
             unsafe String(
                 decoding: UnsafeBufferPointer(
                     start: sqlite3_column_text(statement, index),
@@ -47,7 +47,7 @@
                     start: sqlite3_column_blob(statement, index),
                     count: Int(sqlite3_column_bytes(statement, index))
                 )
-                .map(Byte.init)
+                .map(Byte.init(bitPattern:))
             }
         }
 
@@ -71,7 +71,7 @@
         }
 
         mutating func decode(_ columnType: String.Type) throws(QueryDecodingError) -> String? {
-            try column(expecting: SQLITE_TEXT, as: String.self) { text($0, $1) }
+            try column(expecting: SQLITE_TEXT, as: String.self) { Self.text($0, $1) }
         }
 
         mutating func decode(_ columnType: UInt64.Type) throws(QueryDecodingError) -> UInt64? {

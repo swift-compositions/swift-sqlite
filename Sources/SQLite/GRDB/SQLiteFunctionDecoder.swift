@@ -57,7 +57,7 @@ struct SQLiteFunctionDecoder: QueryDecoder {
     try argument(expecting: SQLITE_BLOB, as: [Byte].self) { value in
       guard let blob = unsafe sqlite3_value_blob(value) else { return [] }
       return unsafe UnsafeRawBufferPointer(start: blob, count: Int(sqlite3_value_bytes(value)))
-        .map(Byte.init)
+        .map(Byte.init(bitPattern:))
     }
   }
 

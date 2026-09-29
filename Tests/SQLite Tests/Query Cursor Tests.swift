@@ -16,7 +16,7 @@
         init() throws {
             queue = try DatabaseQueue()
             try queue.write { database in
-                try database.execute(sql: #"CREATE TABLE "numbers" ("value" INTEGER NOT NULL)"#)
+                try database.execute(sql: #"CREATE TABLE "number" ("value" INTEGER NOT NULL)"#)
             }
         }
 

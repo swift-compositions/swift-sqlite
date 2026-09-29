@@ -168,11 +168,11 @@
 
   extension SyncMetadata {
     fileprivate static func insert<T: PrimaryKeyedTable, Name>(
-      new: SQL.TableAlias<T, Name>.TableColumns,
+      new: SQL::TableAlias<T, Name>.TableColumns,
       parentForeignKey: ForeignKey?,
       defaultZone: CKRecordZone,
       privateTables: [any SynchronizableTable]
-    ) -> some SQL.Statement {
+    ) -> some SQL::Statement {
       let (parentRecordPrimaryKey, parentRecordType, zoneName, ownerName) = parentFields(
         alias: new,
         parentForeignKey: parentForeignKey,
@@ -210,11 +210,11 @@
     }
 
     fileprivate static func update<T: PrimaryKeyedTable, Name>(
-      new: SQL.TableAlias<T, Name>.TableColumns,
+      new: SQL::TableAlias<T, Name>.TableColumns,
       parentForeignKey: ForeignKey?,
       defaultZone: CKRecordZone,
       privateTables: [any SynchronizableTable]
-    ) -> some SQL.Statement {
+    ) -> some SQL::Statement {
       let (parentRecordPrimaryKey, parentRecordType, zoneName, ownerName) = parentFields(
         alias: new,
         parentForeignKey: parentForeignKey,
@@ -351,7 +351,7 @@
   }
 
   private func parentFields<Base, Name>(
-    alias: SQL.TableAlias<Base, Name>.TableColumns,
+    alias: SQL::TableAlias<Base, Name>.TableColumns,
     parentForeignKey: ForeignKey?,
     defaultZone: CKRecordZone,
     privateTables: [any SynchronizableTable]
@@ -403,7 +403,7 @@
 
   private func validate(
     recordName: some QueryExpression<String>
-  ) -> some SQL.Statement<Never> {
+  ) -> some SQL::Statement<Never> {
     #sql(
       """
       SELECT RAISE(ABORT, \(text: SyncEngine.invalidRecordNameError))
@@ -414,11 +414,11 @@
   }
 
   private func checkWritePermissions<Base, Name>(
-    alias: SQL.TableAlias<Base, Name>.TableColumns,
+    alias: SQL::TableAlias<Base, Name>.TableColumns,
     parentForeignKey: ForeignKey?,
     defaultZone: CKRecordZone,
     privateTables: [any SynchronizableTable]
-  ) -> some SQL.Statement<Never> {
+  ) -> some SQL::Statement<Never> {
     let (parentRecordPrimaryKey, parentRecordType, _, _) = parentFields(
       alias: alias,
       parentForeignKey: parentForeignKey,

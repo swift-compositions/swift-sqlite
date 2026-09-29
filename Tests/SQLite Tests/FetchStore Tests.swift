@@ -5,6 +5,10 @@
     import Synchronization
     import Testing
 
+    #if canImport(SwiftUI)
+        import SwiftUI
+    #endif
+
     final class Recording: ValueObservationScheduler, Sendable {
         let deliveries = Mutex(0)
 

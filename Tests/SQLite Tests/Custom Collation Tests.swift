@@ -1,5 +1,5 @@
 #if GRDB
-    import Comparison
+    import Order
     import GRDB
     import SQL
     import SQL_Macros
@@ -12,14 +12,14 @@
     }
 
     @DatabaseCollation
-    private func reversed(_ lhs: String, _ rhs: String) -> Comparison {
-        Comparison(comparing: rhs, to: lhs)
+    private func reversed(_ lhs: String, _ rhs: String) -> Order.Comparison {
+        Order.Comparison(rhs, lhs)
     }
 
     private func items(_ titles: [String] = []) throws -> DatabaseQueue {
         let queue = try DatabaseQueue()
         try queue.write { database in
-            try database.execute(sql: #"CREATE TABLE "items" ("title" TEXT NOT NULL)"#)
+            try database.execute(sql: #"CREATE TABLE "item" ("title" TEXT NOT NULL)"#)
             for title in titles {
                 try Item.insert { Item(title: title) }.execute(database)
             }

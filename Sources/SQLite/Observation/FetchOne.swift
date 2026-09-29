@@ -15,7 +15,7 @@
 
         public init<QueryValue: QueryRepresentable>(
             wrappedValue: Value,
-            _ statement: some SQL.Statement<QueryValue>,
+            _ statement: some SQL::Statement<QueryValue>,
             database: some DatabaseReader,
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) where Value == QueryValue.QueryOutput {
@@ -29,7 +29,7 @@
 
         public init<Wrapped, QueryValue: QueryRepresentable>(
             wrappedValue: Wrapped? = nil,
-            _ statement: some SQL.Statement<QueryValue>,
+            _ statement: some SQL::Statement<QueryValue>,
             database: some DatabaseReader,
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) where Value == Wrapped?, Wrapped == QueryValue.QueryOutput {

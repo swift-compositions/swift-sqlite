@@ -1,15 +1,15 @@
 #if GRDB
-    import Byte
-    import CustomDump
+    public import Byte
+    public import CustomDump
     import GRDB
     import InlineSnapshotTesting
-    import RFC_4122
+    public import RFC_4122
     import SQL
     import SQL_Macros
     import SQLite
     import SQLite_Test_Support
     import Testing
-    import Time
+    public import Time
 
     extension Time.Instant: @retroactive CustomDumpStringConvertible {
         public var customDumpDescription: String {
@@ -45,7 +45,7 @@
             try database.write { db in
                 try #sql(
                     """
-                    CREATE TABLE "records" (
+                    CREATE TABLE "record" (
                       "id" INTEGER PRIMARY KEY AUTOINCREMENT,
                       "date" TEXT NOT NULL
                     )
@@ -105,8 +105,8 @@
         @Test func `snapshots the SQL when asked`() {
             assertQuery(includeSQL: true, Record.all.select(\.id), database: database) {
                 """
-                SELECT "records"."id"
-                FROM "records"
+                SELECT "record"."id"
+                FROM "record"
                 """
             } results: {
                 """
@@ -185,9 +185,9 @@
                 writing: database
             ) {
                 """
-                DELETE FROM "records"
-                WHERE (("records"."id") = (2))
-                RETURNING "records"."id"
+                DELETE FROM "record"
+                WHERE (("record"."id") = (2))
+                RETURNING "id"
                 """
             } results: {
                 """

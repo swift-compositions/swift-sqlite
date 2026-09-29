@@ -45,11 +45,11 @@
         let queue = try DatabaseQueue(configuration: configuration)
         try queue.write { database in
             try database.execute(
-                sql: #"CREATE TABLE "records" ("id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT)"#
+                sql: #"CREATE TABLE "record" ("id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT)"#
             )
-            try database.execute(sql: #"INSERT INTO "records" DEFAULT VALUES"#)
-            try database.execute(sql: #"INSERT INTO "records" DEFAULT VALUES"#)
-            try database.execute(sql: #"INSERT INTO "records" DEFAULT VALUES"#)
+            try database.execute(sql: #"INSERT INTO "record" DEFAULT VALUES"#)
+            try database.execute(sql: #"INSERT INTO "record" DEFAULT VALUES"#)
+            try database.execute(sql: #"INSERT INTO "record" DEFAULT VALUES"#)
         }
         return queue
     }
@@ -63,14 +63,14 @@
         let queue = try DatabaseQueue(configuration: configuration)
         try queue.write { database in
             try database.execute(
-                sql: #"CREATE TABLE "numbers" ("value" INTEGER NOT NULL, "label" TEXT NOT NULL)"#
+                sql: #"CREATE TABLE "number" ("value" INTEGER NOT NULL, "label" TEXT NOT NULL)"#
             )
             try database.execute(
                 sql: """
                     WITH RECURSIVE "sequence"("value") AS (
                       SELECT 1 UNION ALL SELECT "value" + 1 FROM "sequence" WHERE "value" < \(count)
                     )
-                    INSERT INTO "numbers" SELECT "value", CAST("value" AS TEXT) FROM "sequence"
+                    INSERT INTO "number" SELECT "value", CAST("value" AS TEXT) FROM "sequence"
                     """
             )
         }
@@ -84,12 +84,12 @@
                 database.add(function: $epoch)
             }
             let queue = try DatabaseQueue(configuration: configuration)
-            let instant = try queue.read { database in try Values($epoch()).fetchOne(database) }
+            let instant = try queue.read { database in try Select($epoch()).fetchOne(database) }
             #expect(instant == Time.Instant(secondsSinceUnixEpoch: 0))
 
             try queue.write { database in database.remove(function: $epoch) }
             #expect(throws: (any Error).self) {
-                try queue.read { database in _ = try Values($epoch()).fetchOne(database) }
+                try queue.read { database in _ = try Select($epoch()).fetchOne(database) }
             }
         }
 
@@ -99,7 +99,7 @@
                 database.add(function: $exclaim)
             }
             let queue = try DatabaseQueue(configuration: configuration)
-            let text = try queue.read { database in try Values($exclaim("Blob")).fetchOne(database) }
+            let text = try queue.read { database in try Select($exclaim("Blob")).fetchOne(database) }
             #expect(text == "Blob!")
         }
 

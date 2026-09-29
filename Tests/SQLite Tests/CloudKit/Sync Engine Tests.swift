@@ -123,7 +123,7 @@
                     ) {
                         _ = Reminder.createTemporaryTrigger(
                             after: .insert { new in
-                                Values(SyncEngine.isSynchronizing)
+                                Select(SyncEngine.isSynchronizing)
                             }
                         )
                     }
@@ -137,7 +137,7 @@
                     )
                     _ = Reminder.createTemporaryTrigger(
                         after: .insert { new in
-                            Values(SyncEngine.$isSynchronizing)
+                            Select(SyncEngine.$isSynchronizing)
                         }
                     )
                 }

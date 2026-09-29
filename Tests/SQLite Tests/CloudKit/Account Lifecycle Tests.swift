@@ -1,4 +1,5 @@
 #if CloudKit
+    import GRDB
     import CloudKit
     import Foundation
     import InlineSnapshotTesting
@@ -611,7 +612,7 @@
             }
 
             @Test func `existing data is not uploaded to CloudKit while signed out`() {
-                assertQuery(SyncMetadata.all, database: userDatabase.database) {
+                assertQuery(SyncMetadata.all, writing: userDatabase.database) {
                     """
                     (No results)
                     """

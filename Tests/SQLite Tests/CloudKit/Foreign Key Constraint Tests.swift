@@ -1,4 +1,6 @@
 #if CloudKit
+    import Synchronization
+    import GRDB
     import CloudKit
     import InlineSnapshotTesting
     import SQL

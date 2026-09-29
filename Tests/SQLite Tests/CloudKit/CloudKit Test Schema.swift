@@ -1,4 +1,5 @@
 #if CloudKit
+    import CloudKit
     import Byte
     import Foundation
     import GRDB
@@ -7,7 +8,7 @@
     import SQLite
     import Time
 
-    @Table struct Reminder: Equatable, Identifiable {
+    @Table("reminders") struct Reminder: Equatable, Identifiable {
         let id: Int
         var dueDate: Time.Instant?
         var isCompleted = false
@@ -15,68 +16,68 @@
         var title = ""
         var remindersListID: RemindersList.ID
     }
-    @Table struct RemindersList: Equatable, Identifiable {
+    @Table("remindersLists") struct RemindersList: Equatable, Identifiable {
         let id: Int
         var title = ""
     }
-    @Table struct RemindersListAsset: Equatable, Identifiable {
+    @Table("remindersListAssets") struct RemindersListAsset: Equatable, Identifiable {
         @Column(primaryKey: true)
         var remindersListID: RemindersList.ID
         var coverImage: [Byte]?
         var id: RemindersList.ID { remindersListID }
     }
-    @Table struct RemindersListPrivate: Equatable, Identifiable {
+    @Table("remindersListPrivates") struct RemindersListPrivate: Equatable, Identifiable {
         @Column(primaryKey: true)
         var remindersListID: RemindersList.ID
         var position = 0
         var id: RemindersList.ID { remindersListID }
     }
-    @Table struct Tag: Equatable, Identifiable {
+    @Table("tags") struct Tag: Equatable, Identifiable {
         @Column(primaryKey: true)
         let title: String
         var id: String { title }
     }
-    @Table struct ReminderTag: Equatable, Identifiable {
+    @Table("reminderTags") struct ReminderTag: Equatable, Identifiable {
         let id: Int
         var reminderID: Reminder.ID
         var tagID: Tag.ID
     }
-    @Table struct Parent: Equatable, Identifiable {
+    @Table("parents") struct Parent: Equatable, Identifiable {
         let id: Int
     }
-    @Table struct ChildWithOnDeleteSetNull: Equatable, Identifiable {
+    @Table("childWithOnDeleteSetNulls") struct ChildWithOnDeleteSetNull: Equatable, Identifiable {
         let id: Int
         let parentID: Parent.ID?
     }
-    @Table struct ChildWithOnDeleteSetDefault: Equatable, Identifiable {
+    @Table("childWithOnDeleteSetDefaults") struct ChildWithOnDeleteSetDefault: Equatable, Identifiable {
         let id: Int
         let parentID: Parent.ID
     }
-    @Table struct LocalUser: Equatable, Identifiable {
+    @Table("localUsers") struct LocalUser: Equatable, Identifiable {
         let id: Int
         var name = ""
         var parentID: LocalUser.ID?
     }
-    @Table struct ModelA: Equatable, Identifiable {
+    @Table("modelAs") struct ModelA: Equatable, Identifiable {
         let id: Int
         var count = 0
         @Column(generated: .virtual)
         let isEven: Bool
     }
-    @Table struct ModelB: Equatable, Identifiable {
+    @Table("modelBs") struct ModelB: Equatable, Identifiable {
         let id: Int
         var isOn = false
         var modelAID: ModelA.ID
     }
-    @Table struct ModelC: Equatable, Identifiable {
+    @Table("modelCs") struct ModelC: Equatable, Identifiable {
         let id: Int
         var title = ""
         var modelBID: ModelB.ID
     }
-    @Table struct UnsyncedModel: Equatable, Identifiable {
+    @Table("unsyncedModels") struct UnsyncedModel: Equatable, Identifiable {
         let id: Int
     }
-    @Table struct ScopedModel: Equatable, Identifiable {
+    @Table("scopedModels") struct ScopedModel: Equatable, Identifiable {
         let id: Int
         var title = ""
         var isDeleted = false

@@ -1,4 +1,6 @@
 #if CloudKit
+    import GRDB
+    import CloudKit
     import SQLite
     import Testing
 

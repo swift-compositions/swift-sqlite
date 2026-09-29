@@ -33,7 +33,7 @@
                 try await syncEngine.userDatabase.read { db in
                     try #sql(
                         """
-                        SELECT 1 FROM "sqlite_icloud_metadata"
+                        SELECT 1 FROM "swiftsqlite_icloud_metadata"
                         """
                     )
                     .execute(db)

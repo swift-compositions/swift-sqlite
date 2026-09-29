@@ -4,7 +4,7 @@
   public import SQL
   import SQL_Macros
 
-  @Table("sqlite_icloud_metadata")
+  @Table("swiftsqlite_icloud_metadata")
   public struct SyncMetadata: Hashable, Identifiable, Sendable {
     @Selection
     public struct ID: Hashable, Sendable {

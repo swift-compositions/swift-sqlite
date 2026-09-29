@@ -59,6 +59,7 @@ public func assertQuery<S: SelectStatement, each J: SQL::Table>(
   )
 }
 
+@_disfavoredOverload
 public func assertQuery<each V: QueryRepresentable, S: SQL::Statement<(repeat each V)>>(
   includeSQL: Bool = false,
   _ statement: S,
@@ -75,6 +76,32 @@ public func assertQuery<each V: QueryRepresentable, S: SQL::Statement<(repeat ea
     includeSQL: includeSQL,
     statement,
     execute: { statement in try database.write { try statement.fetchAll($0) } },
+    sql: sql,
+    results: results,
+    fileID: fileID,
+    filePath: filePath,
+    function: function,
+    line: line,
+    column: column
+  )
+}
+
+public func assertQuery<S: SelectStatement, each J: SQL::Table>(
+  includeSQL: Bool = false,
+  _ query: S,
+  writing database: some DatabaseWriter,
+  sql: (() -> String)? = nil,
+  results: (() -> String)? = nil,
+  fileID: StaticString = #fileID,
+  filePath: StaticString = #filePath,
+  function: StaticString = #function,
+  line: UInt = #line,
+  column: UInt = #column
+) where S.QueryValue == (), S.Joins == (repeat each J) {
+  assertQuery(
+    includeSQL: includeSQL,
+    query.selectStar(),
+    writing: database,
     sql: sql,
     results: results,
     fileID: fileID,

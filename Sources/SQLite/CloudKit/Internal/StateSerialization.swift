@@ -4,7 +4,7 @@
   package import SQL
   import SQL_Macros
 
-  @Table("sqlite_icloud_stateSerialization")
+  @Table("swiftsqlite_icloud_stateSerialization")
   package struct StateSerialization {
     @Column(as: CKDatabase.Scope.RawValueRepresentation.self, primaryKey: true)
     package var scope: CKDatabase.Scope

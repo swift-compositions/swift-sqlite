@@ -4,7 +4,7 @@
   package import SQL
   import SQL_Macros
 
-  @Table("sqlite_icloud_unsyncedRecordIDs")
+  @Table("swiftsqlite_icloud_unsyncedRecordIDs")
   package struct UnsyncedRecordID: Equatable {
     package let recordName: String
     package let zoneName: String

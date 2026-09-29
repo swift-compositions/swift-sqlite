@@ -1,4 +1,5 @@
 #if CloudKit
+    import GRDB
     import Byte
     import CloudKit
     import Foundation
@@ -793,8 +794,8 @@
                     defer { _ = relaunchedSyncEngine }
 
                     try await userDatabase.read { db in
-                        #expect(
-                            try Image.order(by: \.id).fetchAll(db) == [
+                        try #expect(
+                            Image.order(by: \.id).fetchAll(db) == [
                                 Image(id: 1, image: [Byte](utf8: "image"), caption: "A good image")
                             ]
                         )
@@ -904,7 +905,7 @@
         var title = ""
     }
 
-    @Table
+    @Table("images")
     private struct Image: Equatable, Identifiable {
         let id: Int
         var image: [Byte]

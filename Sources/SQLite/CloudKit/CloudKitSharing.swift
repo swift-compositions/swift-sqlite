@@ -2,6 +2,7 @@
 #if canImport(CloudKit)
   public import CloudKit
   import GRDB
+  import Synchronization
   public import SQL
   import SQL_Macros
 

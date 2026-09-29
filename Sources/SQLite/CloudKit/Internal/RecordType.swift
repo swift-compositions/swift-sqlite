@@ -3,7 +3,7 @@
   package import SQL
   import SQL_Macros
 
-  @Table("sqlite_icloud_recordTypes")
+  @Table("swiftsqlite_icloud_recordTypes")
   package struct RecordType: Hashable {
     @Column(primaryKey: true)
     package let tableName: String

@@ -1,4 +1,5 @@
 #if CloudKit
+    import GRDB
     import CloudKit
     import Foundation
     import InlineSnapshotTesting
@@ -625,7 +626,7 @@
         }
     }
 
-    @Table
+    @Table("foos")
     private struct Foo {
         let id: Int
     }

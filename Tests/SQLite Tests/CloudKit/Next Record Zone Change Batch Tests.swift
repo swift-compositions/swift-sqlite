@@ -1,4 +1,5 @@
 #if CloudKit
+    import GRDB
     import CloudKit
     import InlineSnapshotTesting
     import SQL
@@ -310,7 +311,7 @@
         }
     }
 
-    @Table
+    @Table("unrecognizedTables")
     private struct UnrecognizedTable {
         let id: Int
     }

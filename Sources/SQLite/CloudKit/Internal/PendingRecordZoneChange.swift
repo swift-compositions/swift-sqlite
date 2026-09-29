@@ -5,7 +5,7 @@
   public import SQL
   import SQL_Macros
 
-  @Table("sqlite_icloud_pendingRecordZoneChanges")
+  @Table("swiftsqlite_icloud_pendingRecordZoneChanges")
   package struct PendingRecordZoneChange {
     @Column(as: CKSyncEngine.PendingRecordZoneChange.DataRepresentation.self)
     package let pendingRecordZoneChange: CKSyncEngine.PendingRecordZoneChange

@@ -1,11 +1,12 @@
 #if CloudKit
+    import Synchronization
     import CloudKit
     import Foundation
     import GRDB
     import OSLog
     import RFC_4122
     import SQL
-    import SQLite
+    public import SQLite
     import Testing
 
     @Suite
@@ -29,7 +30,7 @@
             startImmediately: Bool = true,
             context: SyncEngine.Context = .test,
             delegate: (any SyncEngineDelegate)? = nil,
-            prepareDatabase: (UserDatabase) async throws -> Void = { _ in }
+            prepareDatabase: @Sendable (UserDatabase) async throws -> Void = { _ in }
         ) async throws {
             let containerIdentifier =
                 "iCloud.org.swift-institute.SQLite.Testing.\(ProcessInfo.processInfo.globallyUniqueString)"
@@ -272,5 +273,5 @@
     private let previousUserRecordID = CKRecord.ID(recordName: "previousUser")
     private let currentUserRecordID = CKRecord.ID(recordName: "currentUser")
 
-    extension Int: @retroactive IdentifierStringConvertible {}
+    extension Int: IdentifierStringConvertible {}
 #endif

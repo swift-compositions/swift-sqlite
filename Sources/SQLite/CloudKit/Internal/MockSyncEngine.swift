@@ -220,7 +220,7 @@
       precondition(
         !syncEngine.state.pendingRecordZoneChanges.isEmpty,
         "Processing empty set of record zone changes.",
-        file: filePath,
+        file: fileID,
         line: line
       )
       let accountStatus = try await container.accountStatus()
@@ -343,7 +343,7 @@
       precondition(
         !syncEngine.state.pendingDatabaseChanges.isEmpty,
         "Processing empty set of database changes.",
-        file: filePath,
+        file: fileID,
         line: line
       )
       let accountStatus = try await container.accountStatus()

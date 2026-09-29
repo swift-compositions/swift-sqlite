@@ -37,7 +37,7 @@
 
         public init(
             wrappedValue: [Element] = [],
-            @_SectionBuilder<String?> sectionBy sectioning: (Element.TableColumns) -> _Sectioning<String?>,
+            @SectionBuilder<String?> sectionBy sectioning: (Element.TableColumns) -> Sectioning<String?>,
             database: some DatabaseReader,
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) where Element: SQL::Table, Element.QueryOutput == Element {
@@ -64,7 +64,7 @@
         public init<S: SelectStatement>(
             wrappedValue: [Element] = [],
             _ statement: S,
-            @_SectionBuilder<String?> sectionBy sectioning: (Element.TableColumns) -> _Sectioning<String?>,
+            @SectionBuilder<String?> sectionBy sectioning: (Element.TableColumns) -> Sectioning<String?>,
             database: some DatabaseReader,
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) where S.QueryValue == (), S.From == Element, S.Joins == (), Element.QueryOutput == Element {
@@ -80,7 +80,7 @@
         public init<QueryValue: QueryRepresentable, From: SQL::Table>(
             wrappedValue: [Element] = [],
             _ statement: Select<QueryValue, From, ()>,
-            @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns) -> _Sectioning<String?>,
+            @SectionBuilder<String?> sectionBy sectioning: (From.TableColumns) -> Sectioning<String?>,
             database: some DatabaseReader,
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) where Element == QueryValue.QueryOutput {
@@ -100,7 +100,7 @@
 
         public func load<Element: Sendable>(
             _ statement: Select<(), Element, ()>,
-            sectionBy sectioning: _Sectioning<String?>,
+            sectionBy sectioning: Sectioning<String?>,
             database: some DatabaseReader,
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) where Value == ResultsSectionCollection<Element, String?>, Element: SQL::Table, Element.QueryOutput == Element {
@@ -110,7 +110,7 @@
 
         public func load<Element: Sendable, QueryValue: QueryRepresentable, From: SQL::Table>(
             _ statement: Select<QueryValue, From, ()>,
-            sectionBy sectioning: _Sectioning<String?>,
+            sectionBy sectioning: Sectioning<String?>,
             database: some DatabaseReader,
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) where Value == ResultsSectionCollection<Element, String?>, Element == QueryValue.QueryOutput {

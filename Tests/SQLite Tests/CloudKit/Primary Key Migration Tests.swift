@@ -1,4 +1,5 @@
 #if CloudKit
+    import CloudKit
     import Foundation
     import GRDB
     import InlineSnapshotTesting
@@ -10,7 +11,7 @@
     import Testing
 
     @Suite struct `Primary key migration` {
-        @Table struct Parent: Identifiable {
+        @Table("parents") struct Parent: Identifiable {
             let id: RFC_4122.UUID
             var title = ""
         }
@@ -19,15 +20,15 @@
             var title = ""
             var parentID: Parent.ID
         }
-        @Table struct Tag {
+        @Table("tags") struct Tag {
             let id: RFC_4122.UUID
             var title = ""
         }
-        @Table struct PhoneNumber {
+        @Table("phoneNumbers") struct PhoneNumber {
             @Column(primaryKey: true)
             let number: String
         }
-        @Table struct User {
+        @Table("users") struct User {
             @Column(primaryKey: true)
             let identifier: RFC_4122.UUID
             var name = ""
@@ -37,7 +38,7 @@
 
         init() throws {
             database = try DatabaseQueue()
-            try database.writeWithoutTransaction { db in
+            database.writeWithoutTransaction { db in
                 db.add(function: $uuid)
                 db.add(function: $customUUID)
             }
@@ -132,17 +133,17 @@
             assertQuery(Parent.all, database: database) {
                 """
                 ┌────────────────────────────────────────────────────────────┐
-                │ `Primary key migration`.Parent(                            │
+                │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │   id: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7), │
                 │   title: "foo"                                             │
                 │ )                                                          │
                 ├────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Parent(                            │
+                │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │   id: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6), │
                 │   title: "bar"                                             │
                 │ )                                                          │
                 ├────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Parent(                            │
+                │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │   id: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6), │
                 │   title: "baz"                                             │
                 │ )                                                          │
@@ -152,19 +153,19 @@
             assertQuery(Child.all, database: database) {
                 """
                 ┌─────────────────────────────────────────────────────────────────┐
-                │ `Primary key migration`.Child(                                  │
+                │ SQLite_Tests.`Primary key migration`.Child(                     │
                 │   id: RFC_4122.UUID(d66c67a9-39cd-8786-75a9-1c47f5c0e47f),      │
                 │   title: "foo",                                                 │
                 │   parentID: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7) │
                 │ )                                                               │
                 ├─────────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Child(                                  │
+                │ SQLite_Tests.`Primary key migration`.Child(                     │
                 │   id: RFC_4122.UUID(98219b0b-627e-b12b-8e8f-08ed4a7959bf),      │
                 │   title: "bar",                                                 │
                 │   parentID: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6) │
                 │ )                                                               │
                 ├─────────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Child(                                  │
+                │ SQLite_Tests.`Primary key migration`.Child(                     │
                 │   id: RFC_4122.UUID(7eae27fe-b38d-3806-6aa4-6f953c251bea),      │
                 │   title: "baz",                                                 │
                 │   parentID: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6) │
@@ -175,12 +176,12 @@
             assertQuery(Tag.all, database: database) {
                 """
                 ┌────────────────────────────────────────────────────────────┐
-                │ `Primary key migration`.Tag(                               │
+                │ SQLite_Tests.`Primary key migration`.Tag(                  │
                 │   id: RFC_4122.UUID(00000000-0000-0000-0000-000000000001), │
                 │   title: "personal"                                        │
                 │ )                                                          │
                 ├────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Tag(                               │
+                │ SQLite_Tests.`Primary key migration`.Tag(                  │
                 │   id: RFC_4122.UUID(00000000-0000-0000-0000-000000000002), │
                 │   title: "business"                                        │
                 │ )                                                          │
@@ -213,12 +214,12 @@
             assertQuery(Parent.select { ($0.rowid, $0) }, database: database) {
                 """
                 ┌──────┬────────────────────────────────────────────────────────────┐
-                │ 1    │ `Primary key migration`.Parent(                            │
+                │ 1    │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │      │   id: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7), │
                 │      │   title: "blob"                                            │
                 │      │ )                                                          │
                 ├──────┼────────────────────────────────────────────────────────────┤
-                │ 1000 │ `Primary key migration`.Parent(                            │
+                │ 1000 │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │      │   id: RFC_4122.UUID(ec5f9355-c981-e3c7-3246-09a01e0c4897), │
                 │      │   title: "blob jr"                                         │
                 │      │ )                                                          │
@@ -471,17 +472,17 @@
             assertQuery(Parent.all, database: database) {
                 """
                 ┌────────────────────────────────────────────────────────────┐
-                │ `Primary key migration`.Parent(                            │
+                │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │   id: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7), │
                 │   title: "foo"                                             │
                 │ )                                                          │
                 ├────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Parent(                            │
+                │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │   id: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6), │
                 │   title: "bar"                                             │
                 │ )                                                          │
                 ├────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Parent(                            │
+                │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │   id: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6), │
                 │   title: "baz"                                             │
                 │ )                                                          │
@@ -491,19 +492,19 @@
             assertQuery(Child.all, database: database) {
                 """
                 ┌─────────────────────────────────────────────────────────────────┐
-                │ `Primary key migration`.Child(                                  │
+                │ SQLite_Tests.`Primary key migration`.Child(                     │
                 │   id: RFC_4122.UUID(d66c67a9-39cd-8786-75a9-1c47f5c0e47f),      │
                 │   title: "foo",                                                 │
                 │   parentID: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7) │
                 │ )                                                               │
                 ├─────────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Child(                                  │
+                │ SQLite_Tests.`Primary key migration`.Child(                     │
                 │   id: RFC_4122.UUID(98219b0b-627e-b12b-8e8f-08ed4a7959bf),      │
                 │   title: "bar",                                                 │
                 │   parentID: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6) │
                 │ )                                                               │
                 ├─────────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Child(                                  │
+                │ SQLite_Tests.`Primary key migration`.Child(                     │
                 │   id: RFC_4122.UUID(7eae27fe-b38d-3806-6aa4-6f953c251bea),      │
                 │   title: "baz",                                                 │
                 │   parentID: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6) │
@@ -610,17 +611,17 @@
             assertQuery(Parent.all, database: database) {
                 """
                 ┌────────────────────────────────────────────────────────────┐
-                │ `Primary key migration`.Parent(                            │
+                │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │   id: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7), │
                 │   title: "foo"                                             │
                 │ )                                                          │
                 ├────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Parent(                            │
+                │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │   id: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6), │
                 │   title: "bar"                                             │
                 │ )                                                          │
                 ├────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Parent(                            │
+                │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │   id: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6), │
                 │   title: "baz"                                             │
                 │ )                                                          │
@@ -630,19 +631,19 @@
             assertQuery(Child.all, database: database) {
                 """
                 ┌─────────────────────────────────────────────────────────────────┐
-                │ `Primary key migration`.Child(                                  │
+                │ SQLite_Tests.`Primary key migration`.Child(                     │
                 │   id: RFC_4122.UUID(d66c67a9-39cd-8786-75a9-1c47f5c0e47f),      │
                 │   title: "foo",                                                 │
                 │   parentID: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7) │
                 │ )                                                               │
                 ├─────────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Child(                                  │
+                │ SQLite_Tests.`Primary key migration`.Child(                     │
                 │   id: RFC_4122.UUID(98219b0b-627e-b12b-8e8f-08ed4a7959bf),      │
                 │   title: "bar",                                                 │
                 │   parentID: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6) │
                 │ )                                                               │
                 ├─────────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Child(                                  │
+                │ SQLite_Tests.`Primary key migration`.Child(                     │
                 │   id: RFC_4122.UUID(7eae27fe-b38d-3806-6aa4-6f953c251bea),      │
                 │   title: "baz",                                                 │
                 │   parentID: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6) │
@@ -760,17 +761,17 @@
             assertQuery(Parent.all, database: database) {
                 """
                 ┌────────────────────────────────────────────────────────────┐
-                │ `Primary key migration`.Parent(                            │
+                │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │   id: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7), │
                 │   title: "foo"                                             │
                 │ )                                                          │
                 ├────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Parent(                            │
+                │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │   id: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6), │
                 │   title: "bar"                                             │
                 │ )                                                          │
                 ├────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Parent(                            │
+                │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │   id: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6), │
                 │   title: "baz"                                             │
                 │ )                                                          │
@@ -780,19 +781,19 @@
             assertQuery(Child.all, database: database) {
                 """
                 ┌─────────────────────────────────────────────────────────────────┐
-                │ `Primary key migration`.Child(                                  │
+                │ SQLite_Tests.`Primary key migration`.Child(                     │
                 │   id: RFC_4122.UUID(d66c67a9-39cd-8786-75a9-1c47f5c0e47f),      │
                 │   title: "foo",                                                 │
                 │   parentID: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7) │
                 │ )                                                               │
                 ├─────────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Child(                                  │
+                │ SQLite_Tests.`Primary key migration`.Child(                     │
                 │   id: RFC_4122.UUID(98219b0b-627e-b12b-8e8f-08ed4a7959bf),      │
                 │   title: "bar",                                                 │
                 │   parentID: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6) │
                 │ )                                                               │
                 ├─────────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Child(                                  │
+                │ SQLite_Tests.`Primary key migration`.Child(                     │
                 │   id: RFC_4122.UUID(7eae27fe-b38d-3806-6aa4-6f953c251bea),      │
                 │   title: "baz",                                                 │
                 │   parentID: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6) │
@@ -856,9 +857,9 @@
             }
             assertQuery(PhoneNumber.all, database: database) {
                 """
-                ┌─────────────────────────────────────────────────────────────┐
-                │ `Primary key migration`.PhoneNumber(number: "212-555-1234") │
-                └─────────────────────────────────────────────────────────────┘
+                ┌──────────────────────────────────────────────────────────────────────────┐
+                │ SQLite_Tests.`Primary key migration`.PhoneNumber(number: "212-555-1234") │
+                └──────────────────────────────────────────────────────────────────────────┘
                 """
             }
         }
@@ -1083,17 +1084,17 @@
             assertQuery(Parent.all, database: database) {
                 """
                 ┌────────────────────────────────────────────────────────────┐
-                │ `Primary key migration`.Parent(                            │
+                │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │   id: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7), │
                 │   title: "foo"                                             │
                 │ )                                                          │
                 ├────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Parent(                            │
+                │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │   id: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6), │
                 │   title: "bar"                                             │
                 │ )                                                          │
                 ├────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Parent(                            │
+                │ SQLite_Tests.`Primary key migration`.Parent(               │
                 │   id: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6), │
                 │   title: "baz"                                             │
                 │ )                                                          │
@@ -1103,19 +1104,19 @@
             assertQuery(Child.all, database: database) {
                 """
                 ┌─────────────────────────────────────────────────────────────────┐
-                │ `Primary key migration`.Child(                                  │
+                │ SQLite_Tests.`Primary key migration`.Child(                     │
                 │   id: RFC_4122.UUID(d66c67a9-39cd-8786-75a9-1c47f5c0e47f),      │
                 │   title: "foo",                                                 │
                 │   parentID: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7) │
                 │ )                                                               │
                 ├─────────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Child(                                  │
+                │ SQLite_Tests.`Primary key migration`.Child(                     │
                 │   id: RFC_4122.UUID(98219b0b-627e-b12b-8e8f-08ed4a7959bf),      │
                 │   title: "bar",                                                 │
                 │   parentID: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6) │
                 │ )                                                               │
                 ├─────────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Child(                                  │
+                │ SQLite_Tests.`Primary key migration`.Child(                     │
                 │   id: RFC_4122.UUID(7eae27fe-b38d-3806-6aa4-6f953c251bea),      │
                 │   title: "baz",                                                 │
                 │   parentID: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6) │
@@ -1126,12 +1127,12 @@
             assertQuery(Tag.all, database: database) {
                 """
                 ┌────────────────────────────────────────────────────────────┐
-                │ `Primary key migration`.Tag(                               │
+                │ SQLite_Tests.`Primary key migration`.Tag(                  │
                 │   id: RFC_4122.UUID(00000000-0000-0000-0000-000000000001), │
                 │   title: "personal"                                        │
                 │ )                                                          │
                 ├────────────────────────────────────────────────────────────┤
-                │ `Primary key migration`.Tag(                               │
+                │ SQLite_Tests.`Primary key migration`.Tag(                  │
                 │   id: RFC_4122.UUID(00000000-0000-0000-0000-000000000002), │
                 │   title: "business"                                        │
                 │ )                                                          │

@@ -29,13 +29,13 @@
 
   extension [Byte] {
     init(_ data: Data) {
-      self = data.map(Byte.init)
+      self = data.map(Byte.init(bitPattern:))
     }
   }
 
   extension Data {
     init(_ bytes: [Byte]) {
-      self.init(bytes.map(\.underlying))
+      self.init(bytes.map(\.bitPattern))
     }
   }
 #endif

@@ -1,4 +1,6 @@
 #if CloudKit
+    import SQL_Macros
+    import GRDB
     import Byte
     import CloudKit
     import Foundation

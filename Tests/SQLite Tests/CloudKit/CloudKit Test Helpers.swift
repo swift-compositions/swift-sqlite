@@ -1,4 +1,5 @@
 #if CloudKit
+    import Synchronization
     import CloudKit
     import GRDB
     import SQL

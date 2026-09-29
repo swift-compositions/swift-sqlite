@@ -753,13 +753,13 @@
       try await start()
     }
 
-    @DatabaseFunction("sqlite_icloud_currentTime")
+    @DatabaseFunction("swiftsqlite_icloud_currentTime")
     func currentTime() -> Int64 {
       Int64(now().timeIntervalSince1970 * 1_000_000_000)
     }
 
     @DatabaseFunction(
-      "sqlite_icloud_didUpdate",
+      "swiftsqlite_icloud_didUpdate",
       as: ((
         String,
         String,
@@ -832,7 +832,7 @@
     }
 
     @DatabaseFunction(
-      "sqlite_icloud_didDelete",
+      "swiftsqlite_icloud_didDelete",
       as: ((String, _SystemFieldsRepresentation<CKRecord>?, _SystemFieldsRepresentation<CKShare>?)
         -> Void).self
     )
@@ -883,7 +883,7 @@
       )
     }
 
-    @DatabaseFunction("sqlite_icloud_syncEngineIsSynchronizingChanges")
+    @DatabaseFunction("swiftsqlite_icloud_syncEngineIsSynchronizingChanges")
     public static var isSynchronizing: Bool {
       precondition(
         !_isCreatingTemporaryTrigger,
@@ -1156,7 +1156,7 @@
           nonisolated(unsafe) var row: T.QueryOutput?
           do {
             try await userDatabase.read { db in
-              row =
+              unsafe row =
                 try T
                 .unscoped
                 .where {
@@ -1167,7 +1167,7 @@
           } catch {
             surface(Error(error))
           }
-          guard let row
+          guard let row = unsafe row
           else {
             syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
             missingRecord = recordID
@@ -2151,7 +2151,7 @@
   }
 
   extension String {
-    package static let sqliteCloudKitSchemaName = "sqlite_icloud"
+    package static let sqliteCloudKitSchemaName = "swiftsqlite_icloud"
     package static let sqliteCloudKitFailure = "SQLite CloudKit Failure"
   }
 
@@ -2506,11 +2506,11 @@
 
   @TaskLocal package var _isSynchronizingChanges = false
   @TaskLocal package var _currentZoneID: CKRecordZone.ID?
-  @DatabaseFunction("sqlite_icloud_currentZoneName")
+  @DatabaseFunction("swiftsqlite_icloud_currentZoneName")
   func currentZoneName() -> String? {
     _currentZoneID?.zoneName
   }
-  @DatabaseFunction("sqlite_icloud_currentOwnerName")
+  @DatabaseFunction("swiftsqlite_icloud_currentOwnerName")
   func currentOwnerName() -> String? {
     _currentZoneID?.ownerName
   }

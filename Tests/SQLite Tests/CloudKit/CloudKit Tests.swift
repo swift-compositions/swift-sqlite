@@ -462,13 +462,13 @@
                 ) {
                     """
                     [
-                      [0]: "sqlite_icloud_currentownername",
-                      [1]: "sqlite_icloud_currenttime",
-                      [2]: "sqlite_icloud_currentzonename",
-                      [3]: "sqlite_icloud_diddelete",
-                      [4]: "sqlite_icloud_didupdate",
-                      [5]: "sqlite_icloud_haspermission",
-                      [6]: "sqlite_icloud_syncengineissynchronizingchanges"
+                      [0]: "swiftsqlite_icloud_currentownername",
+                      [1]: "swiftsqlite_icloud_currenttime",
+                      [2]: "swiftsqlite_icloud_currentzonename",
+                      [3]: "swiftsqlite_icloud_diddelete",
+                      [4]: "swiftsqlite_icloud_didupdate",
+                      [5]: "swiftsqlite_icloud_haspermission",
+                      [6]: "swiftsqlite_icloud_syncengineissynchronizingchanges"
                     ]
                     """
                 }

@@ -412,7 +412,7 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertQuery(SyncMetadata.select(\.recordName), database: userDatabase.database) {
+                assertQuery(SyncMetadata.select(\.recordName), writing: userDatabase.database) {
                     """
                     ┌────────────────────┐
                     │ "1:remindersLists" │
@@ -495,7 +495,7 @@
                     └───────────────────┘
                     """
                 }
-                assertQuery(SyncMetadata.all, database: userDatabase.database) {
+                assertQuery(SyncMetadata.all, writing: userDatabase.database) {
                     """
                     ┌────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                              │
@@ -577,7 +577,7 @@
                     └───────────────────┘
                     """
                 }
-                assertQuery(SyncMetadata.all, database: userDatabase.database) {
+                assertQuery(SyncMetadata.all, writing: userDatabase.database) {
                     """
                     ┌────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                              │
@@ -647,7 +647,7 @@
                     └───────────────────────┘
                     """
                 }
-                assertQuery(SyncMetadata.all, database: userDatabase.database) {
+                assertQuery(SyncMetadata.all, writing: userDatabase.database) {
                     """
                     ┌────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                  │

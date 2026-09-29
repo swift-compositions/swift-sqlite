@@ -4,6 +4,7 @@
   public import CloudKit
   import CryptoKit
   public import SQL
+  import RFC_4122
   import Time
 
   public struct _SystemFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
@@ -181,7 +182,7 @@
       let fileURL = dataManager.temporaryDirectory.appending(
         component:
           hash
-          .compactMap { String(format: "%02hhx", $0) }
+          .map { ($0 < 16 ? "0" : "") + String($0, radix: 16) }
           .joined()
       )
       let asset = CKAsset(fileURL: fileURL)
@@ -225,14 +226,9 @@
       dataManager: some DataManager
     ) throws {
       var failures: [String: SyncEngine.Error] = [:]
-      for column in T.TableColumns.writableColumns {
-        func open<Root, Value>(
-          _ column: some WritableTableColumnExpression<Root, Value>
-        ) throws {
-          let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
-          let column = column as! any WritableTableColumnExpression<T, Value>
-          let value = Value(queryOutput: row[keyPath: keyPath])
-          switch value.queryBinding {
+      for column in row.writableBindings {
+        func open(_ column: (name: String, binding: ISO_9075.Value)) throws {
+          switch column.binding {
           case .blob(let value):
             try setBytes(
               value,
@@ -289,10 +285,9 @@
 
       var failures: [String: SyncEngine.Error] = [:]
       self.userModificationTime = other.userModificationTime
-      for column in T.TableColumns.writableColumns {
-        func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
+      for column in row.writableBindings {
+        func open(_ column: (name: String, binding: ISO_9075.Value)) {
           let key = column.name
-          let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
           let didSet: Bool
           if let value = other[key] as? CKAsset {
             didSet = setAsset(
@@ -309,7 +304,7 @@
             didSet = false
           }
           var isRowValueModified: Bool {
-            switch Value(queryOutput: row[keyPath: keyPath]).queryBinding {
+            switch column.binding {
             case .blob(let value):
               return other.encryptedValues[hash: key] != value.sha256
             case .bool(let value):
@@ -360,6 +355,22 @@
 
     package static let userModificationTimeKey =
       "\(String.sqliteCloudKitSchemaName)_userModificationTime"
+  }
+
+  extension SQL::Table {
+    var writableBindings: [(name: String, binding: ISO_9075.Value)] {
+      zip(Self.TableColumns.allColumns, _allFragments)
+        .filter { column, _ in column.isWritable }
+        .map { column, fragment in
+          let binding: ISO_9075.Value =
+            switch (fragment.segments.count, fragment.segments.first) {
+            case (1, .value(let value)?): value
+            case (1, .sql("NULL")?): .null
+            default: .invalid(ISO_9075.Value.Failure("\(column.name) is not a single value"))
+            }
+          return (column.name, binding)
+        }
+    }
   }
 
   extension __CKRecordObjCValue {

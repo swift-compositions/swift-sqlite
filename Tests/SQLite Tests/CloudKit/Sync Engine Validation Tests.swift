@@ -16,21 +16,21 @@
             let id: RFC_4122.UUID
         }
 
-        @Table struct Child: Identifiable {
+        @Table("childs") struct Child: Identifiable {
             let id: Int
             var parentID: Parent.ID
         }
 
-        @Table struct Parent: Identifiable {
+        @Table("parents") struct Parent: Identifiable {
             let id: Int
         }
 
-        @Table struct ModelWithUniqueColumn {
+        @Table("modelWithUniqueColumns") struct ModelWithUniqueColumn {
             let id: Int
             let uniqueValue: Int
         }
 
-        @Table struct RecursiveTable: Identifiable {
+        @Table("recursiveTables") struct RecursiveTable: Identifiable {
             let id: Int
             let parentID: RecursiveTable.ID?
         }

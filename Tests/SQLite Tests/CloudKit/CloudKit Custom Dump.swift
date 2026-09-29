@@ -1,6 +1,7 @@
 #if CloudKit
-    import CloudKit
-    import CustomDump
+    import GRDB
+    public import CloudKit
+    public import CustomDump
     import Foundation
     import InlineSnapshotTesting
     import SQLite

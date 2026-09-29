@@ -1,4 +1,6 @@
 #if CloudKit
+    import GRDB
+    import CloudKit
     import SQL
     import SQLite
     import SQLite_Test_Support
@@ -19,7 +21,7 @@
                 assertQuery(
                     RemindersList
                         .leftJoin(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) },
-                    database: userDatabase.database
+                    writing: userDatabase.database
                 ) {
                     """
                     ┌─────────────────────┬────────────────────────────────────────────────────────────────────┐

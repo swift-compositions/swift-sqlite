@@ -62,7 +62,7 @@
           "share" BLOB,
           "hasLastKnownServerRecord" INTEGER NOT NULL AS ("lastKnownServerRecord" IS NOT NULL),
           "isShared" INTEGER NOT NULL AS ("share" IS NOT NULL),
-          "userModificationTime" INTEGER NOT NULL DEFAULT ("sqlite_icloud_currentTime"()),
+          "userModificationTime" INTEGER NOT NULL DEFAULT ("swiftsqlite_icloud_currentTime"()),
           "_isDeleted" INTEGER NOT NULL DEFAULT 0,
 
           PRIMARY KEY ("recordPrimaryKey", "recordType"),

@@ -72,7 +72,7 @@
       for share: CKShare,
       shouldFetchRootRecord: Bool = false
     ) async throws -> ShareMetadata {
-      try await withUnsafeThrowingContinuation { continuation in
+      try await withCheckedThrowingContinuation { continuation in
         let operation = CKFetchShareMetadataOperation(shareURLs: [share.url].compactMap(\.self))
         operation.shouldFetchRootRecord = true
         operation.perShareMetadataResultBlock = { url, result in

@@ -123,28 +123,24 @@ nonisolated private struct Fact: Hashable, Identifiable {
 extension DatabaseWriter where Self == DatabaseQueue {
     static var uiKitDemoDatabase: Self {
         do {
-            return try makeUIKitDemoDatabase()
+            let databaseQueue = try DatabaseQueue()
+            var migrator = DatabaseMigrator()
+            migrator.registerMigration("Create 'facts' table") { db in
+                try #sql(
+                    """
+                    CREATE TABLE "facts" (
+                      "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+                      "body" TEXT NOT NULL
+                    ) STRICT
+                    """
+                )
+                .execute(db)
+            }
+            try migrator.migrate(databaseQueue)
+            return databaseQueue
         } catch {
             fatalError("\(error)")
         }
-    }
-
-    private static func makeUIKitDemoDatabase() throws -> Self {
-        let databaseQueue = try DatabaseQueue()
-        var migrator = DatabaseMigrator()
-        migrator.registerMigration("Create 'facts' table") { db in
-            try #sql(
-                """
-                CREATE TABLE "facts" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-                  "body" TEXT NOT NULL
-                ) STRICT
-                """
-            )
-            .execute(db)
-        }
-        try migrator.migrate(databaseQueue)
-        return databaseQueue
     }
 }
 

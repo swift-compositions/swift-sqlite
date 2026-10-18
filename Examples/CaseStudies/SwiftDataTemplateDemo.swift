@@ -64,28 +64,24 @@ nonisolated private struct Item: Identifiable {
 extension DatabaseWriter where Self == DatabaseQueue {
     static var swiftDataTemplateDatabase: Self {
         do {
-            return try makeSwiftDataTemplateDatabase()
+            let databaseQueue = try DatabaseQueue()
+            var migrator = DatabaseMigrator()
+            migrator.registerMigration("Create items table") { db in
+                try #sql(
+                    """
+                    CREATE TABLE "items" (
+                      "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+                      "timestamp" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    ) STRICT
+                    """
+                )
+                .execute(db)
+            }
+            try migrator.migrate(databaseQueue)
+            return databaseQueue
         } catch {
             fatalError("\(error)")
         }
-    }
-
-    private static func makeSwiftDataTemplateDatabase() throws -> Self {
-        let databaseQueue = try DatabaseQueue()
-        var migrator = DatabaseMigrator()
-        migrator.registerMigration("Create items table") { db in
-            try #sql(
-                """
-                CREATE TABLE "items" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-                  "timestamp" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-                ) STRICT
-                """
-            )
-            .execute(db)
-        }
-        try migrator.migrate(databaseQueue)
-        return databaseQueue
     }
 }
 

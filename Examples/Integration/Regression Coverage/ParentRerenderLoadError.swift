@@ -60,14 +60,10 @@ private struct FactsView: View {
 extension DatabaseWriter where Self == DatabaseQueue {
     static var parentRerenderLoadErrorDatabase: Self {
         do {
-            return try makeParentRerenderLoadErrorDatabase()
+            return try DatabaseQueue()
         } catch {
             fatalError("\(error)")
         }
-    }
-
-    private static func makeParentRerenderLoadErrorDatabase() throws -> Self {
-        try DatabaseQueue()
     }
 }
 

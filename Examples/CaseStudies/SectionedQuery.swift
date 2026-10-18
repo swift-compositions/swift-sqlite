@@ -88,42 +88,38 @@ nonisolated private struct Reminder: Identifiable {
 extension DatabaseWriter where Self == DatabaseQueue {
     static var sectionedQueryDatabase: Self {
         do {
-            return try makeSectionedQueryDatabase()
+            let databaseQueue = try DatabaseQueue()
+            var migrator = DatabaseMigrator()
+            migrator.registerMigration("Create 'reminders' table") { db in
+                try #sql(
+                    """
+                    CREATE TABLE "reminders" (
+                      "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+                      "title" TEXT NOT NULL,
+                      "category" TEXT NOT NULL,
+                      "priority" TEXT
+                    ) STRICT
+                    """
+                )
+                .execute(db)
+            }
+            migrator.registerMigration("Seed 'reminders' table") { db in
+                try Reminder.insert {
+                    Reminder.Draft(title: "Call mom", category: "Family", priority: "High")
+                    Reminder.Draft(title: "Plan vacation", category: "Family")
+                    Reminder.Draft(title: "Buy groceries", category: "Personal", priority: "High")
+                    Reminder.Draft(title: "Go to the gym", category: "Personal", priority: "Low")
+                    Reminder.Draft(title: "Pick up dry cleaning", category: "Personal")
+                    Reminder.Draft(title: "Prepare talk", category: "Work", priority: "High")
+                    Reminder.Draft(title: "Send status report", category: "Work", priority: "Low")
+                }
+                .execute(db)
+            }
+            try migrator.migrate(databaseQueue)
+            return databaseQueue
         } catch {
             fatalError("\(error)")
         }
-    }
-
-    private static func makeSectionedQueryDatabase() throws -> Self {
-        let databaseQueue = try DatabaseQueue()
-        var migrator = DatabaseMigrator()
-        migrator.registerMigration("Create 'reminders' table") { db in
-            try #sql(
-                """
-                CREATE TABLE "reminders" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-                  "title" TEXT NOT NULL,
-                  "category" TEXT NOT NULL,
-                  "priority" TEXT
-                ) STRICT
-                """
-            )
-            .execute(db)
-        }
-        migrator.registerMigration("Seed 'reminders' table") { db in
-            try Reminder.insert {
-                Reminder.Draft(title: "Call mom", category: "Family", priority: "High")
-                Reminder.Draft(title: "Plan vacation", category: "Family")
-                Reminder.Draft(title: "Buy groceries", category: "Personal", priority: "High")
-                Reminder.Draft(title: "Go to the gym", category: "Personal", priority: "Low")
-                Reminder.Draft(title: "Pick up dry cleaning", category: "Personal")
-                Reminder.Draft(title: "Prepare talk", category: "Work", priority: "High")
-                Reminder.Draft(title: "Send status report", category: "Work", priority: "Low")
-            }
-            .execute(db)
-        }
-        try migrator.migrate(databaseQueue)
-        return databaseQueue
     }
 }
 

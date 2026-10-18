@@ -8,116 +8,116 @@ import UIKit
 
 @main
 struct RemindersApp: App {
-  @UIApplicationDelegateAdaptor var delegate: AppDelegate
-  @Dependency(\.context) var context
-  @Dependency(\.defaultSyncEngine) var syncEngine
-  static let model = RemindersListsModel()
+    @UIApplicationDelegateAdaptor var delegate: AppDelegate
+    @Dependency(\.context) var context
+    @Dependency(\.defaultSyncEngine) var syncEngine
+    static let model = RemindersListsModel()
 
-  @State var syncEngineDelegate = RemindersSyncEngineDelegate()
+    @State var syncEngineDelegate = RemindersSyncEngineDelegate()
 
-  init() {
-    if context == .live {
-      try! prepareDependencies {
-        try $0.bootstrapDatabase(syncEngineDelegate: syncEngineDelegate)
-      }
-    }
-  }
-
-  var body: some Scene {
-    WindowGroup {
-      if context == .live {
-        NavigationStack {
-          RemindersListsView(model: Self.model)
-        }
-        .alert(
-          "Reset local data?",
-          isPresented: $syncEngineDelegate.isDeleteLocalDataAlertPresented
-        ) {
-          Button("Reset", role: .destructive) {
-            _ = Task {
-              try await syncEngine.deleteLocalData()
+    init() {
+        if context == .live {
+            try! prepareDependencies {
+                try $0.bootstrapDatabase(syncEngineDelegate: syncEngineDelegate)
             }
-          }
-        } message: {
-          Text(
-            """
-            You are no longer logged into iCloud. Would you like to reset your local data to the \
-            defaults? This will not affect your data in iCloud.
-            """
-          )
         }
-      }
     }
-  }
+
+    var body: some Scene {
+        WindowGroup {
+            if context == .live {
+                NavigationStack {
+                    RemindersListsView(model: Self.model)
+                }
+                .alert(
+                    "Reset local data?",
+                    isPresented: $syncEngineDelegate.isDeleteLocalDataAlertPresented
+                ) {
+                    Button("Reset", role: .destructive) {
+                        _ = Task {
+                            try await syncEngine.deleteLocalData()
+                        }
+                    }
+                } message: {
+                    Text(
+                        """
+                        You are no longer logged into iCloud. Would you like to reset your local data to the \
+                        defaults? This will not affect your data in iCloud.
+                        """
+                    )
+                }
+            }
+        }
+    }
 }
 
 @MainActor
 @Observable
 class RemindersSyncEngineDelegate: SyncEngineDelegate {
-  var isDeleteLocalDataAlertPresented = false
-  func syncEngine(
-    _ syncEngine: SQLiteData.SyncEngine,
-    accountChanged changeType: CKSyncEngine.Event.AccountChange.ChangeType
-  ) async {
-    switch changeType {
-    case .signIn:
-      break
-    case .signOut, .switchAccounts:
-      await MainActor.run {
-        isDeleteLocalDataAlertPresented = true
-      }
-    @unknown default:
-      break
+    var isDeleteLocalDataAlertPresented = false
+    func syncEngine(
+        _ syncEngine: SQLiteData.SyncEngine,
+        accountChanged changeType: CKSyncEngine.Event.AccountChange.ChangeType
+    ) async {
+        switch changeType {
+        case .signIn:
+            break
+        case .signOut, .switchAccounts:
+            await MainActor.run {
+                isDeleteLocalDataAlertPresented = true
+            }
+        @unknown default:
+            break
+        }
     }
-  }
 }
 
 class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
-  func application(
-    _ application: UIApplication,
-    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
-  ) -> Bool {
-    true
-  }
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
+        true
+    }
 
-  func application(
-    _ application: UIApplication,
-    configurationForConnecting connectingSceneSession: UISceneSession,
-    options: UIScene.ConnectionOptions
-  ) -> UISceneConfiguration {
-    let configuration = UISceneConfiguration(
-      name: "Default Configuration",
-      sessionRole: connectingSceneSession.role
-    )
-    configuration.delegateClass = SceneDelegate.self
-    return configuration
-  }
+    func application(
+        _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        let configuration = UISceneConfiguration(
+            name: "Default Configuration",
+            sessionRole: connectingSceneSession.role
+        )
+        configuration.delegateClass = SceneDelegate.self
+        return configuration
+    }
 }
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
-  @Dependency(\.defaultSyncEngine) var syncEngine
-  var window: UIWindow?
+    @Dependency(\.defaultSyncEngine) var syncEngine
+    var window: UIWindow?
 
-  func windowScene(
-    _ windowScene: UIWindowScene,
-    userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
-  ) {
-    _ = Task {
-      try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
+    func windowScene(
+        _ windowScene: UIWindowScene,
+        userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
+    ) {
+        _ = Task {
+            try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
+        }
     }
-  }
 
-  func scene(
-    _ scene: UIScene,
-    willConnectTo session: UISceneSession,
-    options connectionOptions: UIScene.ConnectionOptions
-  ) {
-    guard let cloudKitShareMetadata = connectionOptions.cloudKitShareMetadata
-    else {
-      return
+    func scene(
+        _ scene: UIScene,
+        willConnectTo session: UISceneSession,
+        options connectionOptions: UIScene.ConnectionOptions
+    ) {
+        guard let cloudKitShareMetadata = connectionOptions.cloudKitShareMetadata
+        else {
+            return
+        }
+        _ = Task {
+            try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
+        }
     }
-    _ = Task {
-      try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
-    }
-  }
 }

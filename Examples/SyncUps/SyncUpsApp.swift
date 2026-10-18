@@ -3,21 +3,21 @@ import SwiftUI
 
 @main
 struct SyncUpsApp: App {
-  static let model = AppModel()
+    static let model = AppModel()
 
-  init() {
-    if !isTesting {
-      try! prepareDependencies {
-        try $0.bootstrapDatabase()
-      }
+    init() {
+        if !isTesting {
+            try! prepareDependencies {
+                try $0.bootstrapDatabase()
+            }
+        }
     }
-  }
 
-  var body: some Scene {
-    WindowGroup {
-      if !isTesting {
-        AppView(model: Self.model)
-      }
+    var body: some Scene {
+        WindowGroup {
+            if !isTesting {
+                AppView(model: Self.model)
+            }
+        }
     }
-  }
 }

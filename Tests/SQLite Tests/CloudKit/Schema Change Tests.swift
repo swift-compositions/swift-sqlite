@@ -247,9 +247,9 @@
                 _ = try await relaunchSyncEngine(
                     tables: syncEngine.tables
                         .filter { $0.base != RemindersList.self }
-                    + [
-                        SynchronizedTable(for: RemindersListWithColor.self),
-                    ]
+                        + [
+                            SynchronizedTable(for: RemindersListWithColor.self)
+                        ]
                 )
 
                 try await userDatabase.read { db in
@@ -277,9 +277,9 @@
                 let relaunchedSyncEngine = try await relaunchSyncEngine(
                     tables: syncEngine.tables
                         .filter { $0.base != RemindersList.self }
-                    + [
-                        SynchronizedTable(for: RemindersListWithColor.self),
-                    ]
+                        + [
+                            SynchronizedTable(for: RemindersListWithColor.self)
+                        ]
                 )
 
                 try await withTime(advancedBy: 1) {
@@ -342,9 +342,9 @@
                 let relaunchedSyncEngine = try await relaunchSyncEngine(
                     tables: syncEngine.tables
                         .filter { $0.base != RemindersList.self }
-                    + [
-                        SynchronizedTable(for: RemindersListWithColor.self),
-                    ]
+                        + [
+                            SynchronizedTable(for: RemindersListWithColor.self)
+                        ]
                 )
 
                 try await withTime(advancedBy: 1) {

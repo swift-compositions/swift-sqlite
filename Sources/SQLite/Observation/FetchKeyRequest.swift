@@ -9,7 +9,6 @@
         func fetch(_ database: GRDB.Database) throws -> Value
     }
 
-
     struct StatementValue<QueryValue: QueryRepresentable>: FetchKeyRequest {
         let query: ISO_9075.Fragment
 

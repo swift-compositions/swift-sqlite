@@ -1,4 +1,4 @@
-#if CloudKit
+#if CloudKit && canImport(CloudKit)
     import SQL_Macros
     import GRDB
     import Byte

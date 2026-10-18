@@ -1,4 +1,4 @@
-#if CloudKit && DEBUG && canImport(DeveloperToolsSupport)
+#if CloudKit && canImport(CloudKit) && DEBUG && canImport(DeveloperToolsSupport)
     import InlineSnapshotTesting
     import SQL
     import SQLite

@@ -1,4 +1,4 @@
-#if CloudKit
+#if CloudKit && canImport(CloudKit)
     import Synchronization
     import CloudKit
     import GRDB

@@ -164,8 +164,12 @@
             syncEngine.private.state.assertPendingRecordZoneChanges([])
             syncEngine.private.assertAcceptedShareMetadata([])
 
-            try! syncEngine.metadatabase.read { db in
-                try #expect(UnsyncedRecordID.count().fetchOne(db) == 0)
+            do {
+                try syncEngine.metadatabase.read { db in
+                    try #expect(UnsyncedRecordID.count().fetchOne(db) == 0)
+                }
+            } catch {
+                Issue.record(error)
             }
         }
     }

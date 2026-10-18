@@ -220,7 +220,7 @@
                     )
                 )
                 _ = try syncEngine.modifyRecords(scope: .shared, saving: [share, remindersListRecord])
-                let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+                let freshShare = try #require(try syncEngine.shared.database.record(for: share.recordID) as? CKShare)
                 let freshRemindersListRecord = try syncEngine.shared.database.record(
                     for: remindersListRecord.recordID
                 )
@@ -1095,7 +1095,7 @@
                     )
                 )
                 _ = try syncEngine.modifyRecords(scope: .shared, saving: [share, remindersListRecord])
-                let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+                let freshShare = try #require(try syncEngine.shared.database.record(for: share.recordID) as? CKShare)
                 let freshRemindersListRecord = try syncEngine.shared.database.record(
                     for: remindersListRecord.recordID
                 )
@@ -1765,7 +1765,7 @@
                     )
                 )
                 _ = try syncEngine.modifyRecords(scope: .shared, saving: [share, modelARecord])
-                let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+                let freshShare = try #require(try syncEngine.shared.database.record(for: share.recordID) as? CKShare)
                 let freshModelARecord = try syncEngine.shared.database.record(for: modelARecord.recordID)
 
                 try await syncEngine
@@ -2046,7 +2046,7 @@
                     )
                 )
                 _ = try syncEngine.modifyRecords(scope: .shared, saving: [share, modelARecord])
-                let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+                let freshShare = try #require(try syncEngine.shared.database.record(for: share.recordID) as? CKShare)
                 let freshModelARecord = try syncEngine.shared.database.record(for: modelARecord.recordID)
 
                 try await syncEngine
@@ -2350,7 +2350,7 @@
                     )
                 )
                 _ = try syncEngine.modifyRecords(scope: .shared, saving: [share, modelARecord])
-                let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+                let freshShare = try #require(try syncEngine.shared.database.record(for: share.recordID) as? CKShare)
                 let freshModelARecord = try syncEngine.shared.database.record(for: modelARecord.recordID)
 
                 try await syncEngine
@@ -2661,7 +2661,7 @@
                 _ =
                     try syncEngine
                     .modifyRecords(scope: .shared, saving: [share, modelARecord, modelBRecord])
-                let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+                let freshShare = try #require(try syncEngine.shared.database.record(for: share.recordID) as? CKShare)
                 let freshModelARecord = try syncEngine.shared.database.record(for: modelARecord.recordID)
 
                 try await syncEngine
@@ -2893,7 +2893,7 @@
                     )
                 )
                 _ = try syncEngine.modifyRecords(scope: .shared, saving: [share, modelARecord])
-                let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+                let freshShare = try #require(try syncEngine.shared.database.record(for: share.recordID) as? CKShare)
                 let freshModelARecord = try syncEngine.shared.database.record(for: modelARecord.recordID)
 
                 try await syncEngine

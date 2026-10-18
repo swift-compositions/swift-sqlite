@@ -46,7 +46,11 @@
                 body,
                 nil,
                 { context, argumentCount, arguments in
-                    let function = AggregateDatabaseFunctionContext[context].takeUnretainedValue()
+                    guard let unmanagedFunction = AggregateDatabaseFunctionContext[context] else {
+                        sqlite3_result_error_nomem(context)
+                        return
+                    }
+                    let function = unmanagedFunction.takeUnretainedValue()
                     function.decoder.reset(argumentCount: argumentCount, arguments: arguments)
                     do {
                         try function.iterator.step(&function.decoder)
@@ -55,7 +59,10 @@
                     }
                 },
                 { context in
-                    let unmanagedFunction = AggregateDatabaseFunctionContext[context]
+                    guard let unmanagedFunction = AggregateDatabaseFunctionContext[context] else {
+                        sqlite3_result_error_nomem(context)
+                        return
+                    }
                     let function = unmanagedFunction.takeUnretainedValue()
                     unmanagedFunction.release()
                     function.iterator.result.result(db: context)
@@ -109,9 +116,9 @@
     }
 
     private final class AggregateDatabaseFunctionContext {
-        static subscript(context: OpaquePointer?) -> Unmanaged<AggregateDatabaseFunctionContext> {
+        static subscript(context: OpaquePointer?) -> Unmanaged<AggregateDatabaseFunctionContext>? {
             let size = MemoryLayout<Unmanaged<AggregateDatabaseFunctionContext>>.size
-            let pointer = sqlite3_aggregate_context(context, Int32(size))!
+            guard let pointer = sqlite3_aggregate_context(context, Int32(size)) else { return nil }
             guard pointer.load(as: Int.self) == 0 else {
                 return
                     pointer

@@ -1,4 +1,4 @@
-#if CloudKit
+#if CloudKit && canImport(CloudKit)
     import CloudKit
     import GRDB
     import InlineSnapshotTesting

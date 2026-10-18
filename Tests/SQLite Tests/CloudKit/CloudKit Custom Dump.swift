@@ -1,4 +1,4 @@
-#if CloudKit
+#if CloudKit && canImport(CloudKit)
     import GRDB
     public import CloudKit
     public import CustomDump

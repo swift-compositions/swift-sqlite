@@ -67,42 +67,38 @@ nonisolated private struct Fact: Identifiable {
 extension DatabaseWriter where Self == DatabaseQueue {
     static var parentDrivenQueryDatabase: Self {
         do {
-            return try makeParentDrivenQueryDatabase()
+            var configuration = Configuration()
+            configuration.prepareDatabase {
+                $0.trace {
+                    print($0.description)
+                }
+            }
+            let databaseQueue = try DatabaseQueue(configuration: configuration)
+            var migrator = DatabaseMigrator()
+            migrator.registerMigration("Create 'facts' table") { db in
+                try #sql(
+                    """
+                    CREATE TABLE "facts" (
+                      "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+                      "body" TEXT NOT NULL,
+                      "isFavorite" INTEGER NOT NULL DEFAULT 0
+                    ) STRICT
+                    """
+                )
+                .execute(db)
+                try Fact.insert {
+                    Fact.Draft(body: "SQLite was first released in the year 2000.", isFavorite: true)
+                    Fact.Draft(body: "SQLite is the most widely deployed database in the world.")
+                    Fact.Draft(body: "SQLite is a C library, not a client-server database.", isFavorite: true)
+                    Fact.Draft(body: "SQLite databases are a single file on disk.")
+                }
+                .execute(db)
+            }
+            try migrator.migrate(databaseQueue)
+            return databaseQueue
         } catch {
             fatalError("\(error)")
         }
-    }
-
-    private static func makeParentDrivenQueryDatabase() throws -> Self {
-        var configuration = Configuration()
-        configuration.prepareDatabase {
-            $0.trace {
-                print($0.description)
-            }
-        }
-        let databaseQueue = try DatabaseQueue(configuration: configuration)
-        var migrator = DatabaseMigrator()
-        migrator.registerMigration("Create 'facts' table") { db in
-            try #sql(
-                """
-                CREATE TABLE "facts" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-                  "body" TEXT NOT NULL,
-                  "isFavorite" INTEGER NOT NULL DEFAULT 0
-                ) STRICT
-                """
-            )
-            .execute(db)
-            try Fact.insert {
-                Fact.Draft(body: "SQLite was first released in the year 2000.", isFavorite: true)
-                Fact.Draft(body: "SQLite is the most widely deployed database in the world.")
-                Fact.Draft(body: "SQLite is a C library, not a client-server database.", isFavorite: true)
-                Fact.Draft(body: "SQLite databases are a single file on disk.")
-            }
-            .execute(db)
-        }
-        try migrator.migrate(databaseQueue)
-        return databaseQueue
     }
 }
 

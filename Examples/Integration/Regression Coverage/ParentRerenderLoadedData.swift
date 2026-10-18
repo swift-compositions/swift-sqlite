@@ -65,34 +65,30 @@ nonisolated private struct Fact: Identifiable {
 extension DatabaseWriter where Self == DatabaseQueue {
     static var parentRerenderLoadedDataDatabase: Self {
         do {
-            return try makeParentRerenderLoadedDataDatabase()
+            let databaseQueue = try DatabaseQueue()
+            var migrator = DatabaseMigrator()
+            migrator.registerMigration("Create 'facts' table") { db in
+                try #sql(
+                    """
+                    CREATE TABLE "facts" (
+                      "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+                      "body" TEXT NOT NULL
+                    ) STRICT
+                    """
+                )
+                .execute(db)
+                try Fact.insert {
+                    Fact.Draft(body: "SQLite was first released in the year 2000.")
+                    Fact.Draft(body: "SQLite is the most widely deployed database in the world.")
+                    Fact.Draft(body: "SQLite is a C library, not a client-server database.")
+                }
+                .execute(db)
+            }
+            try migrator.migrate(databaseQueue)
+            return databaseQueue
         } catch {
             fatalError("\(error)")
         }
-    }
-
-    private static func makeParentRerenderLoadedDataDatabase() throws -> Self {
-        let databaseQueue = try DatabaseQueue()
-        var migrator = DatabaseMigrator()
-        migrator.registerMigration("Create 'facts' table") { db in
-            try #sql(
-                """
-                CREATE TABLE "facts" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-                  "body" TEXT NOT NULL
-                ) STRICT
-                """
-            )
-            .execute(db)
-            try Fact.insert {
-                Fact.Draft(body: "SQLite was first released in the year 2000.")
-                Fact.Draft(body: "SQLite is the most widely deployed database in the world.")
-                Fact.Draft(body: "SQLite is a C library, not a client-server database.")
-            }
-            .execute(db)
-        }
-        try migrator.migrate(databaseQueue)
-        return databaseQueue
     }
 }
 

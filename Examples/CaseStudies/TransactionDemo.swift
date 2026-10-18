@@ -81,28 +81,24 @@ nonisolated private struct Fact: Identifiable {
 extension DatabaseWriter where Self == DatabaseQueue {
     static var transactionDemoDatabase: Self {
         do {
-            return try makeTransactionDemoDatabase()
+            let databaseQueue = try DatabaseQueue()
+            var migrator = DatabaseMigrator()
+            migrator.registerMigration("Create 'facts' table") { db in
+                try #sql(
+                    """
+                    CREATE TABLE "facts" (
+                      "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+                      "body" TEXT NOT NULL
+                    ) STRICT
+                    """
+                )
+                .execute(db)
+            }
+            try migrator.migrate(databaseQueue)
+            return databaseQueue
         } catch {
             fatalError("\(error)")
         }
-    }
-
-    private static func makeTransactionDemoDatabase() throws -> Self {
-        let databaseQueue = try DatabaseQueue()
-        var migrator = DatabaseMigrator()
-        migrator.registerMigration("Create 'facts' table") { db in
-            try #sql(
-                """
-                CREATE TABLE "facts" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-                  "body" TEXT NOT NULL
-                ) STRICT
-                """
-            )
-            .execute(db)
-        }
-        try migrator.migrate(databaseQueue)
-        return databaseQueue
     }
 }
 

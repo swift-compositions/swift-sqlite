@@ -53,8 +53,10 @@
                     .copy() as? CKRecord
                 }
 
+                guard let containerIdentifier
+                else { throw CKError(.badContainer) }
                 return ShareMetadata(
-                    containerIdentifier: containerIdentifier!,
+                    containerIdentifier: containerIdentifier,
                     hierarchicalRootRecordID: rootRecord?.recordID,
                     rootRecord: shouldFetchRootRecord ? rootRecord : nil,
                     share: share

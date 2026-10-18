@@ -43,7 +43,9 @@
             }
 
             package var container: MockCloudContainer {
-                _container.value!
+                guard let container = _container.value
+                else { fatalError("MockCloudDatabase has no container; call set(container:) first.") }
+                return container
             }
 
             package func record(for recordID: CKRecord.ID) throws -> CKRecord {
@@ -205,7 +207,9 @@
                                 // TODO: This should merge copy's values to more accurately reflect reality
                                 state.storage[recordToSave.recordID.zoneID]?.records[recordToSave.recordID] =
                                     databaseCopy
-                                saveResults[recordToSave.recordID] = .success(databaseCopy.copy() as! CKRecord)
+                                guard let savedCopy = databaseCopy.copy() as? CKRecord
+                                else { fatalError("Could not copy CKRecord.") }
+                                saveResults[recordToSave.recordID] = .success(savedCopy)
 
                                 // NB: "Touch" parent records when saving a child:
                                 if let parent = recordToSave.parent,

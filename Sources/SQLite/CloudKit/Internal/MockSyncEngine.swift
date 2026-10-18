@@ -50,13 +50,19 @@
                         accum,
                         zoneID in
                         accum += ((state.storage[zoneID]?.records.values).map { Array($0) } ?? [])
-                            .map { $0.copy() as! CKRecord }
+                            .map {
+                                guard let copy = $0.copy() as? CKRecord
+                                else { fatalError("Could not copy CKRecord.") }
+                                return copy
+                            }
                             .filter {
-                                precondition(
-                                    $0._recordChangeTag != nil,
-                                    "Records stored in database should have their 'recordChangeTag' assigned."
-                                )
-                                return $0._recordChangeTag! > self.state.changeTag.withLock { $0 }
+                                guard let recordChangeTag = $0._recordChangeTag
+                                else {
+                                    preconditionFailure(
+                                        "Records stored in database should have their 'recordChangeTag' assigned."
+                                    )
+                                }
+                                return recordChangeTag > self.state.changeTag.withLock { $0 }
                             }
                     }
                 }
@@ -379,7 +385,9 @@
                     case .success(let zone):
                         savedZones.append(zone)
                     case .failure(let error as CKError):
-                        failedZoneSaves.append((zonesToSave.first(where: { $0.zoneID == zoneID })!, error))
+                        guard let zone = zonesToSave.first(where: { $0.zoneID == zoneID })
+                        else { throw error }
+                        failedZoneSaves.append((zone, error))
                     case .failure(let error):
                         throw error
                     }
@@ -411,10 +419,14 @@
             }
 
             package var `private`: MockSyncEngine {
-                syncEngines.withLock { $0.private } as! MockSyncEngine
+                guard let syncEngine = syncEngines.withLock({ $0.private }) as? MockSyncEngine
+                else { fatalError("The private sync engine is not a MockSyncEngine.") }
+                return syncEngine
             }
             package var shared: MockSyncEngine {
-                syncEngines.withLock { $0.shared } as! MockSyncEngine
+                guard let syncEngine = syncEngines.withLock({ $0.shared }) as? MockSyncEngine
+                else { fatalError("The shared sync engine is not a MockSyncEngine.") }
+                return syncEngine
             }
 
             package func syncEngine(for scope: CKDatabase.Scope) -> MockSyncEngine {

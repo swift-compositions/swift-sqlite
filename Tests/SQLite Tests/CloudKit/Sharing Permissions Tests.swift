@@ -324,7 +324,7 @@
                         )
                     )
 
-                let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+                let freshShare = try #require(try syncEngine.shared.database.record(for: share.recordID) as? CKShare)
                 freshShare.publicPermission = .readOnly
                 freshShare.currentUserParticipant?.permission = .readOnly
                 _ = try syncEngine.modifyRecords(scope: .shared, saving: [freshShare])
@@ -406,7 +406,7 @@
                         )
                     )
 
-                let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+                let freshShare = try #require(try syncEngine.shared.database.record(for: share.recordID) as? CKShare)
                 freshShare.publicPermission = .readOnly
                 freshShare.currentUserParticipant?.permission = .readOnly
                 _ = try syncEngine.modifyRecords(scope: .shared, saving: [freshShare])

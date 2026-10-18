@@ -12,8 +12,9 @@
                 SQLITE_UTF8,
                 Unmanaged.passRetained(DatabaseCollationDefinition(collation)).toOpaque(),
                 { context, lhsCount, lhs, rhsCount, rhs in
+                    guard let context else { return 0 }
                     switch Unmanaged<DatabaseCollationDefinition>
-                        .fromOpaque(context!)
+                        .fromOpaque(context)
                         .takeUnretainedValue()
                         .collation
                         .compare(

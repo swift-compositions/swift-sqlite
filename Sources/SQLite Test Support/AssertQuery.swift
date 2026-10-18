@@ -25,11 +25,7 @@
             execute: { query in try database.read { try query.fetchAll($0) } },
             sql: sql,
             results: results,
-            fileID: fileID,
-            filePath: filePath,
-            function: function,
-            line: line,
-            column: column
+            location: (fileID: fileID, filePath: filePath, function: function, line: line, column: column)
         )
     }
 
@@ -78,11 +74,7 @@
             execute: { statement in try database.write { try statement.fetchAll($0) } },
             sql: sql,
             results: results,
-            fileID: fileID,
-            filePath: filePath,
-            function: function,
-            line: line,
-            column: column
+            location: (fileID: fileID, filePath: filePath, function: function, line: line, column: column)
         )
     }
 
@@ -118,11 +110,7 @@
         execute: (S) throws -> [(repeat (each V).QueryOutput)],
         sql: (() -> String)?,
         results: (() -> String)?,
-        fileID: StaticString,
-        filePath: StaticString,
-        function: StaticString,
-        line: UInt,
-        column: UInt
+        location: (fileID: StaticString, filePath: StaticString, function: StaticString, line: UInt, column: UInt)
     ) {
         guard !includeSQL
         else {
@@ -132,11 +120,11 @@
                 sql: sql,
                 results: results,
                 snapshotTrailingClosureOffset: 0,
-                fileID: fileID,
-                filePath: filePath,
-                function: function,
-                line: line,
-                column: column
+                fileID: location.fileID,
+                filePath: location.filePath,
+                function: location.function,
+                line: location.line,
+                column: location.column
             )
         }
         let rendered =
@@ -153,11 +141,11 @@
                 trailingClosureOffset: 0
             ),
             matches: sql ?? results,
-            fileID: fileID,
-            file: filePath,
-            function: function,
-            line: line,
-            column: column
+            fileID: location.fileID,
+            file: location.filePath,
+            function: location.function,
+            line: location.line,
+            column: location.column
         )
     }
 

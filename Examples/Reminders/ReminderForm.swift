@@ -170,9 +170,14 @@ struct ReminderFormView: View {
     private func saveButtonTapped() {
         withErrorReporting {
             try database.write { db in
-                let reminderID = try Reminder.upsert { reminder }
+                let upsertedReminderID = try Reminder.upsert { reminder }
                     .returning(\.id)
-                    .fetchOne(db)!
+                    .fetchOne(db)
+                guard let reminderID = upsertedReminderID
+                else {
+                    reportIssue("Upserting the reminder returned no ID.")
+                    return
+                }
                 try ReminderTag
                     .where { $0.reminderID.eq(reminderID) }
                     .delete()
@@ -205,19 +210,28 @@ extension Optional {
 
 struct ReminderFormPreview: PreviewProvider {
     static var previews: some View {
-        let (remindersList, reminder) = try! prepareDependencies {
-            $0.defaultDatabase = try Reminders.appDatabase()
-            return try $0.defaultDatabase.write { db in
-                let remindersList = try RemindersList.fetchOne(db)!
-                return (
-                    remindersList,
-                    try Reminder.where { $0.remindersListID.eq(remindersList.id) }.fetchOne(db)!
-                )
-            }
-        }
+        let (remindersList, reminder) = previewValues
         NavigationStack {
             ReminderFormView(reminder: Reminder.Draft(reminder), remindersList: remindersList)
                 .navigationTitle("Detail")
+        }
+    }
+
+    private static var previewValues: (RemindersList, Reminder) {
+        do {
+            return try prepareDependencies {
+                $0.defaultDatabase = try Reminders.appDatabase()
+                return try $0.defaultDatabase.write { db in
+                    guard let remindersList = try RemindersList.fetchOne(db)
+                    else { fatalError("The preview database has no reminders list.") }
+                    guard
+                        let reminder = try Reminder.where({ $0.remindersListID.eq(remindersList.id) }).fetchOne(db)
+                    else { fatalError("The preview database has no reminder in the list.") }
+                    return (remindersList, reminder)
+                }
+            }
+        } catch {
+            fatalError("\(error)")
         }
     }
 }

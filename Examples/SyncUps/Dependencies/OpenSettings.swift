@@ -12,7 +12,8 @@ extension DependencyValues {
 
         static let liveValue: @Sendable () async -> Void = {
             await MainActor.run {
-                UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
+                guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+                UIApplication.shared.open(url)
             }
         }
     }

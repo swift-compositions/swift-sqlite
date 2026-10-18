@@ -38,9 +38,9 @@ struct SwiftUIDemo: SwiftUICaseStudy {
                 while true {
                     try await Task.sleep(for: .seconds(1))
                     number += 1
+                    guard let url = URL(string: "http://numberapi.com/\(number)") else { continue }
                     let fact = try await String(
-                        decoding: URLSession.shared
-                            .data(from: URL(string: "http://numberapi.com/\(number)")!).0,
+                        decoding: URLSession.shared.data(from: url).0,
                         as: UTF8.self
                     )
                     try await database.write { db in
@@ -63,7 +63,15 @@ nonisolated private struct Fact: Identifiable {
 
 extension DatabaseWriter where Self == DatabaseQueue {
     static var swiftUIDatabase: Self {
-        let databaseQueue = try! DatabaseQueue()
+        do {
+            return try makeSwiftUIDatabase()
+        } catch {
+            fatalError("\(error)")
+        }
+    }
+
+    private static func makeSwiftUIDatabase() throws -> Self {
+        let databaseQueue = try DatabaseQueue()
         var migrator = DatabaseMigrator()
         migrator.registerMigration("Create 'facts' table") { db in
             try #sql(
@@ -76,7 +84,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
             )
             .execute(db)
         }
-        try! migrator.migrate(databaseQueue)
+        try migrator.migrate(databaseQueue)
         return databaseQueue
     }
 }

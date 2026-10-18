@@ -17,8 +17,12 @@ struct RemindersApp: App {
 
     init() {
         if context == .live {
-            try! prepareDependencies {
-                try $0.bootstrapDatabase(syncEngineDelegate: syncEngineDelegate)
+            do {
+                try prepareDependencies {
+                    try $0.bootstrapDatabase(syncEngineDelegate: syncEngineDelegate)
+                }
+            } catch {
+                fatalError("\(error)")
             }
         }
     }

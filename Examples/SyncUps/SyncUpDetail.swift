@@ -271,14 +271,24 @@ struct MeetingView: View {
 }
 
 #Preview {
-    let syncUp = try! prepareDependencies {
-        try $0.bootstrapDatabase()
-        try? $0.defaultDatabase.seedSampleData()
-        return try $0.defaultDatabase.read { db in
-            try SyncUp.fetchOne(db)!
-        }
-    }
+    let syncUp = previewSyncUp()
     NavigationStack {
         SyncUpDetailView(model: SyncUpDetailModel(syncUp: syncUp))
+    }
+}
+
+private func previewSyncUp() -> SyncUp {
+    do {
+        return try prepareDependencies {
+            try $0.bootstrapDatabase()
+            try? $0.defaultDatabase.seedSampleData()
+            return try $0.defaultDatabase.read { db in
+                guard let syncUp = try SyncUp.fetchOne(db)
+                else { fatalError("The preview database has no sync-up.") }
+                return syncUp
+            }
+        }
+    } catch {
+        fatalError("\(error)")
     }
 }

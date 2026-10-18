@@ -12,7 +12,7 @@ final class UIKitCaseStudyViewController: UICollectionViewController, UIKitCaseS
         or removed.
         """
 
-    private var dataSource: UICollectionViewDiffableDataSource<Section, Fact>!
+    private var dataSource: UICollectionViewDiffableDataSource<Section, Fact>?
     @FetchAll(Fact.order { $0.id.desc() }, animation: .default)
     private var facts
     private var viewDidLoadTask: Task<Void, Error>?
@@ -80,7 +80,7 @@ final class UIKitCaseStudyViewController: UICollectionViewController, UIKitCaseS
             var snapshot = NSDiffableDataSourceSnapshot<Section, Fact>()
             snapshot.appendSections([.facts])
             snapshot.appendItems(facts, toSection: .facts)
-            dataSource.apply(snapshot, animatingDifferences: true)
+            dataSource?.apply(snapshot, animatingDifferences: true)
         }
 
         viewDidLoadTask = Task { [weak self] in
@@ -90,9 +90,9 @@ final class UIKitCaseStudyViewController: UICollectionViewController, UIKitCaseS
             while true {
                 try await Task.sleep(for: .seconds(1))
                 number += 1
+                guard let url = URL(string: "http://numberapi.com/\(number)") else { continue }
                 let fact = try? await String(
-                    decoding: URLSession.shared
-                        .data(from: URL(string: "http://numberapi.com/\(number)")!).0,
+                    decoding: URLSession.shared.data(from: url).0,
                     as: UTF8.self
                 )
                 if let fact {
@@ -122,7 +122,15 @@ nonisolated private struct Fact: Hashable, Identifiable {
 
 extension DatabaseWriter where Self == DatabaseQueue {
     static var uiKitDemoDatabase: Self {
-        let databaseQueue = try! DatabaseQueue()
+        do {
+            return try makeUIKitDemoDatabase()
+        } catch {
+            fatalError("\(error)")
+        }
+    }
+
+    private static func makeUIKitDemoDatabase() throws -> Self {
+        let databaseQueue = try DatabaseQueue()
         var migrator = DatabaseMigrator()
         migrator.registerMigration("Create 'facts' table") { db in
             try #sql(
@@ -135,7 +143,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
             )
             .execute(db)
         }
-        try! migrator.migrate(databaseQueue)
+        try migrator.migrate(databaseQueue)
         return databaseQueue
     }
 }

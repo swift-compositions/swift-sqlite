@@ -53,11 +53,12 @@ class RemindersDetailModel: HashableObject {
             try database.write { db in
                 var ids = reminderRows.map(\.reminder.id)
                 ids.move(fromOffsets: source, toOffset: destination)
+                let positions = Array(ids.enumerated())
+                guard let first = positions.first else { return }
+                let rest = positions.dropFirst()
                 try Reminder
                     .where { $0.id.in(ids) }
                     .update {
-                        let ids = Array(ids.enumerated())
-                        let (first, rest) = (ids.first!, ids.dropFirst())
                         $0.position =
                             rest
                             .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
@@ -363,15 +364,7 @@ extension RemindersDetailModel.DetailType {
 
 struct RemindersDetailPreview: PreviewProvider {
     static var previews: some View {
-        let (remindersList, tag) = try! prepareDependencies {
-            $0.defaultDatabase = try Reminders.appDatabase()
-            return try $0.defaultDatabase.read { db in
-                (
-                    try RemindersList.fetchOne(db)!,
-                    try Tag.fetchOne(db)!
-                )
-            }
-        }
+        let (remindersList, tag) = previewValues
         let detailTypes: [RemindersDetailModel.DetailType] = [
             .all,
             .remindersList(remindersList),
@@ -382,6 +375,23 @@ struct RemindersDetailPreview: PreviewProvider {
                 RemindersDetailView(model: RemindersDetailModel(detailType: detailType))
             }
             .previewDisplayName(detailType.navigationTitle)
+        }
+    }
+
+    private static var previewValues: (RemindersList, Tag) {
+        do {
+            return try prepareDependencies {
+                $0.defaultDatabase = try Reminders.appDatabase()
+                return try $0.defaultDatabase.read { db in
+                    guard let remindersList = try RemindersList.fetchOne(db)
+                    else { fatalError("The preview database has no reminders list.") }
+                    guard let tag = try Tag.fetchOne(db)
+                    else { fatalError("The preview database has no tag.") }
+                    return (remindersList, tag)
+                }
+            }
+        } catch {
+            fatalError("\(error)")
         }
     }
 }

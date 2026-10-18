@@ -599,16 +599,19 @@
         @MainActor
         final class `Account lifecycle when signed out with existing data`: CloudKitTestBase, @unchecked Sendable {
             init() async throws {
-                try await super.init(accountStatus: .noAccount, prepareDatabase: { userDatabase in
-                    try await userDatabase.write { db in
-                        try db.seed {
-                            RemindersList(id: 1, title: "Personal")
-                            Reminder(id: 1, title: "Get milk", remindersListID: 1)
-                            RemindersListPrivate(remindersListID: 1)
-                            UnsyncedModel(id: 1)
+                try await super.init(
+                    accountStatus: .noAccount,
+                    prepareDatabase: { userDatabase in
+                        try await userDatabase.write { db in
+                            try db.seed {
+                                RemindersList(id: 1, title: "Personal")
+                                Reminder(id: 1, title: "Get milk", remindersListID: 1)
+                                RemindersListPrivate(remindersListID: 1)
+                                UnsyncedModel(id: 1)
+                            }
                         }
                     }
-                })
+                )
             }
 
             @Test func `existing data is not uploaded to CloudKit while signed out`() {

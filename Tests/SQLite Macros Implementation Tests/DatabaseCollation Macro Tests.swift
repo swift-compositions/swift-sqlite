@@ -1,6 +1,6 @@
 import MacroTesting
-import SnapshotTesting
 import SQLite_Macros_Implementation
+import SnapshotTesting
 import Testing
 
 @Suite(.macros(["DatabaseCollation": DatabaseCollationMacro.self], record: .missing))

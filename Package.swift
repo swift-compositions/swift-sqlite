@@ -89,7 +89,7 @@ let package = Package(
                 .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
             ],
             swiftSettings: [
-                .treatAllWarnings(as: .error),
+                .treatAllWarnings(as: .error)
             ]
         ),
         .testTarget(

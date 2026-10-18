@@ -95,7 +95,8 @@
                             sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
                         ),
                         userDatabase: UserDatabase(database: database),
-                        tables: Child.self, Parent.self
+                        tables: Child.self,
+                        Parent.self
                     )
                 }
             )
@@ -153,7 +154,8 @@
                             sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
                         ),
                         userDatabase: UserDatabase(database: database),
-                        tables: Parent.self, Child.self
+                        tables: Parent.self,
+                        Child.self
                     )
                 }
             )

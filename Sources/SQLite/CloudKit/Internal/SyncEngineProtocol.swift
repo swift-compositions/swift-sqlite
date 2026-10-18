@@ -1,31 +1,31 @@
 #if CloudKit
-#if canImport(CloudKit)
-  package import CloudKit
+    #if canImport(CloudKit)
+        package import CloudKit
 
-  package protocol SyncEngineProtocol<Database, State>: AnyObject, Sendable {
-    associatedtype State: CKSyncEngineStateProtocol
-    associatedtype Database: CloudDatabase
+        package protocol SyncEngineProtocol<Database, State>: AnyObject, Sendable {
+            associatedtype State: CKSyncEngineStateProtocol
+            associatedtype Database: CloudDatabase
 
-    var database: Database { get }
-    var state: State { get }
+            var database: Database { get }
+            var state: State { get }
 
-    func cancelOperations() async
-    func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws
-    func recordZoneChangeBatch(
-      pendingChanges: [CKSyncEngine.PendingRecordZoneChange],
-      recordProvider: @Sendable (CKRecord.ID) async -> CKRecord?
-    ) async -> CKSyncEngine.RecordZoneChangeBatch?
-    func sendChanges(_ options: CKSyncEngine.SendChangesOptions) async throws
-  }
+            func cancelOperations() async
+            func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws
+            func recordZoneChangeBatch(
+                pendingChanges: [CKSyncEngine.PendingRecordZoneChange],
+                recordProvider: @Sendable (CKRecord.ID) async -> CKRecord?
+            ) async -> CKSyncEngine.RecordZoneChangeBatch?
+            func sendChanges(_ options: CKSyncEngine.SendChangesOptions) async throws
+        }
 
-  package protocol CKSyncEngineStateProtocol: Sendable {
-    var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] { get }
-    var pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] { get }
-    func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange])
-    func remove(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange])
-    func add(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange])
-    func remove(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange])
-  }
-#endif
+        package protocol CKSyncEngineStateProtocol: Sendable {
+            var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] { get }
+            var pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] { get }
+            func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange])
+            func remove(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange])
+            func add(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange])
+            func remove(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange])
+        }
+    #endif
 
 #endif

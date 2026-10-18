@@ -34,7 +34,8 @@
         ) {
             cancellable?.cancel()
             isLoading = true
-            cancellable = ValueObservation
+            cancellable =
+                ValueObservation
                 .tracking { database in
                     Result { () throws(ISO_9075.Error) -> Value in
                         do {

@@ -26,6 +26,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-collections.git", from: "1.0.0"),
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.6.0"),
         .package(url: "https://github.com/pointfreeco/swift-custom-dump.git", from: "1.3.3"),
+        .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.6.3"),
         .package(url: "https://github.com/pointfreeco/swift-snapshot-testing.git", from: "1.18.4"),
         .package(
             url: "https://github.com/swift-compositions/swift-sql.git",
@@ -86,6 +87,17 @@ let package = Package(
                 .product(name: "SQL Macros", package: "swift-sql"),
                 .product(name: "CustomDump", package: "swift-custom-dump"),
                 .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
+            ],
+            swiftSettings: [
+                .treatAllWarnings(as: .error),
+            ]
+        ),
+        .testTarget(
+            name: "SQLite Macros Implementation Tests",
+            dependencies: [
+                "SQLite Macros Implementation",
+                .product(name: "MacroTesting", package: "swift-macro-testing"),
+                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ]
         ),
     ],

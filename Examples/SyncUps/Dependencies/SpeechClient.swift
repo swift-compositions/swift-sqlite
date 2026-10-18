@@ -150,7 +150,12 @@ private actor Speech {
             }
 
             audioEngine = AVAudioEngine()
-            let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))!
+            guard let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+            else {
+                struct SpeechRecognizerUnavailable: Error {}
+                continuation.finish(throwing: SpeechRecognizerUnavailable())
+                return
+            }
             recognitionTask = speechRecognizer.recognitionTask(with: request) { result, error in
                 switch (result, error) {
                 case (.some(let result), _):

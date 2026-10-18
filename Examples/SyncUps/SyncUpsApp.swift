@@ -7,8 +7,12 @@ struct SyncUpsApp: App {
 
     init() {
         if !isTesting {
-            try! prepareDependencies {
-                try $0.bootstrapDatabase()
+            do {
+                try prepareDependencies {
+                    try $0.bootstrapDatabase()
+                }
+            } catch {
+                fatalError("\(error)")
             }
         }
     }

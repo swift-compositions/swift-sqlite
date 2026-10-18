@@ -63,7 +63,15 @@ nonisolated private struct Item: Identifiable {
 
 extension DatabaseWriter where Self == DatabaseQueue {
     static var swiftDataTemplateDatabase: Self {
-        let databaseQueue = try! DatabaseQueue()
+        do {
+            return try makeSwiftDataTemplateDatabase()
+        } catch {
+            fatalError("\(error)")
+        }
+    }
+
+    private static func makeSwiftDataTemplateDatabase() throws -> Self {
+        let databaseQueue = try DatabaseQueue()
         var migrator = DatabaseMigrator()
         migrator.registerMigration("Create items table") { db in
             try #sql(
@@ -76,7 +84,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
             )
             .execute(db)
         }
-        try! migrator.migrate(databaseQueue)
+        try migrator.migrate(databaseQueue)
         return databaseQueue
     }
 }

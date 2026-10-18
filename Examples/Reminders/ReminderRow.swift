@@ -159,11 +159,15 @@ struct ReminderRowPreview: PreviewProvider {
     static var previews: some View {
         var reminder: Reminder!
         var remindersList: RemindersList!
-        let _ = try! prepareDependencies {
-            $0.defaultDatabase = try Reminders.appDatabase()
-            try $0.defaultDatabase.read { db in
-                reminder = try Reminder.fetchOne(db)
-                remindersList = try RemindersList.fetchOne(db)!
+        let _ = withErrorReporting {
+            try prepareDependencies {
+                $0.defaultDatabase = try Reminders.appDatabase()
+                try $0.defaultDatabase.read { db in
+                    reminder = try Reminder.fetchOne(db)
+                    guard let fetchedRemindersList = try RemindersList.fetchOne(db)
+                    else { fatalError("The preview database has no reminders list.") }
+                    remindersList = fetchedRemindersList
+                }
             }
         }
 

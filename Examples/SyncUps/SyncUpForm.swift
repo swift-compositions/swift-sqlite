@@ -76,7 +76,12 @@ final class SyncUpFormModel: Identifiable {
         }
         withErrorReporting {
             try database.write { db in
-                let syncUpID = try SyncUp.upsert { syncUp }.returning(\.id).fetchOne(db)!
+                let upsertedSyncUpID = try SyncUp.upsert { syncUp }.returning(\.id).fetchOne(db)
+                guard let syncUpID = upsertedSyncUpID
+                else {
+                    reportIssue("Upserting the sync-up returned no ID.")
+                    return
+                }
                 try Attendee.where { $0.syncUpID.eq(syncUpID) }.delete().execute(db)
                 try Attendee.insert {
                     for attendee in attendees {

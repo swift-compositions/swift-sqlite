@@ -66,13 +66,21 @@ nonisolated private struct Fact: Identifiable {
 
 extension DatabaseWriter where Self == DatabaseQueue {
     static var parentDrivenQueryDatabase: Self {
+        do {
+            return try makeParentDrivenQueryDatabase()
+        } catch {
+            fatalError("\(error)")
+        }
+    }
+
+    private static func makeParentDrivenQueryDatabase() throws -> Self {
         var configuration = Configuration()
         configuration.prepareDatabase {
             $0.trace {
                 print($0.description)
             }
         }
-        let databaseQueue = try! DatabaseQueue(configuration: configuration)
+        let databaseQueue = try DatabaseQueue(configuration: configuration)
         var migrator = DatabaseMigrator()
         migrator.registerMigration("Create 'facts' table") { db in
             try #sql(
@@ -93,7 +101,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
             }
             .execute(db)
         }
-        try! migrator.migrate(databaseQueue)
+        try migrator.migrate(databaseQueue)
         return databaseQueue
     }
 }

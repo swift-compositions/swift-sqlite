@@ -157,8 +157,10 @@ func resizedAndOptimizedImageData(from data: Data, maxWidth: CGFloat = 1000) -> 
 
 struct RemindersListFormPreviews: PreviewProvider {
     static var previews: some View {
-        let _ = try! prepareDependencies {
-            $0.defaultDatabase = try Reminders.appDatabase()
+        let _ = withErrorReporting {
+            try prepareDependencies {
+                $0.defaultDatabase = try Reminders.appDatabase()
+            }
         }
         NavigationStack {
             RemindersListForm(remindersList: RemindersList.Draft())

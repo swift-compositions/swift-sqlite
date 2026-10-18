@@ -139,9 +139,11 @@ struct CounterRow: View {
 }
 
 #Preview {
-    let _ = try! prepareDependencies {
-        try $0.bootstrapDatabase()
-        try? $0.defaultDatabase.seedSampleData()
+    let _ = withErrorReporting {
+        try prepareDependencies {
+            try $0.bootstrapDatabase()
+            try? $0.defaultDatabase.seedSampleData()
+        }
     }
     NavigationStack {
         CountersListView()

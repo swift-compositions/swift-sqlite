@@ -67,7 +67,15 @@ nonisolated private struct Fact: Identifiable {
 
 extension DatabaseWriter where Self == DatabaseQueue {
     static var childIdentityResetDatabase: Self {
-        let databaseQueue = try! DatabaseQueue()
+        do {
+            return try makeChildIdentityResetDatabase()
+        } catch {
+            fatalError("\(error)")
+        }
+    }
+
+    private static func makeChildIdentityResetDatabase() throws -> Self {
+        let databaseQueue = try DatabaseQueue()
         var migrator = DatabaseMigrator()
         migrator.registerMigration("Create 'facts' table") { db in
             try #sql(
@@ -88,7 +96,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
             }
             .execute(db)
         }
-        try! migrator.migrate(databaseQueue)
+        try migrator.migrate(databaseQueue)
         return databaseQueue
     }
 }

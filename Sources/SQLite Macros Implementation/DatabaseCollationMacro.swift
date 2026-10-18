@@ -254,18 +254,18 @@ extension DatabaseCollationMacro: PeerMacro {
     }
 
     func witnessBody(prologue: String = "", _ call: (String, String) -> String) -> String {
-      let invocation = "return \(call(argument("lhs"), argument("rhs")))"
+      let invocation = "\(call(argument("lhs"), argument("rhs")))"
       switch argumentType {
       case .string, .unsafeRawBufferPointer, .byteSpan:
-        return "\(prologue)\(invocation)"
+        return "\(prologue)return unsafe \(invocation)"
       case .utf8Span:
         return """
           \(prologue)do {
-          let lhsSpan = try Swift.UTF8Span(validating: lhs.assumingMemoryBound(to: Swift.UInt8.self).span)
-          let rhsSpan = try Swift.UTF8Span(validating: rhs.assumingMemoryBound(to: Swift.UInt8.self).span)
-          \(invocation)
+          let lhsSpan = try unsafe Swift.UTF8Span(validating: lhs.assumingMemoryBound(to: Swift.UInt8.self).span)
+          let rhsSpan = try unsafe Swift.UTF8Span(validating: rhs.assumingMemoryBound(to: Swift.UInt8.self).span)
+          return \(invocation)
           } catch {
-          return lhs.elementsEqual(rhs)
+          return unsafe lhs.elementsEqual(rhs)
           ? .equal
           : lhs.lexicographicallyPrecedes(rhs) ? .less : .greater
           }
@@ -314,7 +314,7 @@ extension DatabaseCollationMacro: PeerMacro {
         \(attributes)\(access)\(`static`)\(nonisolated)func \(thunkName)(
         _ arg0: \(parameters[0].type.trimmed), _ arg1: \(parameters[1].type.trimmed)
         ) -> \(returnClause.type.trimmed) {
-        \(declaration.name.trimmed)(\(raw: labeledArguments("arg0", "arg1")))
+        \(raw: argumentType == .unsafeRawBufferPointer ? "unsafe " : "")\(declaration.name.trimmed)(\(raw: labeledArguments("arg0", "arg1")))
         }
         """
     } else if let baseType {

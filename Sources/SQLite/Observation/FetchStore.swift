@@ -35,7 +35,19 @@
             cancellable?.cancel()
             isLoading = true
             cancellable =
-                ValueObservation
+                if scheduler is ImmediateValueObservationScheduler {
+                    observe(request, database: database, scheduling: Immediate())
+                } else {
+                    observe(request, database: database, scheduling: scheduler)
+                }
+        }
+
+        private func observe(
+            _ request: some FetchKeyRequest<Value>,
+            database: some DatabaseReader,
+            scheduling scheduler: some ValueObservationScheduler
+        ) -> AnyDatabaseCancellable {
+            ValueObservation
                 .tracking { database in
                     Result { () throws(ISO_9075.Error) -> Value in
                         do {

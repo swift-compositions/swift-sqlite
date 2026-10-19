@@ -1,4 +1,3 @@
-internal import Foundation
 public import ISO_9075_Foundation
 public import SQL
 

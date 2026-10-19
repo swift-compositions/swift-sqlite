@@ -193,11 +193,11 @@
             case .uuid(let uuid):
                 String(uuid).lowercased().result(db: db)
             case .json(let bytes):
-                String(decoding: bytes.map(\.bitPattern), as: UTF8.self).result(db: db)
+                unsafe bytes.withUnsafeBytes { unsafe String(decoding: $0, as: UTF8.self) }.result(db: db)
             case .blob(let blob) where blob.isEmpty:
                 sqlite3_result_zeroblob(db, 0)
             case .blob(let blob):
-                blob.map(\.bitPattern).withUnsafeBytes {
+                blob.withUnsafeBytes {
                     sqlite3_result_blob(db, $0.baseAddress, Int32($0.count), SQLITE_TRANSIENT)
                 }
             case .array:

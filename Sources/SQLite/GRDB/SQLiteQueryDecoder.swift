@@ -43,11 +43,12 @@
 
         mutating func decode(_ columnType: [Byte].Type) throws(QueryDecodingError) -> [Byte]? {
             try column(expecting: SQLITE_BLOB, as: [Byte].self) { statement, index in
-                unsafe UnsafeRawBufferPointer(
-                    start: sqlite3_column_blob(statement, index),
-                    count: Int(sqlite3_column_bytes(statement, index))
+                unsafe [Byte](
+                    copying: UnsafeRawBufferPointer(
+                        start: sqlite3_column_blob(statement, index),
+                        count: Int(sqlite3_column_bytes(statement, index))
+                    )
                 )
-                .map(Byte.init(bitPattern:))
             }
         }
 

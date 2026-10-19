@@ -1,4 +1,3 @@
-public import Foundation
 public import ISO_9075_Foundation
 public import SQL
 
@@ -106,12 +105,12 @@ public func _requireQueryRepresentable<T: QueryRepresentable>(_: T.Type) -> T.Ty
     T.self
 }
 
-public struct _DatabaseFunctionDeallocated: LocalizedError, Sendable {
+public struct _DatabaseFunctionDeallocated: Swift.Error, CustomStringConvertible, Sendable {
     let message: String
     public init(_ message: String) {
         self.message = message
     }
-    public var errorDescription: String? {
+    public var description: String {
         message
     }
 }

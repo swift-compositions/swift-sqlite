@@ -633,6 +633,41 @@
                 }
             }
 
+            /// An append-only table guarded by a trigger that lets the sync engine
+            /// through: a remote edit of an existing row, from a freshly fetched
+            /// server record, is applied, while a local edit is still refused.
+            @Test func `remote edit of an existing row passes a sync-aware append-only trigger`() async throws {
+                try await userDatabase.userWrite { db in
+                    try db.seed {
+                        RemindersList(id: 1, title: "Personal")
+                    }
+                    try db.execute(
+                        sql: """
+                            CREATE TEMP TRIGGER "appendOnlyRemindersLists" BEFORE UPDATE ON "remindersLists"
+                            WHEN NOT "swiftsqlite_icloud_syncEngineIsSynchronizingChanges"()
+                              AND (NEW."title" IS NOT OLD."title")
+                            BEGIN SELECT RAISE(ABORT, 'append-only'); END
+                            """
+                    )
+                }
+                try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+                try await withTime(advancedBy: 60) {
+                    let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
+                    record.setValue("Work", forKey: "title", at: now)
+                    try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
+                }
+
+                #expect(
+                    try await userDatabase.read { db in try RemindersList.find(1).fetchOne(db)?.title } == "Work"
+                )
+                await #expect(throws: (any Error).self) {
+                    try await userDatabase.userWrite { db in
+                        try RemindersList.find(1).update { $0.title = "Local" }.execute(db)
+                    }
+                }
+            }
+
             @Test func `remote server sends a record with no changes`() async throws {
                 try await userDatabase.userWrite { db in
                     try db.seed {

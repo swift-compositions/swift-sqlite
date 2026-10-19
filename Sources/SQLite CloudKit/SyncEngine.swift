@@ -294,7 +294,7 @@
                 self.metadatabase = try defaultMetadatabase(
                     logger: logger,
                     url: try URL.metadatabase(
-                        databasePath: userDatabase.path,
+                        userDatabase: userDatabase,
                         containerIdentifier: container.containerIdentifier
                     ),
                     configuration: userDatabase.configuration,
@@ -2153,6 +2153,8 @@
             package static let sqliteCloudKitFailure = "SQLite CloudKit Failure"
         }
 
+        private let inMemoryMetadatabaseOrdinal = Atomic<Int>(0)
+
         extension URL {
             package static func metadatabase(
                 databasePath: String,
@@ -2175,6 +2177,39 @@
                         component: ".\(databaseURL.deletingPathExtension().lastPathComponent)"
                     )
                     .appendingPathExtension("metadata\(containerIdentifier.map { "-\($0)" } ?? "").sqlite")
+            }
+
+            /// The metadatabase a sync engine opens for `userDatabase`.
+            ///
+            /// An in-memory metadatabase is a shared-cache database, so its name decides which databases share it.
+            /// One attached in `prepareDatabase` keeps the fixed name ``metadatabase(databasePath:containerIdentifier:)``
+            /// gives it, because the engine must open that same database. Otherwise the engine attaches its own, and
+            /// it gets a name no other metadatabase in the process uses: sharing one would let unrelated in-memory
+            /// databases see each other's sync metadata and block each other with table locks.
+            package static func metadatabase(
+                userDatabase: UserDatabase,
+                containerIdentifier: String?
+            ) throws -> URL {
+                struct InvalidDatabasePath: Error {}
+                let url = try metadatabase(
+                    databasePath: userDatabase.path,
+                    containerIdentifier: containerIdentifier
+                )
+                guard url.isInMemory else { return url }
+                let attachedPath: String? = try userDatabase.read { db in
+                    try PragmaDatabaseList
+                        .where { $0.name.eq(String.sqliteCloudKitSchemaName) }
+                        .select(\.file)
+                        .fetchOne(db)
+                }
+                guard attachedPath == nil else { return url }
+                let ordinal = inMemoryMetadatabaseOrdinal.add(1, ordering: .relaxed).newValue
+                guard
+                    let unique = URL(
+                        string: "file:\(String.sqliteCloudKitSchemaName)-\(ordinal)?mode=memory&cache=shared"
+                    )
+                else { throw InvalidDatabasePath() }
+                return unique
             }
 
             package var isInMemory: Bool {

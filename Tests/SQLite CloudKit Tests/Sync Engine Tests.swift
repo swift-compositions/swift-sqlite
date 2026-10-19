@@ -41,6 +41,43 @@
                 }
             }
 
+            @Test func `in-memory user databases do not share a metadatabase`() async throws {
+                func syncEngine() async throws -> SyncEngine {
+                    try await SyncEngine(
+                        container: MockCloudContainer(
+                            containerIdentifier: "test",
+                            privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
+                            sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
+                        ),
+                        userDatabase: UserDatabase(database: DatabaseQueue()),
+                        tables: []
+                    )
+                }
+                let first = try await syncEngine()
+                let second = try await syncEngine()
+
+                #expect(first.metadatabase.path != second.metadatabase.path)
+
+                try await first.metadatabase.write { db in
+                    try #sql(
+                        """
+                        INSERT INTO "swiftsqlite_icloud_metadata"
+                          ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "userModificationTime")
+                        VALUES ('1', 'reminders', 'zone', 'owner', 0)
+                        """
+                    )
+                    .execute(db)
+                }
+                let firstCount = try await first.userDatabase.read { db in
+                    try Int.fetchOne(db, sql: #"SELECT count(*) FROM "swiftsqlite_icloud_metadata""#)
+                }
+                let secondCount = try await second.userDatabase.read { db in
+                    try Int.fetchOne(db, sql: #"SELECT count(*) FROM "swiftsqlite_icloud_metadata""#)
+                }
+                #expect(firstCount == 1)
+                #expect(secondCount == 0)
+            }
+
             @Test(arguments: [false, true])
             func `the metadatabase inherits the suspension notification configuration`(
                 _ observesSuspensionNotifications: Bool

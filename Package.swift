@@ -14,6 +14,7 @@ let package = Package(
     ],
     products: [
         .library(name: "SQLite", targets: ["SQLite"]),
+        .library(name: "SQLite CloudKit", targets: ["SQLite CloudKit"]),
         .library(name: "SQLite Test Support", targets: ["SQLite Test Support"]),
     ],
     traits: [
@@ -69,6 +70,25 @@ let package = Package(
                 .product(name: "Tagged", package: "swift-tagged", condition: .when(traits: ["Tagged"])),
             ]
         ),
+        .target(
+            name: "SQLite CloudKit",
+            dependencies: [
+                "SQLite",
+                .product(name: "SQL", package: "swift-sql"),
+                .product(name: "SQL Macros", package: "swift-sql"),
+                .product(name: "Byte", package: "swift-byte"),
+                .product(name: "Time", package: "swift-time"),
+                .product(name: "RFC 4122", package: "swift-rfc-4122"),
+                .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["CloudKit"])),
+                .product(
+                    name: "OrderedCollections",
+                    package: "swift-collections",
+                    condition: .when(traits: ["CloudKit"])
+                ),
+                .product(name: "Tagged", package: "swift-tagged", condition: .when(traits: ["Tagged"])),
+            ],
+            path: "Sources/SQLite CloudKit"
+        ),
         .macro(
             name: "SQLite Macros Implementation",
             dependencies: [
@@ -89,6 +109,20 @@ let package = Package(
             name: "SQLite Tests",
             dependencies: [
                 "SQLite",
+                "SQLite Test Support",
+                .product(name: "SQL Macros", package: "swift-sql"),
+                .product(name: "CustomDump", package: "swift-custom-dump"),
+                .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
+            ],
+            swiftSettings: [
+                .treatAllWarnings(as: .error)
+            ]
+        ),
+        .testTarget(
+            name: "SQLite CloudKit Tests",
+            dependencies: [
+                "SQLite",
+                "SQLite CloudKit",
                 "SQLite Test Support",
                 .product(name: "SQL Macros", package: "swift-sql"),
                 .product(name: "CustomDump", package: "swift-custom-dump"),

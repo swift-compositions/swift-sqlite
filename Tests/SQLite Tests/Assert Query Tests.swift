@@ -1,35 +1,12 @@
 #if GRDB
-    public import Byte
-    public import CustomDump
     import GRDB
     import InlineSnapshotTesting
-    public import RFC_4122
     import SQL
     import SQL_Macros
     import SQLite
     import SQLite_Test_Support
     import Testing
-    public import Time
-
-    extension Time.Instant: @retroactive CustomDumpStringConvertible {
-        public var customDumpDescription: String {
-            nanosecondFraction == 0
-                ? "Time.Instant(secondsSinceUnixEpoch: \(secondsSinceUnixEpoch))"
-                : "Time.Instant(secondsSinceUnixEpoch: \(secondsSinceUnixEpoch), nanosecondFraction: \(nanosecondFraction))"
-        }
-    }
-
-    extension RFC_4122.UUID: @retroactive CustomDumpStringConvertible {
-        public var customDumpDescription: String {
-            "RFC_4122.UUID(\(description))"
-        }
-    }
-
-    extension Array: @retroactive CustomDumpStringConvertible where Element == Byte {
-        public var customDumpDescription: String {
-            "[Byte](\(count) bytes)"
-        }
-    }
+    import Time
 
     @Table
     private struct Record: Equatable {

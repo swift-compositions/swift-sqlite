@@ -34,6 +34,7 @@ let package = Package(
             traits: [.trait(name: "Tagged", condition: .when(traits: ["Tagged"]))]
         ),
         .package(url: "https://github.com/swift-atoms/swift-byte.git", branch: "main"),
+        .package(url: "https://github.com/swift-compositions/swift-file-system.git", branch: "main"),
         .package(url: "https://github.com/swift-atoms/swift-order.git", branch: "main"),
         .package(url: "https://github.com/swift-iso/swift-iso-9075.git", branch: "main"),
         .package(url: "https://github.com/swift-ietf/swift-rfc-4122.git", branch: "main"),
@@ -58,6 +59,11 @@ let package = Package(
                 .product(
                     name: "OrderedCollections",
                     package: "swift-collections",
+                    condition: .when(traits: ["GRDB", "Observation", "CloudKit"])
+                ),
+                .product(
+                    name: "File System Core",
+                    package: "swift-file-system",
                     condition: .when(traits: ["GRDB", "Observation", "CloudKit"])
                 ),
                 .product(name: "Tagged", package: "swift-tagged", condition: .when(traits: ["Tagged"])),

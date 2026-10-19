@@ -56,8 +56,9 @@
         mutating func decode(_ columnType: [Byte].Type) throws(QueryDecodingError) -> [Byte]? {
             try argument(expecting: SQLITE_BLOB, as: [Byte].self) { value in
                 guard let blob = unsafe sqlite3_value_blob(value) else { return [] }
-                return unsafe UnsafeRawBufferPointer(start: blob, count: Int(sqlite3_value_bytes(value)))
-                    .map(Byte.init(bitPattern:))
+                return unsafe [Byte](
+                    copying: UnsafeRawBufferPointer(start: blob, count: Int(sqlite3_value_bytes(value)))
+                )
             }
         }
 

@@ -79,11 +79,12 @@
                     )
                 case SQLITE_BLOB:
                     .blob(
-                        unsafe UnsafeRawBufferPointer(
-                            start: sqlite3_column_blob(handle, index),
-                            count: Int(sqlite3_column_bytes(handle, index))
+                        unsafe [Byte](
+                            copying: UnsafeRawBufferPointer(
+                                start: sqlite3_column_blob(handle, index),
+                                count: Int(sqlite3_column_bytes(handle, index))
+                            )
                         )
-                        .map(Byte.init(bitPattern:))
                     )
                 default: .null
                 }

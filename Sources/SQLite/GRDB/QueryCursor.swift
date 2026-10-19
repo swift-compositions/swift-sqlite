@@ -124,10 +124,10 @@
                 case .text(let text), .decimal(let text): text.bind(to: statement, at: index)
                 case .timestamp(let instant): try ISO_9075.Literal.timestamp(instant).bind(to: statement, at: index)
                 case .uuid(let uuid): String(uuid).lowercased().bind(to: statement, at: index)
-                case .json(let bytes): String(decoding: bytes.map(\.bitPattern), as: UTF8.self).bind(to: statement, at: index)
+                case .json(let bytes): unsafe bytes.withUnsafeBytes { unsafe String(decoding: $0, as: UTF8.self) }.bind(to: statement, at: index)
                 case .blob(let blob) where blob.isEmpty: unsafe sqlite3_bind_zeroblob(statement, index, 0)
                 case .blob(let blob):
-                    unsafe blob.map(\.bitPattern).withUnsafeBytes {
+                    unsafe blob.withUnsafeBytes {
                         unsafe sqlite3_bind_blob(statement, index, $0.baseAddress, Int32($0.count), SQLITE_TRANSIENT)
                     }
                 case .array: throw ISO_9075.Error.binding(ISO_9075.Value.Failure("SQLite has no array values"))

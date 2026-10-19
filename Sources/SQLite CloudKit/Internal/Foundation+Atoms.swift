@@ -2,6 +2,7 @@
     #if canImport(CloudKit)
         import Byte
         import Foundation
+        import SQLite
         import Time
 
         extension Date {
@@ -29,13 +30,13 @@
 
         extension [Byte] {
             init(_ data: Data) {
-                self = data.map(Byte.init(bitPattern:))
+                self = unsafe data.withUnsafeBytes { unsafe [Byte](copying: $0) }
             }
         }
 
         extension Data {
             init(_ bytes: [Byte]) {
-                self.init(bytes.map(\.bitPattern))
+                self = unsafe bytes.withUnsafeBytes { unsafe Data($0) }
             }
         }
     #endif

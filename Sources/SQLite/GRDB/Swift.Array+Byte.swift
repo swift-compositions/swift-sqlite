@@ -1,5 +1,5 @@
 #if GRDB
-    public import Byte
+    package import Byte
 
     extension Swift.Array where Element == Byte {
         /// A copy of the bytes in `raw`, made in one pass.

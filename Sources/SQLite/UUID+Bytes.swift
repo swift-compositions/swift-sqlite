@@ -1,4 +1,4 @@
-public import Byte
+import Byte
 public import ISO_9075_Foundation
 public import RFC_4122
 public import SQL

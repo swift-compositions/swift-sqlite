@@ -3,12 +3,12 @@
     public import GRDB
     import GRDBSQLite
     import ISO_9075_Foundation
-    public import SQL
+    import SQL
     internal import RFC_4122
 
     extension GRDB.Database {
         public func add(function: some ScalarDatabaseFunction) {
-            sqlite3_create_function_v2(
+            unsafe sqlite3_create_function_v2(
                 sqliteConnection,
                 function.name,
                 function.argumentCount,
@@ -16,29 +16,29 @@
                 Unmanaged.passRetained(ScalarDatabaseFunctionDefinition(function)).toOpaque(),
                 { context, argumentCount, arguments in
                     do {
-                        let definition = Unmanaged<ScalarDatabaseFunctionDefinition>
+                        let definition = unsafe Unmanaged<ScalarDatabaseFunctionDefinition>
                             .fromOpaque(sqlite3_user_data(context))
                             .takeUnretainedValue()
-                        definition.decoder.reset(argumentCount: argumentCount, arguments: arguments)
-                        try definition.function
+                        unsafe definition.decoder.reset(argumentCount: argumentCount, arguments: arguments)
+                        unsafe try definition.function
                             .invoke(&definition.decoder)
                             .result(db: context)
                     } catch {
-                        ISO_9075.Value.invalid(ISO_9075.Value.Failure(error)).result(db: context)
+                        unsafe ISO_9075.Value.invalid(ISO_9075.Value.Failure(error)).result(db: context)
                     }
                 },
                 nil,
                 nil,
                 { context in
-                    guard let context else { return }
-                    Unmanaged<ScalarDatabaseFunctionDefinition>.fromOpaque(context).release()
+                    guard let context = unsafe context else { return }
+                    unsafe Unmanaged<ScalarDatabaseFunctionDefinition>.fromOpaque(context).release()
                 }
             )
         }
 
         public func add(function: some AggregateDatabaseFunction) {
-            let body = Unmanaged.passRetained(AggregateDatabaseFunctionDefinition(function)).toOpaque()
-            sqlite3_create_function_v2(
+            let body = unsafe Unmanaged.passRetained(AggregateDatabaseFunctionDefinition(function)).toOpaque()
+            unsafe sqlite3_create_function_v2(
                 sqliteConnection,
                 function.name,
                 function.argumentCount,
@@ -46,36 +46,36 @@
                 body,
                 nil,
                 { context, argumentCount, arguments in
-                    guard let unmanagedFunction = AggregateDatabaseFunctionContext[context] else {
-                        sqlite3_result_error_nomem(context)
+                    guard let unmanagedFunction = unsafe AggregateDatabaseFunctionContext[context] else {
+                        unsafe sqlite3_result_error_nomem(context)
                         return
                     }
-                    let function = unmanagedFunction.takeUnretainedValue()
-                    function.decoder.reset(argumentCount: argumentCount, arguments: arguments)
+                    let function = unsafe unmanagedFunction.takeUnretainedValue()
+                    unsafe function.decoder.reset(argumentCount: argumentCount, arguments: arguments)
                     do {
                         try function.iterator.step(&function.decoder)
                     } catch {
-                        sqlite3_result_error(context, "\(error)", -1)
+                        unsafe sqlite3_result_error(context, "\(error)", -1)
                     }
                 },
                 { context in
-                    guard let unmanagedFunction = AggregateDatabaseFunctionContext[context] else {
-                        sqlite3_result_error_nomem(context)
+                    guard let unmanagedFunction = unsafe AggregateDatabaseFunctionContext[context] else {
+                        unsafe sqlite3_result_error_nomem(context)
                         return
                     }
-                    let function = unmanagedFunction.takeUnretainedValue()
-                    unmanagedFunction.release()
-                    function.iterator.result.result(db: context)
+                    let function = unsafe unmanagedFunction.takeUnretainedValue()
+                    unsafe unmanagedFunction.release()
+                    unsafe function.iterator.result.result(db: context)
                 },
                 { context in
-                    guard let context else { return }
-                    Unmanaged<AggregateDatabaseFunctionContext>.fromOpaque(context).release()
+                    guard let context = unsafe context else { return }
+                    unsafe Unmanaged<AggregateDatabaseFunctionContext>.fromOpaque(context).release()
                 }
             )
         }
 
         public func remove(function: some DatabaseFunction) {
-            sqlite3_create_function_v2(
+            unsafe sqlite3_create_function_v2(
                 sqliteConnection,
                 function.name,
                 function.argumentCount,
@@ -117,23 +117,23 @@
 
     private final class AggregateDatabaseFunctionContext {
         static subscript(context: OpaquePointer?) -> Unmanaged<AggregateDatabaseFunctionContext>? {
-            let size = MemoryLayout<Unmanaged<AggregateDatabaseFunctionContext>>.size
-            guard let pointer = sqlite3_aggregate_context(context, Int32(size)) else { return nil }
-            guard pointer.load(as: Int.self) == 0 else {
+            let size = unsafe MemoryLayout<Unmanaged<AggregateDatabaseFunctionContext>>.size
+            guard let pointer = unsafe sqlite3_aggregate_context(context, Int32(size)) else { return nil }
+            guard unsafe pointer.load(as: Int.self) == 0 else {
                 return
-                    pointer
+                    unsafe pointer
                     .assumingMemoryBound(to: Unmanaged<AggregateDatabaseFunctionContext>.self)
                     .pointee
             }
-            let definition = Unmanaged<AggregateDatabaseFunctionDefinition>
+            let definition = unsafe Unmanaged<AggregateDatabaseFunctionDefinition>
                 .fromOpaque(sqlite3_user_data(context))
                 .takeUnretainedValue()
             let context = AggregateDatabaseFunctionContext(definition.function)
-            let unmanagedContext = Unmanaged.passRetained(context)
-            pointer
+            let unmanagedContext = unsafe Unmanaged.passRetained(context)
+            unsafe pointer
                 .assumingMemoryBound(to: Unmanaged<AggregateDatabaseFunctionContext>.self)
-                .pointee = unmanagedContext
-            return unmanagedContext
+                .pointee = unsafe unmanagedContext
+            return unsafe unmanagedContext
         }
         let iterator: any AggregateDatabaseFunctionIteratorProtocol
         var decoder: SQLiteFunctionDecoder
@@ -175,35 +175,35 @@
         fileprivate func result(db: OpaquePointer?) {
             switch self {
             case .null:
-                sqlite3_result_null(db)
+                unsafe sqlite3_result_null(db)
             case .bool(let bool):
-                sqlite3_result_int64(db, bool ? 1 : 0)
+                unsafe sqlite3_result_int64(db, bool ? 1 : 0)
             case .int(let int):
-                sqlite3_result_int64(db, int)
+                unsafe sqlite3_result_int64(db, int)
             case .double(let double):
-                sqlite3_result_double(db, double)
+                unsafe sqlite3_result_double(db, double)
             case .text(let text), .decimal(let text):
-                text.result(db: db)
+                unsafe text.result(db: db)
             case .timestamp(let instant):
                 do {
-                    try ISO_9075.Literal.timestamp(instant).result(db: db)
+                    unsafe try ISO_9075.Literal.timestamp(instant).result(db: db)
                 } catch {
-                    sqlite3_result_error(db, error.description, -1)
+                    unsafe sqlite3_result_error(db, error.description, -1)
                 }
             case .uuid(let uuid):
-                String(uuid).lowercased().result(db: db)
+                unsafe String(uuid).lowercased().result(db: db)
             case .json(let bytes):
                 unsafe bytes.withUnsafeBytes { unsafe String(decoding: $0, as: UTF8.self) }.result(db: db)
             case .blob(let blob) where blob.isEmpty:
-                sqlite3_result_zeroblob(db, 0)
+                unsafe sqlite3_result_zeroblob(db, 0)
             case .blob(let blob):
                 blob.withUnsafeBytes {
-                    sqlite3_result_blob(db, $0.baseAddress, Int32($0.count), SQLITE_TRANSIENT)
+                    unsafe sqlite3_result_blob(db, $0.baseAddress, Int32($0.count), SQLITE_TRANSIENT)
                 }
             case .array:
-                sqlite3_result_error(db, "SQLite has no array values", -1)
+                unsafe sqlite3_result_error(db, "SQLite has no array values", -1)
             case .invalid(let failure):
-                sqlite3_result_error(db, failure.description, -1)
+                unsafe sqlite3_result_error(db, failure.description, -1)
             }
         }
     }
@@ -212,13 +212,13 @@
         fileprivate func result(db: OpaquePointer?) {
             var text = self
             text.withUTF8 { utf8 in
-                utf8.withMemoryRebound(to: CChar.self) {
-                    sqlite3_result_text(db, $0.baseAddress, Int32($0.count), SQLITE_TRANSIENT)
+                unsafe utf8.withMemoryRebound(to: CChar.self) {
+                    unsafe sqlite3_result_text(db, $0.baseAddress, Int32($0.count), SQLITE_TRANSIENT)
                 }
             }
         }
     }
 
-    let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+    let SQLITE_TRANSIENT = unsafe unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
 #endif

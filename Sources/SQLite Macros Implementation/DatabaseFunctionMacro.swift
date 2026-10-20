@@ -651,11 +651,6 @@ extension DatabaseFunctionMacro: PeerMacro {
                     """
             }
 
-            let orderParameter = FunctionParameterSyntax(
-                firstName: "order",
-                colon: .colonToken(trailingTrivia: .space),
-                type: "some SQL::QueryExpression" as TypeSyntax
-            )
             let optionalFilterParameter = FunctionParameterSyntax(
                 firstName: "filter",
                 colon: .colonToken(trailingTrivia: .space),

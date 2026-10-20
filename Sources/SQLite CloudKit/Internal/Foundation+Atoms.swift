@@ -36,7 +36,7 @@
 
         extension Data {
             init(_ bytes: [Byte]) {
-                self = unsafe bytes.withUnsafeBytes { unsafe Data($0) }
+                self = bytes.withUnsafeBytes { unsafe Data($0) }
             }
         }
     #endif

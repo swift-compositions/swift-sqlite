@@ -155,7 +155,7 @@
                     name: UIApplication.willResignActiveNotification,
                     object: nil
                 )
-                try await waitUntilChangesAreSent()
+                try await Task.sleep(for: .seconds(1))
             }
         }
     }

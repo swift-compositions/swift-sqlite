@@ -1,6 +1,6 @@
 #if CloudKit
     #if canImport(CloudKit)
-        public import Byte
+        package import Byte
         public import CloudKit
         import CryptoKit
         public import SQL

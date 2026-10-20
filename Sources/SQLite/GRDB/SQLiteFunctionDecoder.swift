@@ -1,11 +1,15 @@
 #if GRDB
-    public import Byte
+    import Byte
     internal import GRDBSQLite
     internal import ISO_9075_Foundation
-    public import RFC_4122
+    import RFC_4122
     public import SQL
-    public import Time
+    import Time
 
+    // SAFETY: `arguments` is SQLite's argument array for one function call. It is
+    // valid only inside SQLite's callback; every callback calls `reset` with its own
+    // array before decoding, and the decoder reads it only during that call.
+    @safe
     struct SQLiteFunctionDecoder: QueryDecoder {
         let name: String
         var argumentCount: Int32 = 0
@@ -42,7 +46,7 @@
             let value = unsafe arguments?[Int(currentIndex)]
             switch unsafe sqlite3_value_type(value) {
             case SQLITE_NULL: return nil
-            case storage: return try read(value)
+            case storage: return unsafe try read(value)
             case let found:
                 throw .typeMismatch(
                     expected: """
@@ -54,7 +58,7 @@
         }
 
         mutating func decode(_ columnType: [Byte].Type) throws(QueryDecodingError) -> [Byte]? {
-            try argument(expecting: SQLITE_BLOB, as: [Byte].self) { value in
+            unsafe try argument(expecting: SQLITE_BLOB, as: [Byte].self) { value in
                 guard let blob = unsafe sqlite3_value_blob(value) else { return [] }
                 return unsafe [Byte](
                     copying: UnsafeRawBufferPointer(start: blob, count: Int(sqlite3_value_bytes(value)))
@@ -69,7 +73,7 @@
         mutating func decode(_ columnType: Double.Type) throws(QueryDecodingError) -> Double? {
             switch currentStorage {
             case SQLITE_INTEGER: try decode(Int64.self).map(Double.init)
-            default: try argument(expecting: SQLITE_FLOAT, as: Double.self) { unsafe sqlite3_value_double($0) }
+            default: unsafe try argument(expecting: SQLITE_FLOAT, as: Double.self) { unsafe sqlite3_value_double($0) }
             }
         }
 
@@ -78,11 +82,11 @@
         }
 
         mutating func decode(_ columnType: Int64.Type) throws(QueryDecodingError) -> Int64? {
-            try argument(expecting: SQLITE_INTEGER, as: Int64.self) { unsafe sqlite3_value_int64($0) }
+            unsafe try argument(expecting: SQLITE_INTEGER, as: Int64.self) { unsafe sqlite3_value_int64($0) }
         }
 
         mutating func decode(_ columnType: String.Type) throws(QueryDecodingError) -> String? {
-            try argument(expecting: SQLITE_TEXT, as: String.self) { value in
+            unsafe try argument(expecting: SQLITE_TEXT, as: String.self) { value in
                 unsafe String(
                     decoding: UnsafeBufferPointer(
                         start: sqlite3_value_text(value),

@@ -107,9 +107,9 @@
             let statement = cached ? try cachedStatement(sql: sql) : try makeStatement(sql: sql)
             if cached { unsafe sqlite3_reset(statement.sqliteStatement) }
             for (index, value) in zip(Int32(1)..., rendering.values) {
-                try value.bind(to: statement.sqliteStatement, at: index)
+                unsafe try value.bind(to: statement.sqliteStatement, at: index)
             }
-            return (statement, SQLiteQueryDecoder(statement: statement.sqliteStatement))
+            return unsafe (statement, SQLiteQueryDecoder(statement: statement.sqliteStatement))
         }
     }
 
@@ -121,13 +121,13 @@
                 case .bool(let bool): unsafe sqlite3_bind_int64(statement, index, bool ? 1 : 0)
                 case .int(let int): unsafe sqlite3_bind_int64(statement, index, int)
                 case .double(let double): unsafe sqlite3_bind_double(statement, index, double)
-                case .text(let text), .decimal(let text): text.bind(to: statement, at: index)
-                case .timestamp(let instant): try ISO_9075.Literal.timestamp(instant).bind(to: statement, at: index)
-                case .uuid(let uuid): String(uuid).lowercased().bind(to: statement, at: index)
+                case .text(let text), .decimal(let text): unsafe text.bind(to: statement, at: index)
+                case .timestamp(let instant): unsafe try ISO_9075.Literal.timestamp(instant).bind(to: statement, at: index)
+                case .uuid(let uuid): unsafe String(uuid).lowercased().bind(to: statement, at: index)
                 case .json(let bytes): unsafe bytes.withUnsafeBytes { unsafe String(decoding: $0, as: UTF8.self) }.bind(to: statement, at: index)
                 case .blob(let blob) where blob.isEmpty: unsafe sqlite3_bind_zeroblob(statement, index, 0)
                 case .blob(let blob):
-                    unsafe blob.withUnsafeBytes {
+                    blob.withUnsafeBytes {
                         unsafe sqlite3_bind_blob(statement, index, $0.baseAddress, Int32($0.count), SQLITE_TRANSIENT)
                     }
                 case .array: throw ISO_9075.Error.binding(ISO_9075.Value.Failure("SQLite has no array values"))

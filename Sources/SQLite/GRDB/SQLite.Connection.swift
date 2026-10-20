@@ -1,5 +1,5 @@
 #if GRDB
-    public import Byte
+    import Byte
     public import GRDB
     internal import GRDBSQLite
     public import ISO_9075_Call_Level_Interface
@@ -49,7 +49,7 @@
                 } catch {
                     throw .execution("\(error)")
                 }
-                let handle = statement.sqliteStatement
+                let handle = unsafe statement.sqliteStatement
                 defer { unsafe sqlite3_reset(handle) }
                 let columns = statement.columnNames
                 while true {
@@ -58,7 +58,7 @@
                     case SQLITE_ROW:
                         try body(SQLite.Row(columns: columns, values: columns.indices.map { unsafe value(handle, Int32($0)) }))
                     case let code:
-                        throw .execution("\(String(cString: unsafe sqlite3_errmsg(database.sqliteConnection))) (\(code)) in \(rendering.sql)")
+                        throw .execution(unsafe "\(String(cString: unsafe sqlite3_errmsg(database.sqliteConnection))) (\(code)) in \(rendering.sql)")
                     }
                 }
             }

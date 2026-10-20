@@ -1,17 +1,21 @@
 #if GRDB
-    public import Byte
+    import Byte
     internal import GRDBSQLite
     internal import ISO_9075_Foundation
-    public import RFC_4122
+    import RFC_4122
     public import SQL
-    public import Time
+    import Time
 
+    // SAFETY: `statement` is the handle of the GRDB.Statement that `prepare` returns
+    // alongside this decoder; callers keep both together, so the handle outlives
+    // every read the decoder makes.
+    @safe
     struct SQLiteQueryDecoder: QueryDecoder {
         let statement: OpaquePointer
         var currentIndex: Int32 = 0
 
         init(statement: OpaquePointer) {
-            self.statement = statement
+            unsafe self.statement = unsafe statement
         }
 
         mutating func next() {
@@ -26,7 +30,7 @@
             defer { currentIndex += 1 }
             switch unsafe sqlite3_column_type(statement, currentIndex) {
             case SQLITE_NULL: return nil
-            case storage: return try read(statement, currentIndex)
+            case storage: return unsafe try read(statement, currentIndex)
             case let found: throw .typeMismatch(expected: "\(Value.self), found \(storageClassName(found))")
             }
         }
@@ -42,7 +46,7 @@
         }
 
         mutating func decode(_ columnType: [Byte].Type) throws(QueryDecodingError) -> [Byte]? {
-            try column(expecting: SQLITE_BLOB, as: [Byte].self) { statement, index in
+            unsafe try column(expecting: SQLITE_BLOB, as: [Byte].self) { statement, index in
                 unsafe [Byte](
                     copying: UnsafeRawBufferPointer(
                         start: sqlite3_column_blob(statement, index),
@@ -59,7 +63,7 @@
         mutating func decode(_ columnType: Double.Type) throws(QueryDecodingError) -> Double? {
             switch unsafe sqlite3_column_type(statement, currentIndex) {
             case SQLITE_INTEGER: try decode(Int64.self).map(Double.init)
-            default: try column(expecting: SQLITE_FLOAT, as: Double.self) { unsafe sqlite3_column_double($0, $1) }
+            default: unsafe try column(expecting: SQLITE_FLOAT, as: Double.self) { unsafe sqlite3_column_double($0, $1) }
             }
         }
 
@@ -68,11 +72,11 @@
         }
 
         mutating func decode(_ columnType: Int64.Type) throws(QueryDecodingError) -> Int64? {
-            try column(expecting: SQLITE_INTEGER, as: Int64.self) { unsafe sqlite3_column_int64($0, $1) }
+            unsafe try column(expecting: SQLITE_INTEGER, as: Int64.self) { unsafe sqlite3_column_int64($0, $1) }
         }
 
         mutating func decode(_ columnType: String.Type) throws(QueryDecodingError) -> String? {
-            try column(expecting: SQLITE_TEXT, as: String.self) { Self.text($0, $1) }
+            unsafe try column(expecting: SQLITE_TEXT, as: String.self) { unsafe Self.text($0, $1) }
         }
 
         mutating func decode(_ columnType: UInt64.Type) throws(QueryDecodingError) -> UInt64? {

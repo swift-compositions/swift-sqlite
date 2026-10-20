@@ -11,6 +11,17 @@
     extension CloudKitTestBase {
         @MainActor
         final class `App lifecycle`: CloudKitTestBase, @unchecked Sendable {
+
+            private func waitUntilChangesAreSent() async throws {
+                for _ in 0..<240 {
+                    if syncEngine.private.state.pendingRecordZoneChanges.isEmpty
+                        && syncEngine.shared.state.pendingRecordZoneChanges.isEmpty
+                    {
+                        return
+                    }
+                    try await Task.sleep(for: .milliseconds(500))
+                }
+            }
             @Test func `sends changes when the app moves to the background`() async throws {
                 try await userDatabase.userWrite { db in
                     try db.seed {
@@ -21,7 +32,7 @@
                     name: UIApplication.willResignActiveNotification,
                     object: nil
                 )
-                try await Task.sleep(for: .seconds(1))
+                try await waitUntilChangesAreSent()
                 assertInlineSnapshot(of: container, as: .customDump) {
                     """
                     MockCloudContainer(
@@ -90,7 +101,7 @@
                     name: UIApplication.willResignActiveNotification,
                     object: nil
                 )
-                try await Task.sleep(for: .seconds(1))
+                try await waitUntilChangesAreSent()
                 assertInlineSnapshot(of: container, as: .customDump) {
                     """
                     MockCloudContainer(
@@ -144,7 +155,7 @@
                     name: UIApplication.willResignActiveNotification,
                     object: nil
                 )
-                try await Task.sleep(for: .seconds(1))
+                try await waitUntilChangesAreSent()
             }
         }
     }

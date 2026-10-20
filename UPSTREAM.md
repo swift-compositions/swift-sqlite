@@ -46,3 +46,9 @@ Tests: upstream `Tests/SQLiteDataTests/CloudKitTests` (32 files, 195 `@Test`) to
 3. Run the CloudKit suites in CI on macOS and on the iOS simulator at the exact head, and read the counts
    from the log (at least 195 CloudKit tests on each platform).
 4. Move the base in this file to the new tag and commit.
+
+## Deviations in tests
+
+- `App Lifecycle Tests`: the two background-notification tests wait until the pending changes are sent
+  (up to 120 s) instead of sleeping one second; on the iOS simulator under parallel load the Task that
+  upstream's one-second sleep waits for does not run in time. Everything else is as upstream.

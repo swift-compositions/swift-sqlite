@@ -49,9 +49,9 @@ Tests: upstream `Tests/SQLiteDataTests/CloudKitTests` (32 files, 195 `@Test`) to
 
 ## Deviations in tests
 
-- `Testing/TestCloud.swift` (not upstream, `@_spi(Testing)`): one mock container that several engines share, as the
-  devices on one account share a container, with `SyncEngine.init(for:tables:privateTables:cloud:…)`,
-  `receiveAccountChange(_:)` and `receiveZoneDeletion(_:reason:)`, so that a client can test convergence between
+- `Testing/SyncEngine.Mock.swift` (not upstream, `@_spi(Testing)`): `SyncEngine.Mock`, one mock container that several
+  engines share, as the devices on one account share a container, with `SyncEngine.init(for:tables:privateTables:mock:…)`,
+  `receive(_:)` and `receive(deletion:reason:)`, so that a client can test convergence between
   devices. Upstream's tests give each engine a container of its own.
 - `MockCloudDatabase` keeps every deletion with the change tag it was made at, and `MockSyncEngine.fetchChanges`
   delivers each one to every engine whose last fetch came before it; upstream forgets a deletion after its first fetch,
@@ -59,7 +59,7 @@ Tests: upstream `Tests/SQLiteDataTests/CloudKitTests` (32 files, 195 `@Test`) to
   batch was cut at that limit, as CKSyncEngine does; upstream sends one batch, which the mock database refuses above 199.
   Below 200 changes a send behaves as upstream. Deletions do not quite: each now takes a change tag, it reaches every
   engine on the database, and one is not delivered when the record was saved again after it. This touches tests only
-  (`Test Cloud Tests.swift` covers it), never a live engine.
+  (`SyncEngine.Mock Tests.swift` covers it), never a live engine.
 
 - `App Lifecycle Tests`: the two background-notification tests wait until the pending changes are sent
   (up to 120 s) instead of sleeping one second; on the iOS simulator under parallel load the Task that

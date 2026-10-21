@@ -1,63 +1,63 @@
 #if CloudKit
     #if canImport(CloudKit)
         public import CloudKit
-        import Foundation
         public import GRDB
         import OSLog
         public import SQL
+        import RFC_4122
+        import SQLite
         import Synchronization
 
-        /// One mock CloudKit container that several sync engines share, as the devices signed in to one iCloud account
-        /// share a container. Not upstream: sqlite-data's tests give each engine a container of its own, so they cannot
-        /// show two devices converging. For tests only.
-        @_spi(Testing)
-        public final class TestCloud: Sendable {
-            package let container: MockCloudContainer
-            package let dataManager = InMemoryDataManager()
+        extension SyncEngine {
+            /// One mock CloudKit container that several sync engines share, as the devices signed in to one iCloud
+            /// account share a container. Not upstream: sqlite-data's tests give each engine a container of its own, so
+            /// they cannot show two devices converging. For tests only.
+            @_spi(Testing)
+            public final class Mock: Sendable {
+                package let container: MockCloudContainer
+                package let dataManager = InMemoryDataManager()
 
-            public init(containerIdentifier: String = "iCloud.org.swift-institute.SQLite.TestCloud.\(UUID().uuidString)") {
-                let privateDatabase = MockCloudDatabase(databaseScope: .private, dataManager: dataManager)
-                let sharedDatabase = MockCloudDatabase(databaseScope: .shared, dataManager: dataManager)
-                container = MockCloudContainer(
-                    containerIdentifier: containerIdentifier,
-                    privateCloudDatabase: privateDatabase,
-                    sharedCloudDatabase: sharedDatabase
-                )
-                privateDatabase.set(container: container)
-                sharedDatabase.set(container: container)
+                /// - Parameter identifier: The container's identifier; a new one of its own when nil.
+                public init(identifier: String? = nil) {
+                    let identifier = identifier ?? "iCloud.org.swift-institute.SQLite.Mock.\(systemRandomUUID())"
+                    let privateDatabase = MockCloudDatabase(databaseScope: .private, dataManager: dataManager)
+                    let sharedDatabase = MockCloudDatabase(databaseScope: .shared, dataManager: dataManager)
+                    container = MockCloudContainer(
+                        containerIdentifier: identifier,
+                        privateCloudDatabase: privateDatabase,
+                        sharedCloudDatabase: sharedDatabase
+                    )
+                    privateDatabase.set(container: container)
+                    sharedDatabase.set(container: container)
+                }
             }
+        }
 
+        extension SyncEngine.Mock {
             /// The account's status as every engine on this cloud sees it.
-            public var accountStatus: CKAccountStatus {
+            public var account: CKAccountStatus {
                 get { container._accountStatus.withLock { $0 } }
                 set { container._accountStatus.withLock { $0 = newValue } }
             }
 
-            /// The names of the records in a zone of the private database, as the server holds them.
-            public func recordNames(in zoneID: CKRecordZone.ID) -> Set<String> {
-                container.privateCloudDatabase.state.withLock { state in
-                    Set((state.storage[zoneID]?.records.keys).map { $0.map(\.recordName) } ?? [])
-                }
-            }
-
             /// The records in a zone of the private database, copies of what the server holds.
-            public func records(in zoneID: CKRecordZone.ID) -> [CKRecord] {
+            public func records(in zone: CKRecordZone.ID) -> [CKRecord] {
                 container.privateCloudDatabase.state.withLock { state in
-                    (state.storage[zoneID]?.records.values).map { $0.compactMap { $0.copy() as? CKRecord } } ?? []
+                    (state.storage[zone]?.records.values).map { $0.compactMap { $0.copy() as? CKRecord } } ?? []
                 }
             }
 
             /// Removes a zone of the private database and every record in it, as deleting an app's data in iCloud
             /// settings or resetting the development environment does. Engines learn of it through
-            /// ``SyncEngine/receiveZoneDeletion(_:reason:)``.
-            public func deleteZone(_ zoneID: CKRecordZone.ID) {
-                container.privateCloudDatabase.state.withLock { $0.storage[zoneID] = nil }
+            /// ``SyncEngine/receive(deletion:reason:)``.
+            public func delete(zone: CKRecordZone.ID) {
+                container.privateCloudDatabase.state.withLock { $0.storage[zone] = nil }
             }
         }
 
         extension SyncEngine {
-            /// A sync engine on a shared ``TestCloud``. It starts stopped; call ``start()`` and then
-            /// ``receiveAccountChange(_:)`` with `.signIn`, as CloudKit does on a first launch.
+            /// A sync engine on a shared ``Mock``. It starts stopped; call ``start()`` and then ``receive(_:)`` with
+            /// `.signIn`, as CloudKit does on a first launch.
             @_spi(Testing)
             public convenience init<
                 each T1: PrimaryKeyedTable & _SendableMetatype,
@@ -66,7 +66,7 @@
                 for database: any DatabaseWriter,
                 tables: repeat (each T1).Type,
                 privateTables: repeat (each T2).Type,
-                cloud: TestCloud,
+                mock: Mock,
                 defaultZone: CKRecordZone = CKRecordZone(zoneName: "org.swift-institute.SQLite.defaultZone"),
                 delegate: (any SyncEngineDelegate)? = nil,
                 now: @escaping @Sendable () -> Date = Date.init
@@ -85,7 +85,7 @@
                 for privateTable in repeat each privateTables {
                     allPrivateTables.append(SynchronizedTable(for: privateTable))
                 }
-                let container = cloud.container
+                let container = mock.container
                 try self.init(
                     container: container,
                     defaultZone: defaultZone,
@@ -109,37 +109,34 @@
                     tables: allTables,
                     privateTables: allPrivateTables,
                     context: .test,
-                    dataManager: cloud.dataManager,
+                    dataManager: mock.dataManager,
                     now: now
                 )
                 try setUpSyncEngine()
             }
 
-            /// Delivers an account change to the engine, as CloudKit does.
-            /// A stopped engine receives nothing, as a stopped CKSyncEngine does.
+            /// Delivers an account change to the engine, as CloudKit does. A stopped engine receives nothing, as a
+            /// stopped CKSyncEngine does.
             @_spi(Testing)
-            public func receiveAccountChange(_ changeType: CKSyncEngine.Event.AccountChange.ChangeType) async {
+            public func receive(_ change: CKSyncEngine.Event.AccountChange.ChangeType) async {
                 let (privateSyncEngine, sharedSyncEngine) = syncEngines.withLock { ($0.private, $0.shared) }
-                if let privateSyncEngine { await handleEvent(.accountChange(changeType: changeType), syncEngine: privateSyncEngine) }
-                if let sharedSyncEngine { await handleEvent(.accountChange(changeType: changeType), syncEngine: sharedSyncEngine) }
+                if let privateSyncEngine { await handleEvent(.accountChange(changeType: change), syncEngine: privateSyncEngine) }
+                if let sharedSyncEngine { await handleEvent(.accountChange(changeType: change), syncEngine: sharedSyncEngine) }
             }
 
             /// Delivers the deletion of a zone of the private database to the engine, as CloudKit does on the next fetch
-            /// after ``TestCloud/deleteZone(_:)``.
+            /// after ``Mock/delete(zone:)``.
             @_spi(Testing)
-            public func receiveZoneDeletion(
-                _ zoneID: CKRecordZone.ID,
-                reason: CKDatabase.DatabaseChange.Deletion.Reason
-            ) async {
+            public func receive(deletion zone: CKRecordZone.ID, reason: CKDatabase.DatabaseChange.Deletion.Reason) async {
                 await handleEvent(
-                    .fetchedDatabaseChanges(modifications: [], deletions: [(zoneID: zoneID, reason: reason)]),
+                    .fetchedDatabaseChanges(modifications: [], deletions: [(zoneID: zone, reason: reason)]),
                     syncEngine: `private`
                 )
             }
 
             /// The engine's default zone.
             @_spi(Testing)
-            public var zoneID: CKRecordZone.ID { defaultZone.zoneID }
+            public var zone: CKRecordZone.ID { defaultZone.zoneID }
         }
     #endif
 #endif

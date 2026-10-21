@@ -52,3 +52,28 @@ Tests: upstream `Tests/SQLiteDataTests/CloudKitTests` (32 files, 195 `@Test`) to
 - `App Lifecycle Tests`: the two background-notification tests wait until the pending changes are sent
   (up to 120 s) instead of sleeping one second; on the iOS simulator under parallel load the Task that
   upstream's one-second sleep waits for does not run in time. Everything else is as upstream.
+
+## Observation (`Sources/SQLite/Observation`, trait `Observation`)
+
+Compared against `pointfreeco/sqlite-data` at `6390b5c076764c74713a3fd4ebcc3b61b2220dda` (14 Sep 2026), the
+same `Fetch*` sources as the base.
+
+| swift-sqlite | sqlite-data | Difference |
+|---|---|---|
+| `FetchKeyRequest` | `Sources/SQLiteData/FetchKeyRequest.swift` `FetchKeyRequest` | Same shape. |
+| `Fetch`, `FetchAll`, `FetchOne` | `Fetch.swift`, `FetchAll.swift`, `FetchOne.swift` | The value lives in a main-actor `@Observable` `FetchStore` (the projected value), not in swift-sharing's `SharedReader`. |
+| `FetchStore.load(_:database:scheduling:) async throws -> FetchSubscription` | `Fetch.load(_:database:) async throws -> FetchSubscription` and `load(_:database:scheduler:)` | Returns once the first value is in, or throws its error; keeps following until cancelled, as upstream. `database:` is required until a default database exists (below). The scheduler parameter is spelled `scheduling:`, as everywhere in swift-sqlite. |
+| `FetchStore.load(_:database:animation:)` | `Fetch.load(_:database:animation:)` | Same; built on `.animation(_:)`. |
+| `FetchStore.load(_:database:scheduling:)` for statements and sectioned statements (`FetchAll.swift`) | `FetchAll.load(_:database:)` and its `sectionBy` overloads | Same, awaitable. |
+| `FetchSubscription` (`task`, `cancel()`) | `FetchSubscription.swift` | Same API. Uses `Synchronization.Mutex` instead of ConcurrencyExtras' `LockIsolated`, and an unfinished `AsyncStream` instead of `Task.never()`; cancelling ends the store's observation (`FetchStore.cancel()`), keeping its last value, where upstream swaps the reader for a constant one. |
+| `ResultsSectionCollection`, `SectionBuilder`, `Sectioning` | `ResultsSectionCollection.swift`, `FetchAll+Sections.swift` | Same. |
+| `AnimatedScheduler`, `.animation(_:)` | `Internal/FetchKey+SwiftUI.swift` `AnimatedScheduler` | Same idea; ours is public. |
+| `FetchStore.Immediate` | GRDB's `.immediate` | Checks the main actor instead of the main thread (Linux). |
+
+## Not yet ported
+
+| sqlite-data | Why not yet |
+|---|---|
+| One observation per identical request, shared by every reader (`Fetch.sharedReader`, `Internal/FetchKey.swift` keyed by request, database and scheduler) | Planned after the default database. |
+| `defaultDatabase(path:configuration:)` and `@Dependency(\.defaultDatabase)` (`StructuredQueries+GRDB/DefaultDatabase.swift`) | Upstream reads it through `@Dependency`; by the substitutions above it would become an explicit input, which `database:` already is. Open whether a dependency key is wanted at all. |
+| `Fetch.publisher` (Combine) | Not needed by any consumer. |

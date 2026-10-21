@@ -13,6 +13,10 @@
         @ObservationIgnored
         private var cancellable: AnyDatabaseCancellable?
 
+        /// The awaited `load`, until the first value or error arrives.
+        @ObservationIgnored
+        private var loading: CheckedContinuation<Void, any Swift.Error>?
+
         public init(value: Value) {
             self.value = value
         }
@@ -24,10 +28,27 @@
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) {
             self.init(value: value)
-            load(request, database: database, scheduling: scheduler)
+            start(request, database: database, scheduling: scheduler)
         }
 
+        /// Replaces the value with the request's and follows it, as sqlite-data's `load`: returns once the first value
+        /// is in, or throws its error; the observation lasts until ``cancel()`` or the returned subscription is cancelled.
+        @discardableResult
         public func load(
+            _ request: some FetchKeyRequest<Value>,
+            database: some DatabaseReader,
+            scheduling scheduler: some ValueObservationScheduler = .immediate
+        ) async throws -> FetchSubscription {
+            try await withCheckedThrowingContinuation { continuation in
+                loading?.resume(throwing: CancellationError())
+                loading = continuation
+                start(request, database: database, scheduling: scheduler)
+            }
+            return FetchSubscription(store: self)
+        }
+
+        /// Starts following the request without waiting for its first value, as the property wrappers do.
+        func start(
             _ request: some FetchKeyRequest<Value>,
             database: some DatabaseReader,
             scheduling scheduler: some ValueObservationScheduler = .immediate
@@ -70,6 +91,8 @@
             cancellable?.cancel()
             cancellable = nil
             isLoading = false
+            loading?.resume(throwing: CancellationError())
+            loading = nil
         }
 
         private func receive(_ result: Result<Value, ISO_9075.Error>) {
@@ -78,9 +101,12 @@
             case .success(let value):
                 self.value = value
                 loadError = nil
+                loading?.resume()
             case .failure(let error):
                 loadError = error
+                loading?.resume(throwing: error)
             }
+            loading = nil
         }
     }
 
@@ -96,6 +122,19 @@
                 DispatchQueue.main.async {
                     withAnimation(animation) { action() }
                 }
+            }
+        }
+
+        extension FetchStore {
+            /// ``load(_:database:scheduling:)`` with every change delivered inside `animation`, as sqlite-data's
+            /// `load(_:database:animation:)`.
+            @discardableResult
+            public func load(
+                _ request: some FetchKeyRequest<Value>,
+                database: some DatabaseReader,
+                animation: Animation?
+            ) async throws -> FetchSubscription {
+                try await load(request, database: database, scheduling: .animation(animation))
             }
         }
 

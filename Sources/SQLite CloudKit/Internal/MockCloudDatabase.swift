@@ -13,7 +13,12 @@
                 private var lastRecordChangeTag = 0
                 package var storage: [CKRecordZone.ID: Zone] = [:]
                 var assets: [AssetID: Data] = [:]
-                var deletedRecords: [(CKRecord.ID, CKRecord.RecordType)] = []
+                /// Every deletion with the change tag it was made at, kept so that each device fetching after it
+                /// receives it once (a deviation from upstream, which forgets a deletion after its first fetch).
+                var deletedRecords: [(CKRecord.ID, CKRecord.RecordType, changeTag: Int)] = []
+                mutating func recordDeletion(_ recordID: CKRecord.ID, _ recordType: CKRecord.RecordType) {
+                    deletedRecords.append((recordID, recordType, changeTag: nextRecordChangeTag()))
+                }
                 mutating func nextRecordChangeTag() -> Int {
                     lastRecordChangeTag += 1
                     return lastRecordChangeTag
@@ -296,7 +301,7 @@
                         state.storage[recordIDToDelete.zoneID]?.records[recordIDToDelete] = nil
                         deleteResults[recordIDToDelete] = .success(())
                         if let recordType = recordToDelete?.recordType {
-                            state.deletedRecords.append((recordIDToDelete, recordType))
+                            state.recordDeletion(recordIDToDelete, recordType)
                         }
 
                         // NB: If deleting a share that the current user owns, delete the shared records and all
@@ -315,7 +320,7 @@
                                     }
                                     state.storage[recordIDToDelete.zoneID]?.records[recordToDelete.recordID] = nil
                                     deleteResults[recordToDelete.recordID] = .success(())
-                                    state.deletedRecords.append((recordIDToDelete, recordToDelete.recordType))
+                                    state.recordDeletion(recordIDToDelete, recordToDelete.recordType)
                                     deleteRecords(referencing: recordToDelete.recordID)
                                 }
                             }

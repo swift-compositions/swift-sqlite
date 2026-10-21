@@ -75,5 +75,5 @@ same `Fetch*` sources as the base.
 | sqlite-data | Why not yet |
 |---|---|
 | One observation per identical request, shared by every reader (`Fetch.sharedReader`, `Internal/FetchKey.swift` keyed by request, database and scheduler) | Planned after the default database. |
-| `defaultDatabase(path:configuration:)` and `@Dependency(\.defaultDatabase)` (`StructuredQueries+GRDB/DefaultDatabase.swift`) | Upstream reads it through `@Dependency`; by the substitutions above it would become an explicit input, which `database:` already is. Open whether a dependency key is wanted at all. |
+| `defaultDatabase(path:configuration:)` and `@Dependency(\.defaultDatabase)` (`StructuredQueries+GRDB/DefaultDatabase.swift`) | Upstream reads it through `@Dependency`; by the substitutions above swift-sqlite keeps `database:` as the explicit input. The key is ported as is into swift-interface-composable-architecture (`Interface ComposableArchitecture SQLite`, `151ba05`), which already depends on swift-dependencies; it moves here behind a trait with coenttb/work#115. |
 | `Fetch.publisher` (Combine) | Not needed by any consumer. |

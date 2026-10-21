@@ -54,7 +54,7 @@
                 }
 
                 await testClock.advance(by: .seconds(1))
-                $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.database)
+                try await $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.database)
                 #expect(remindersLists.count == 1)
                 assertInlineSnapshot(of: container, as: .customDump) {
                     """
@@ -83,11 +83,11 @@
                 try await userDatabase.userWrite { db in
                     try RemindersList.delete().execute(db)
                 }
-                $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.database)
+                try await $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.database)
                 #expect(remindersLists.count == 0)
 
                 await testClock.advance(by: .seconds(1))
-                $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.database)
+                try await $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.database)
                 #expect(remindersLists.count == 0)
                 assertInlineSnapshot(of: container, as: .customDump) {
                     """

@@ -22,7 +22,7 @@
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) where Element == QueryValue.QueryOutput {
             self.init(wrappedValue: wrappedValue)
-            projectedValue.load(statement, database: database, scheduling: scheduler)
+            projectedValue.start(statement, database: database, scheduling: scheduler)
         }
 
         public init(
@@ -32,7 +32,7 @@
         ) where Element: SQL::Table, Element.QueryOutput == Element {
             self.init(wrappedValue: wrappedValue)
             let statement: Select<Element, Element, ()> = Element.all.selectStar()
-            projectedValue.load(statement, database: database, scheduling: scheduler)
+            projectedValue.start(statement, database: database, scheduling: scheduler)
         }
 
         public init(
@@ -42,7 +42,7 @@
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) where Element: SQL::Table, Element.QueryOutput == Element {
             self.init(wrappedValue: wrappedValue)
-            projectedValue.load(
+            projectedValue.start(
                 Element.all.asSelect(),
                 sectionBy: sectioning(Element.columns),
                 database: database,
@@ -58,7 +58,7 @@
         ) where S.QueryValue == (), S.From == Element, S.Joins == (), Element.QueryOutput == Element {
             self.init(wrappedValue: wrappedValue)
             let statement: Select<Element, Element, ()> = statement.selectStar()
-            projectedValue.load(statement, database: database, scheduling: scheduler)
+            projectedValue.start(statement, database: database, scheduling: scheduler)
         }
 
         public init<S: SelectStatement>(
@@ -69,7 +69,7 @@
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) where S.QueryValue == (), S.From == Element, S.Joins == (), Element.QueryOutput == Element {
             self.init(wrappedValue: wrappedValue)
-            projectedValue.load(
+            projectedValue.start(
                 statement.asSelect(),
                 sectionBy: sectioning(Element.columns),
                 database: database,
@@ -85,30 +85,31 @@
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) where Element == QueryValue.QueryOutput {
             self.init(wrappedValue: wrappedValue)
-            projectedValue.load(statement, sectionBy: sectioning(From.columns), database: database, scheduling: scheduler)
+            projectedValue.start(statement, sectionBy: sectioning(From.columns), database: database, scheduling: scheduler)
         }
     }
 
     extension FetchStore {
-        public func load<Element: Sendable, QueryValue: QueryRepresentable>(
+        // Starting without waiting for the first value, as the property wrappers do.
+        func start<Element: Sendable, QueryValue: QueryRepresentable>(
             _ statement: some SQL::Statement<QueryValue>,
             database: some DatabaseReader,
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) where Value == ResultsSectionCollection<Element, String?>, Element == QueryValue.QueryOutput {
-            load(Unsectioned<QueryValue>(query: statement.query), database: database, scheduling: scheduler)
+            start(Unsectioned<QueryValue>(query: statement.query), database: database, scheduling: scheduler)
         }
 
-        public func load<Element: Sendable>(
+        func start<Element: Sendable>(
             _ statement: Select<(), Element, ()>,
             sectionBy sectioning: Sectioning<String?>,
             database: some DatabaseReader,
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) where Value == ResultsSectionCollection<Element, String?>, Element: SQL::Table, Element.QueryOutput == Element {
             let sectioned: Select<(Element, String?), Element, ()> = sectionedColumns(of: Element.self, sectioning) + statement
-            load(Sectioned<Element>(query: sectioned.query), database: database, scheduling: scheduler)
+            start(Sectioned<Element>(query: sectioned.query), database: database, scheduling: scheduler)
         }
 
-        public func load<Element: Sendable, QueryValue: QueryRepresentable, From: SQL::Table>(
+        func start<Element: Sendable, QueryValue: QueryRepresentable, From: SQL::Table>(
             _ statement: Select<QueryValue, From, ()>,
             sectionBy sectioning: Sectioning<String?>,
             database: some DatabaseReader,
@@ -116,7 +117,43 @@
         ) where Value == ResultsSectionCollection<Element, String?>, Element == QueryValue.QueryOutput {
             let ordered: Select<QueryValue, From, ()> = sectionedOrder(of: From.self, sectioning) + statement
             let sectioned: Select<(QueryValue, String?), From, ()> = ordered + sectionedColumn(of: From.self, sectioning)
-            load(Sectioned<QueryValue>(query: sectioned.query), database: database, scheduling: scheduler)
+            start(Sectioned<QueryValue>(query: sectioned.query), database: database, scheduling: scheduler)
+        }
+    }
+
+
+    extension FetchStore {
+        // As sqlite-data's `load`: returns once the first value is in, and follows the statement until cancelled.
+        @discardableResult
+        public func load<Element: Sendable, QueryValue: QueryRepresentable>(
+            _ statement: some SQL::Statement<QueryValue>,
+            database: some DatabaseReader,
+            scheduling scheduler: some ValueObservationScheduler = .immediate
+        ) async throws -> FetchSubscription where Value == ResultsSectionCollection<Element, String?>, Element == QueryValue.QueryOutput {
+            return try await load(Unsectioned<QueryValue>(query: statement.query), database: database, scheduling: scheduler)
+        }
+
+        @discardableResult
+        public func load<Element: Sendable>(
+            _ statement: Select<(), Element, ()>,
+            sectionBy sectioning: Sectioning<String?>,
+            database: some DatabaseReader,
+            scheduling scheduler: some ValueObservationScheduler = .immediate
+        ) async throws -> FetchSubscription where Value == ResultsSectionCollection<Element, String?>, Element: SQL::Table, Element.QueryOutput == Element {
+            let sectioned: Select<(Element, String?), Element, ()> = sectionedColumns(of: Element.self, sectioning) + statement
+            return try await load(Sectioned<Element>(query: sectioned.query), database: database, scheduling: scheduler)
+        }
+
+        @discardableResult
+        public func load<Element: Sendable, QueryValue: QueryRepresentable, From: SQL::Table>(
+            _ statement: Select<QueryValue, From, ()>,
+            sectionBy sectioning: Sectioning<String?>,
+            database: some DatabaseReader,
+            scheduling scheduler: some ValueObservationScheduler = .immediate
+        ) async throws -> FetchSubscription where Value == ResultsSectionCollection<Element, String?>, Element == QueryValue.QueryOutput {
+            let ordered: Select<QueryValue, From, ()> = sectionedOrder(of: From.self, sectioning) + statement
+            let sectioned: Select<(QueryValue, String?), From, ()> = ordered + sectionedColumn(of: From.self, sectioning)
+            return try await load(Sectioned<QueryValue>(query: sectioned.query), database: database, scheduling: scheduler)
         }
     }
 

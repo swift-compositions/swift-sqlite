@@ -89,6 +89,37 @@
             #expect(store.value == ["Groceries"])
         }
 
+        @Test func `an awaited load returns once the first value is in and keeps following`() async throws {
+            let queue = try reminders()
+            let store = FetchStore<[String]>(value: [])
+            try await store.load(Titles(), database: queue)
+            #expect(store.value == ["Groceries"])
+            try await queue.write { database in try database.execute(sql: #"INSERT INTO "reminder" VALUES ('Call mom')"#) }
+            await eventually { store.value.count == 2 }
+            #expect(store.value == ["Call mom", "Groceries"])
+        }
+
+        @Test func `an awaited load throws the request's error and keeps the last value`() async throws {
+            let store = FetchStore(value: ["kept"])
+            await #expect(throws: (any Error).self) { try await store.load(Failing(), database: try reminders()) }
+            #expect(store.value == ["kept"])
+            #expect(store.loadError != nil)
+        }
+
+        @Test func `cancelling the subscription's task ends the observation`() async throws {
+            let queue = try reminders()
+            let store = FetchStore<[String]>(value: [])
+            let subscription = try await store.load(Titles(), database: queue)
+            let following = Task { try await subscription.task }
+            try await Task.sleep(for: .milliseconds(20))
+            following.cancel()
+            await #expect(throws: CancellationError.self) { try await following.value }
+            try await Task.sleep(for: .milliseconds(20))
+            try await queue.write { database in try database.execute(sql: #"INSERT INTO "reminder" VALUES ('Late')"#) }
+            try await Task.sleep(for: .milliseconds(100))
+            #expect(store.value == ["Groceries"])
+        }
+
         #if canImport(SwiftUI)
             @Test func `an animated store receives each change inside its animation`() async throws {
                 let queue = try reminders()

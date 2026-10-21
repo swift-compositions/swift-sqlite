@@ -20,7 +20,7 @@
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) where Value == QueryValue.QueryOutput {
             projectedValue = FetchStore(value: wrappedValue)
-            projectedValue.load(
+            projectedValue.start(
                 Coalescing(base: StatementValue<QueryValue>(query: statement.query), value: wrappedValue),
                 database: database,
                 scheduling: scheduler
@@ -34,7 +34,7 @@
             scheduling scheduler: some ValueObservationScheduler = .immediate
         ) where Value == Wrapped?, Wrapped == QueryValue.QueryOutput {
             projectedValue = FetchStore(value: wrappedValue)
-            projectedValue.load(StatementValue<QueryValue>(query: statement.query), database: database, scheduling: scheduler)
+            projectedValue.start(StatementValue<QueryValue>(query: statement.query), database: database, scheduling: scheduler)
         }
     }
 #endif

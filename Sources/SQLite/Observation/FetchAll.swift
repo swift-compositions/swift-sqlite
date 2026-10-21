@@ -121,7 +121,6 @@
         }
     }
 
-
     extension FetchStore {
         // As sqlite-data's `load`: returns once the first value is in, and follows the statement until cancelled.
         @discardableResult

@@ -63,7 +63,8 @@
 
             @Test func `more changes than one batch holds all reach the cloud in one send`() async throws {
                 let mock = SyncEngine.Mock()
-                let device = try Device(mock: mock), other = try Device(mock: mock)
+                let device = try Device(mock: mock)
+                let other = try Device(mock: mock)
                 try await device.start()
                 try await other.start()
                 try await device.database.write { db in

@@ -101,7 +101,9 @@
                 }
                 // One batch, as upstream; more while a batch was cut at its limit, as CKSyncEngine sends them all.
                 var pending = state.pendingRecordZoneChanges
-                while !pending.isEmpty {
+                var batches = 0
+                while !pending.isEmpty, batches < 10_000 {
+                    batches += 1
                     try await parentSyncEngine.processPendingRecordZoneChanges(scope: database.databaseScope)
                     let next = state.pendingRecordZoneChanges
                     guard pending.count > 199, next != pending else { break }

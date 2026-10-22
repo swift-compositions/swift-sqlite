@@ -94,8 +94,10 @@ extension SQLite.Pragma.Test.Unit {
             let database = try DatabaseQueue()
 
             try database.read { db in
-                #expect(try SQLite.Pragma.QuickCheck.get.fetchAll(db) == ["ok"])
-                #expect(try SQLite.Pragma.IntegrityCheck.get.fetchAll(db) == ["ok"])
+                let quick = try SQLite.Pragma.QuickCheck.get.fetchAll(db)
+                let integrity = try SQLite.Pragma.IntegrityCheck.get.fetchAll(db)
+                #expect(quick == ["ok"])
+                #expect(integrity == ["ok"])
             }
         }
     }

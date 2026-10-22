@@ -4,7 +4,7 @@ import SQL_Macros
 extension SQLite.Pragma.ForeignKey {
     /// A foreign-key constraint violation in the current database.
     @Table
-    public struct Check {
+    public struct Check: Sendable {
         public static var tableAlias: String? { "foreignKeyChecks" }
         public static var tableFragment: ISO_9075.Fragment { "pragma_foreign_key_check()" }
 

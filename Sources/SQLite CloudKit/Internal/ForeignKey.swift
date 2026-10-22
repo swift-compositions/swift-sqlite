@@ -3,7 +3,7 @@
         import Foundation
         public import SQL
         import SQL_Macros
-        import SQLite
+        public import SQLite
 
         @Table
         package struct ForeignKey {

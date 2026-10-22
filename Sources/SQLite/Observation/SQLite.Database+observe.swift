@@ -19,7 +19,8 @@
             var cancellable: AnyDatabaseCancellable?
             let failure = await withCheckedContinuation { (started: CheckedContinuation<ISO_9075.Error?, Never>) in
                 first.withLock { $0 = started }
-                cancellable = ValueObservation
+                cancellable =
+                    ValueObservation
                     .tracking { database in try body(SQLite.Connection(database)) }
                     .removeDuplicates()
                     .start(

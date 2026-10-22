@@ -57,7 +57,7 @@
                     try #sql(ISO_9075.Fragment(sql)).execute(db)
                 }
 
-                let foreignKeyChecks = try PragmaForeignKeyCheck.all.fetchAll(db)
+                let foreignKeyChecks = try SQLite.Pragma.ForeignKey.Check.all.fetchAll(db)
                 if !foreignKeyChecks.isEmpty {
                     throw ForeignKeyCheckError(checks: foreignKeyChecks)
                 }
@@ -108,7 +108,7 @@
                     throw MigrationError(reason: .tableNotFound(tableName))
                 }
 
-                let tableInfo = try PragmaTableInfo<Self>.all.fetchAll(db)
+                let tableInfo = try SQLite.Pragma.Table.Info<Self>.all.fetchAll(db)
                 let primaryKeys = tableInfo.filter(\.isPrimaryKey)
                 guard
                     (primaryKeys.count == 1 && primaryKeys[0].isInt)
@@ -121,7 +121,7 @@
                     throw MigrationError(reason: .invalidPrimaryKey)
                 }
 
-                let foreignKeys = try PragmaForeignKeyList<Self>.all.fetchAll(db)
+                let foreignKeys = try SQLite.Pragma.ForeignKey.List<Self>.all.fetchAll(db)
                 guard foreignKeys.allSatisfy({ migratedTableNames.contains($0.table) })
                 else {
                     throw MigrationError(reason: .invalidForeignKey)
@@ -512,7 +512,7 @@
 
         private struct SyntaxError: Error {}
 
-        extension PragmaTableInfo {
+        extension SQLite.Pragma.Table.Info {
             var isInt: Bool {
                 intTypes.contains(type.uppercased())
             }
@@ -541,7 +541,7 @@
         }
 
         struct ForeignKeyCheckError: LocalizedError {
-            let checks: [PragmaForeignKeyCheck]
+            let checks: [SQLite.Pragma.ForeignKey.Check]
             var errorDescription: String? {
                 checks.map {
                     """

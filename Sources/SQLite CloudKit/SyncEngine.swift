@@ -261,8 +261,8 @@
                             ) throws -> (String, [ForeignKey]) {
                                 (
                                     T.tableName,
-                                    try PragmaForeignKeyList<T>
-                                        .join(PragmaTableInfo<T>.all) { $0.from.eq($1.name) }
+                                    try SQLite.Pragma.ForeignKey.List<T>
+                                        .join(SQLite.Pragma.Table.Info<T>.all) { $0.from.eq($1.name) }
                                         .select {
                                             ForeignKey.Columns(
                                                 table: $0.table,
@@ -346,7 +346,7 @@
 
             nonisolated package func setUpSyncEngine(writableDB db: Database) throws {
                 let attachedMetadatabasePath: String? =
-                    try PragmaDatabaseList
+                    try SQLite.Pragma.Database.List
                     .where { $0.name.eq(String.sqliteCloudKitSchemaName) }
                     .select(\.file)
                     .fetchOne(db)
@@ -487,7 +487,7 @@
                                 tableName: schema.name,
                                 schema: sql,
                                 tableInfo: Set(
-                                    PragmaTableInfo<T>
+                                    SQLite.Pragma.Table.Info<T>
                                         .select {
                                             TableInfo.Columns(
                                                 defaultValue: $0.defaultValue,
@@ -2197,7 +2197,7 @@
                 )
                 guard url.isInMemory else { return url }
                 let attachedPath: String? = try userDatabase.read { db in
-                    try PragmaDatabaseList
+                    try SQLite.Pragma.Database.List
                         .where { $0.name.eq(String.sqliteCloudKitSchemaName) }
                         .select(\.file)
                         .fetchOne(db)
@@ -2266,7 +2266,7 @@
                     throw SyncEngine.SchemaError.noCloudKitContainer
                 }
 
-                let databasePath = try PragmaDatabaseList.select(\.file).fetchOne(self)
+                let databasePath = try SQLite.Pragma.Database.List.select(\.file).fetchOne(self)
                 guard let databasePath else {
                     struct PathError: Error {}
                     throw SyncEngine.SchemaError(
@@ -2368,7 +2368,7 @@
 
                     for table in tables {
                         func open<T>(_: some SynchronizableTable<T>) throws {
-                            let columnsWithUniqueConstraints = try PragmaIndexList<T>
+                            let columnsWithUniqueConstraints = try SQLite.Pragma.Index.List<T>
                                 .where { $0.isUnique && $0.origin.neq("pk") }
                                 .select(\.name)
                                 .fetchAll(db)
@@ -2429,7 +2429,7 @@
                     [:]
                 for table in tables {
                     func open<T>(_: some SynchronizableTable<T>) throws -> [String] {
-                        try PragmaForeignKeyList<T>
+                        try SQLite.Pragma.ForeignKey.List<T>
                             .order(by: \.table)
                             .select(\.table)
                             .fetchAll(db)

@@ -1,28 +1,26 @@
 #if Observation
     internal import GRDB
-    public import ISO_9075_Call_Level_Interface
 
     extension SQLite {
         /// The answers a read gives over time: the answer when ``SQLite/Database/observe(_:)`` returned, then each
-        /// answer a later committed write changes, in commit order. Writes that leave the answer equal yield nothing,
-        /// and writes committed before the next answer is read may arrive as one answer.
+        /// answer a later committed write changes, in commit order. A write that leaves the answer equal yields nothing.
         ///
-        /// It is a plain async sequence for one consumer; the observation ends when the sequence and its iterator are
-        /// gone, or when the iterating task is cancelled.
+        /// A plain async sequence for one consumer. The observation ends when the iterating task is cancelled, or when
+        /// the sequence and its iterator are gone.
         public struct Observation<Value: Sendable>: AsyncSequence, Sendable {
             let values: AsyncThrowingStream<Value, any Swift.Error>
-            let lifetime: Lifetime
+            let cancellable: AnyDatabaseCancellable?
 
-            init(_ values: AsyncThrowingStream<Value, any Swift.Error>, lifetime: Lifetime) {
+            init(_ values: AsyncThrowingStream<Value, any Swift.Error>, cancellable: AnyDatabaseCancellable?) {
                 self.values = values
-                self.lifetime = lifetime
+                self.cancellable = cancellable
             }
         }
     }
 
     extension SQLite.Observation {
         public func makeAsyncIterator() -> Iterator {
-            Iterator(values.makeAsyncIterator(), lifetime: lifetime)
+            Iterator(values.makeAsyncIterator(), cancellable: cancellable)
         }
     }
 #endif

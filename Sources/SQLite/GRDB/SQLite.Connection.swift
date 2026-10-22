@@ -1,5 +1,4 @@
 #if GRDB
-    import Byte
     public import GRDB
     internal import GRDBSQLite
     public import ISO_9075_Call_Level_Interface
@@ -49,44 +48,14 @@
                 } catch {
                     throw .execution("\(error)")
                 }
-                let handle = unsafe statement.sqliteStatement
-                defer { unsafe sqlite3_reset(handle) }
-                let columns = statement.columnNames
-                while true {
-                    switch unsafe sqlite3_step(handle) {
-                    case SQLITE_DONE: return
-                    case SQLITE_ROW:
-                        try body(SQLite.Row(columns: columns, values: columns.indices.map { unsafe value(handle, Int32($0)) }))
-                    case let code:
-                        throw .execution(unsafe "\(String(cString: unsafe sqlite3_errmsg(database.sqliteConnection))) (\(code)) in \(rendering.sql)")
-                    }
-                }
-            }
-
-            private func value(_ handle: SQLiteStatement, _ index: Int32) -> ISO_9075.Value {
-                switch unsafe sqlite3_column_type(handle, index) {
-                case SQLITE_INTEGER: .int(unsafe sqlite3_column_int64(handle, index))
-                case SQLITE_FLOAT: .double(unsafe sqlite3_column_double(handle, index))
-                case SQLITE_TEXT:
-                    .text(
-                        unsafe String(
-                            decoding: UnsafeBufferPointer(
-                                start: sqlite3_column_text(handle, index),
-                                count: Int(sqlite3_column_bytes(handle, index))
-                            ),
-                            as: UTF8.self
-                        )
-                    )
-                case SQLITE_BLOB:
-                    .blob(
-                        unsafe [Byte](
-                            copying: UnsafeRawBufferPointer(
-                                start: sqlite3_column_blob(handle, index),
-                                count: Int(sqlite3_column_bytes(handle, index))
-                            )
-                        )
-                    )
-                default: .null
+                defer { unsafe sqlite3_reset(statement.sqliteStatement) }
+                let rows = Cursor(statement)
+                do {
+                    while let row = try rows.next() { try body(row) }
+                } catch let error as ISO_9075.Error {
+                    throw error
+                } catch {
+                    throw .execution("\(error)")
                 }
             }
         }

@@ -1,14 +1,15 @@
 #if Observation
+    internal import GRDB
     public import ISO_9075_Call_Level_Interface
 
     extension SQLite.Observation {
         public struct Iterator: AsyncIteratorProtocol {
             var values: AsyncThrowingStream<Value, any Swift.Error>.Iterator
-            let lifetime: Lifetime
+            let cancellable: AnyDatabaseCancellable?
 
-            init(_ values: AsyncThrowingStream<Value, any Swift.Error>.Iterator, lifetime: Lifetime) {
+            init(_ values: AsyncThrowingStream<Value, any Swift.Error>.Iterator, cancellable: AnyDatabaseCancellable?) {
                 self.values = values
-                self.lifetime = lifetime
+                self.cancellable = cancellable
             }
         }
     }

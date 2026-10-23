@@ -296,7 +296,7 @@
                     .notify()
                 await remindersListModification.notify()
 
-                assertQuery(RemindersList.all, database: userDatabase.database) {
+                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌─────────────────────┐
                     │ RemindersList(      │
@@ -306,7 +306,7 @@
                     └─────────────────────┘
                     """
                 }
-                assertQuery(RemindersListAsset.all, database: userDatabase.database) {
+                assertQuery(RemindersListAsset.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌───────────────────────────────┐
                     │ RemindersListAsset(           │

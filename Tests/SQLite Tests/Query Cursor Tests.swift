@@ -1,5 +1,4 @@
 #if GRDB
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -11,12 +10,12 @@
     }
 
     @Suite struct `A query cursor` {
-        let queue: DatabaseQueue
+        let queue: SQLite.Database
 
         init() throws {
-            queue = try DatabaseQueue()
+            queue = try SQLite.Database()
             try queue.write { database in
-                try database.execute(sql: #"CREATE TABLE "number" ("value" INTEGER NOT NULL)"#)
+                try #sql(#"CREATE TABLE "number" ("value" INTEGER NOT NULL)"#).execute(database)
             }
         }
 

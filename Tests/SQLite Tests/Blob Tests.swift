@@ -1,6 +1,5 @@
 #if GRDB
     import Byte
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -12,12 +11,12 @@
     }
 
     @Suite struct `A blob` {
-        let queue: DatabaseQueue
+        let queue: SQLite.Database
 
         init() throws {
-            queue = try DatabaseQueue()
+            queue = try SQLite.Database()
             try queue.write { database in
-                try database.execute(sql: #"CREATE TABLE "attachment" ("payload" BLOB NOT NULL)"#)
+                try #sql(#"CREATE TABLE "attachment" ("payload" BLOB NOT NULL)"#).execute(database)
             }
         }
 

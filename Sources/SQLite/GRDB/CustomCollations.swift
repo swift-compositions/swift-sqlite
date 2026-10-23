@@ -1,11 +1,23 @@
 #if GRDB
     import GRDBSQLite
     public import Order
-    public import GRDB
+    package import GRDB
     public import SQL
 
-    extension GRDB.Database {
+    extension SQLite.Connection {
+        /// Adds `collation` to this connection. Call it from ``SQLite/Configuration/prepareDatabase(_:)`` to have it on
+        /// every connection.
         public func add(collation: some DatabaseCollation) {
+            database.add(collation: collation)
+        }
+
+        public func remove(collation: some DatabaseCollation) {
+            database.remove(collation: collation)
+        }
+    }
+
+    extension GRDB.Database {
+        package func add(collation: some DatabaseCollation) {
             unsafe sqlite3_create_collation_v2(
                 sqliteConnection,
                 collation.name,
@@ -33,7 +45,7 @@
                 }
             )
         }
-        public func remove(collation: some DatabaseCollation) {
+        package func remove(collation: some DatabaseCollation) {
             unsafe sqlite3_create_collation_v2(
                 sqliteConnection,
                 collation.name,

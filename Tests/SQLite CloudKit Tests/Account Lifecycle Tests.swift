@@ -53,7 +53,7 @@
                     }
                 }
 
-                assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     ┌────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                      │
@@ -139,7 +139,7 @@
                 try await syncEngine.processPendingDatabaseChanges(scope: .private)
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     ┌─────────────────────────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                                           │
@@ -293,7 +293,7 @@
                     }
                 }
 
-                assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                                                       │
@@ -390,7 +390,7 @@
                 try await syncEngine.processPendingDatabaseChanges(scope: .private)
                 try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
-                assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                                                       │
@@ -616,7 +616,7 @@
             }
 
             @Test func `existing data is not uploaded to CloudKit while signed out`() {
-                assertQuery(SyncMetadata.all, writing: userDatabase.database) {
+                assertQuery(SyncMetadata.all, writing: userDatabase.sqliteDatabase) {
                     """
                     (No results)
                     """

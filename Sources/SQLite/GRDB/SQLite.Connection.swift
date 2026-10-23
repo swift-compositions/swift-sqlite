@@ -1,5 +1,5 @@
 #if GRDB
-    public import GRDB
+    package import GRDB
     internal import GRDBSQLite
     public import ISO_9075_Call_Level_Interface
 
@@ -14,11 +14,15 @@
             }
         }
 
+        /// One open connection, for the duration of a ``SQLite/Database`` read or write: what its closure is given, and
+        /// what every typed statement executes against.
+        ///
+        /// A connection is valid only inside the closure it was given to; it must not escape it.
         public struct Connection: ISO_9075.Connection {
             public let dialect = SQLite()
-            let database: GRDB.Database
+            package let database: GRDB.Database
 
-            public init(_ database: GRDB.Database) {
+            package init(_ database: GRDB.Database) {
                 self.database = database
             }
 
@@ -46,7 +50,7 @@
                 } catch let error as ISO_9075.Error {
                     throw error
                 } catch {
-                    throw .execution("\(error)")
+                    throw .execution("\(SQLite.Error.translated(error))")
                 }
                 defer { unsafe sqlite3_reset(statement.sqliteStatement) }
                 let rows = Cursor(statement)
@@ -55,51 +59,47 @@
                 } catch let error as ISO_9075.Error {
                     throw error
                 } catch {
-                    throw .execution("\(error)")
+                    throw .execution("\(SQLite.Error.translated(error))")
+                }
+            }
+        }
+    }
+
+    extension SQLite.Connection {
+        /// Whether a transaction is open on this connection.
+        public var isInsideTransaction: Bool { database.isInsideTransaction }
+
+        /// Runs `body` inside a savepoint: what it changes is kept when it returns ``Completion/commit``, and undone when
+        /// it returns ``Completion/rollback`` or throws.
+        public func savepoint(_ body: () throws -> Completion) throws {
+            try translatingErrors {
+                try database.inSavepoint {
+                    switch try body() {
+                    case .commit: .commit
+                    case .rollback: .rollback
+                    }
                 }
             }
         }
 
-        public struct Database<Writer: DatabaseWriter>: ISO_9075.Database {
-            public let writer: Writer
-
-            public init(_ writer: Writer) {
-                self.writer = writer
-            }
-
-            public func read<Value: Sendable>(
-                _ body: @Sendable (Connection) throws(ISO_9075.Error) -> Value
-            ) async throws(ISO_9075.Error) -> Value {
-                try await scope { try await writer.read { database in try body(Connection(database)) } }
-            }
-
-            public func write<Value: Sendable>(
-                _ body: @Sendable (Connection) throws(ISO_9075.Error) -> Value
-            ) async throws(ISO_9075.Error) -> Value {
-                try await scope { try await writer.write { database in try body(Connection(database)) } }
-            }
-
-            public func withRollback<Value: Sendable>(
-                _ body: @Sendable (Connection) throws(ISO_9075.Error) -> Value
-            ) async throws(ISO_9075.Error) -> Value {
-                try await scope {
-                    try await writer.writeWithoutTransaction { database in
-                        try database.execute(sql: "BEGIN")
-                        defer { try? database.execute(sql: "ROLLBACK") }
-                        return try body(Connection(database))
+        /// Runs `body` inside a transaction, which must not already be open: what it changes is committed when it
+        /// returns ``Completion/commit``, and rolled back when it returns ``Completion/rollback`` or throws. For a
+        /// ``SQLite/Database/writeWithoutTransaction(_:)`` that turns foreign keys off around its transaction.
+        public func transaction(_ body: () throws -> Completion) throws {
+            try translatingErrors {
+                try database.inTransaction {
+                    switch try body() {
+                    case .commit: .commit
+                    case .rollback: .rollback
                     }
                 }
             }
+        }
 
-            private func scope<Value>(_ run: () async throws -> Value) async throws(ISO_9075.Error) -> Value {
-                do {
-                    return try await run()
-                } catch let error as ISO_9075.Error {
-                    throw error
-                } catch {
-                    throw .transaction("\(error)")
-                }
-            }
+        /// How a savepoint or transaction ends.
+        public enum Completion: Sendable {
+            case commit
+            case rollback
         }
     }
 #endif

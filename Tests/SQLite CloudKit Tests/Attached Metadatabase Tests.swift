@@ -22,7 +22,7 @@
                 assertQuery(
                     RemindersList
                         .leftJoin(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) },
-                    writing: userDatabase.database
+                    writing: userDatabase.sqliteDatabase
                 ) {
                     """
                     ┌─────────────────────┬────────────────────────────────────────────────────────────────────┐

@@ -1,5 +1,4 @@
 #if GRDB
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -14,19 +13,20 @@
     private let textWithNul = "a\u{0}b"
 
     @Suite struct `Text with NUL characters` {
-        let queue: DatabaseQueue
+        let queue: SQLite.Database
 
         init() throws {
-            queue = try DatabaseQueue()
+            queue = try SQLite.Database()
             try queue.write { database in
-                try database.execute(
-                    sql: """
+                try #sql(
+                    """
                         CREATE TABLE "record" (
                           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
                           "value" TEXT NOT NULL
                         ) STRICT
                         """
                 )
+                .execute(database)
             }
         }
 

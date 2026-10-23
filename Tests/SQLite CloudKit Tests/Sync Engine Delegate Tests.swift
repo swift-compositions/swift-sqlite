@@ -26,7 +26,7 @@
 
                 await signOut()
 
-                assertQuery(RemindersList.all, database: userDatabase.database) {
+                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌─────────────────────┐
                     │ RemindersList(      │
@@ -36,7 +36,7 @@
                     └─────────────────────┘
                     """
                 }
-                assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     ┌────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                      │
@@ -100,7 +100,7 @@
                     try RemindersList.find(1).update { $0.title = "My stuff" }.execute(db)
                 }
 
-                assertQuery(RemindersList.all, database: userDatabase.database) {
+                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌─────────────────────┐
                     │ RemindersList(      │
@@ -110,7 +110,7 @@
                     └─────────────────────┘
                     """
                 }
-                assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     ┌────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                      │
@@ -191,12 +191,12 @@
 
                 await signOut()
 
-                assertQuery(RemindersList.all, database: userDatabase.database) {
+                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
                     """
                     (No results)
                     """
                 }
-                assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     (No results)
                     """

@@ -37,6 +37,28 @@ Tests: upstream `Tests/SQLiteDataTests/CloudKitTests` (32 files, 195 `@Test`) to
 - Upstream `///` documentation is kept as is, including its links to upstream's DocC catalogue,
   so that upstream hunks apply.
 
+## The driver is private
+
+GRDB is swift-sqlite's driver and nothing else: no file imports it `public`, and no public declaration names one of its
+types, so a consumer never imports it. Upstream's public GRDB types become the Institute's:
+
+| upstream (GRDB) | here |
+|---|---|
+| `any DatabaseWriter`, `any DatabaseReader`, `DatabaseQueue`, `DatabasePool` | `SQLite.Database`: `init(configuration:)` in memory, `init(path:kind:configuration:)` with `Kind.queue` or `.pool` |
+| `Database`, the handle a `read`/`write` closure is given | `SQLite.Connection` |
+| `Configuration`, `prepareDatabase` | `SQLite.Configuration`: `readonly`, `foreignKeysEnabled`, `busyTimeout`, `label`, `maximumReaderCount`, `prepareDatabase(_:)` |
+| `DatabaseError` | `SQLite.Error` (`code`, `extendedCode`, `message`, `statement`) |
+| `ValueObservationScheduler` | `SQLite.Scheduler` (`.immediate`, `.animation(_:)`) |
+| `QueryCursor: DatabaseCursor` | `QueryCursor` with `next()` |
+| `db.inTransaction`, `db.inSavepoint` | `SQLite.Connection.transaction(_:)`, `.savepoint(_:)` |
+| `db.add(function:)`, `db.add(collation:)`, `db.seed`, `db.attachMetadatabase` | the same, on `SQLite.Connection` |
+| `SyncEngine(for: any DatabaseWriter, …)`, `SyncEngine.Error.database(DatabaseError)` | `SyncEngine(for: SQLite.Database, …)`, `.database(SQLite.Error)` |
+
+SQL enters only as a swift-sql statement or fragment; GRDB's `sql: String` entry points are not reachable. Inside the
+package the CloudKit engine still runs on GRDB's `Database`: every typed operation also has a `package` overload taking
+it, so upstream hunks to `Sources/SQLiteData/CloudKit` apply as before, with the substitutions above at the public
+surface only.
+
 ## Taking an upstream release
 
 1. `git diff <base>..<tag> -- Sources/SQLiteData/CloudKit Tests/SQLiteDataTests/CloudKitTests`
@@ -79,8 +101,8 @@ same `Fetch*` sources as the base.
 | `FetchStore.load(_:database:scheduling:)` for statements and sectioned statements (`FetchAll.swift`) | `FetchAll.load(_:database:)` and its `sectionBy` overloads | Same, awaitable. |
 | `FetchSubscription` (`task`, `cancel()`) | `FetchSubscription.swift` | Same API. Uses `Synchronization.Mutex` instead of ConcurrencyExtras' `LockIsolated`, and an unfinished `AsyncStream` instead of `Task.never()`; cancelling ends the store's observation (`FetchStore.cancel()`), keeping its last value, where upstream swaps the reader for a constant one. |
 | `ResultsSectionCollection`, `SectionBuilder`, `Sectioning` | `ResultsSectionCollection.swift`, `FetchAll+Sections.swift` | Same. |
-| `AnimatedScheduler`, `.animation(_:)` | `Internal/FetchKey+SwiftUI.swift` `AnimatedScheduler` | Same idea; ours is public. |
-| `FetchStore.Immediate` | GRDB's `.immediate` | Checks the main actor instead of the main thread (Linux). |
+| `SQLite.Scheduler.animation(_:)` | `Internal/FetchKey+SwiftUI.swift` `AnimatedScheduler`, `.animation(_:)` | Same idea; the scheduler is the Institute's `SQLite.Scheduler`, not GRDB's `ValueObservationScheduler`. |
+| `SQLite.Scheduler.immediate` | GRDB's `.immediate` | Checks the main actor instead of the main thread (Linux). |
 
 ## Not yet ported
 

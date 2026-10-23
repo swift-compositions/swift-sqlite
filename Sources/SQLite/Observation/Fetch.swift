@@ -1,5 +1,4 @@
 #if Observation
-    public import GRDB
 
     @MainActor
     @propertyWrapper
@@ -15,8 +14,8 @@
         public init(
             wrappedValue: Value,
             _ request: some FetchKeyRequest<Value>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) {
             projectedValue = FetchStore(value: wrappedValue, request, database: database, scheduling: scheduler)
         }

@@ -1,11 +1,17 @@
 #if CloudKit
     #if canImport(CloudKit)
         package import GRDB
+        package import SQLite
 
         package struct UserDatabase {
             package let database: any DatabaseWriter
             package init(database: any DatabaseWriter) {
                 self.database = database
+            }
+
+            /// The same database, as the Institute's ``SQLite/Database``.
+            package var sqliteDatabase: SQLite.Database {
+                SQLite.Database(database)
             }
 
             var path: String {

@@ -37,7 +37,7 @@
     }
 
     extension ResultsSectionCollection {
-        init(cursor: QueryCursor<(Element, SectionName)>) throws {
+        init(cursor: StatementCursor<(Element, SectionName)>) throws {
             var elements: [Element] = []
             var elementIndicesBySectionName: OrderedDictionary<SectionName, ElementIndices> = [:]
             while let (element, sectionName) = try cursor.next() {

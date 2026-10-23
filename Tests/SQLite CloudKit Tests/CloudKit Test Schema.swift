@@ -90,8 +90,8 @@
     func cloudKitTestDatabase(
         containerIdentifier: String,
         attachMetadatabase: Bool
-    ) throws -> DatabasePool {
-        var configuration = Configuration()
+    ) throws -> SQLite.Database {
+        var configuration = SQLite.Configuration()
         configuration.prepareDatabase { db in
             if attachMetadatabase {
                 try db.attachMetadatabase(containerIdentifier: containerIdentifier)
@@ -100,7 +100,7 @@
         let url = URL.temporaryDirectory.appending(
             path: "\(ProcessInfo.processInfo.globallyUniqueString).sqlite"
         )
-        let database = try DatabasePool(path: url.path(), configuration: configuration)
+        let database = try SQLite.Database(path: url.path(), configuration: configuration)
         try database.write { db in
             try #sql(
                 """

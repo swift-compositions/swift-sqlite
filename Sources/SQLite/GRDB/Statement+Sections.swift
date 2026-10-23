@@ -1,9 +1,9 @@
 #if GRDB
-    public import GRDB
+    package import GRDB
     public import SQL
 
     extension SelectStatement where QueryValue == (), Joins == () {
-        public func fetchAll<Key: QueryRepresentable>(
+        package func fetchAll<Key: QueryRepresentable>(
             _ db: GRDB.Database,
             @SectionBuilder<Key> sectionBy sectioning: (From.TableColumns) -> Sectioning<Key>
         ) throws -> ResultsSectionCollection<From.QueryOutput, Key.QueryOutput>
@@ -15,7 +15,7 @@
             )
         }
 
-        public func fetchAll<Key: QueryRepresentable>(
+        package func fetchAll<Key: QueryRepresentable>(
             _ db: GRDB.Database,
             sectionBy sectionKeyPath: KeyPath<From.TableColumns, some QueryExpression<Key>>
         ) throws -> ResultsSectionCollection<From.QueryOutput, Key.QueryOutput>
@@ -26,7 +26,7 @@
 
     extension Select where From: SQL::Table {
         @_disfavoredOverload
-        public func fetchAll<Key: QueryRepresentable, each J: SQL::Table>(
+        package func fetchAll<Key: QueryRepresentable, each J: SQL::Table>(
             _ db: GRDB.Database,
             @SectionBuilder<Key> sectionBy sectioning: (From.TableColumns, repeat (each J).TableColumns) -> Sectioning<Key>
         ) throws -> ResultsSectionCollection<QueryValue.QueryOutput, Key.QueryOutput>
@@ -34,7 +34,7 @@
             try sectionedResults(db, statement: self, sectionBy: sectioning(From.columns, repeat (each J).columns))
         }
 
-        public func fetchAll<Key: QueryRepresentable>(
+        package func fetchAll<Key: QueryRepresentable>(
             _ db: GRDB.Database,
             @SectionBuilder<Key> sectionBy sectioning: (From.TableColumns, Joins.TableColumns) -> Sectioning<Key>
         ) throws -> ResultsSectionCollection<QueryValue.QueryOutput, Key.QueryOutput>
@@ -42,7 +42,7 @@
             try sectionedResults(db, statement: self, sectionBy: sectioning(From.columns, Joins.columns))
         }
 
-        public func fetchAll<Key: QueryRepresentable>(
+        package func fetchAll<Key: QueryRepresentable>(
             _ db: GRDB.Database,
             sectionBy sectionKeyPath: KeyPath<From.TableColumns, some QueryExpression<Key>>
         ) throws -> ResultsSectionCollection<QueryValue.QueryOutput, Key.QueryOutput>
@@ -62,6 +62,51 @@
         return try ResultsSectionCollection(
             cursor: QuerySectionedCursor<Value, Key>(db: db, query: sectioned.query, cached: true)
         )
+    }
+
+    extension SelectStatement where QueryValue == (), Joins == () {
+        public func fetchAll<Key: QueryRepresentable>(
+            _ connection: SQLite.Connection,
+            @SectionBuilder<Key> sectionBy sectioning: (From.TableColumns) -> Sectioning<Key>
+        ) throws -> ResultsSectionCollection<From.QueryOutput, Key.QueryOutput>
+        where Key.QueryOutput: Hashable {
+            try translatingErrors { try fetchAll(connection.database, sectionBy: sectioning) }
+        }
+
+        public func fetchAll<Key: QueryRepresentable>(
+            _ connection: SQLite.Connection,
+            sectionBy sectionKeyPath: KeyPath<From.TableColumns, some QueryExpression<Key>>
+        ) throws -> ResultsSectionCollection<From.QueryOutput, Key.QueryOutput>
+        where Key.QueryOutput: Hashable {
+            try fetchAll(connection, sectionBy: { $0[keyPath: sectionKeyPath] })
+        }
+    }
+
+    extension Select where From: SQL::Table {
+        @_disfavoredOverload
+        public func fetchAll<Key: QueryRepresentable, each J: SQL::Table>(
+            _ connection: SQLite.Connection,
+            @SectionBuilder<Key> sectionBy sectioning: (From.TableColumns, repeat (each J).TableColumns) -> Sectioning<Key>
+        ) throws -> ResultsSectionCollection<QueryValue.QueryOutput, Key.QueryOutput>
+        where QueryValue: QueryRepresentable, Joins == (repeat each J), Key.QueryOutput: Hashable {
+            try translatingErrors { try fetchAll(connection.database, sectionBy: sectioning) }
+        }
+
+        public func fetchAll<Key: QueryRepresentable>(
+            _ connection: SQLite.Connection,
+            @SectionBuilder<Key> sectionBy sectioning: (From.TableColumns, Joins.TableColumns) -> Sectioning<Key>
+        ) throws -> ResultsSectionCollection<QueryValue.QueryOutput, Key.QueryOutput>
+        where QueryValue: QueryRepresentable, Joins: SQL::Table, Key.QueryOutput: Hashable {
+            try translatingErrors { try fetchAll(connection.database, sectionBy: sectioning) }
+        }
+
+        public func fetchAll<Key: QueryRepresentable>(
+            _ connection: SQLite.Connection,
+            sectionBy sectionKeyPath: KeyPath<From.TableColumns, some QueryExpression<Key>>
+        ) throws -> ResultsSectionCollection<QueryValue.QueryOutput, Key.QueryOutput>
+        where QueryValue: QueryRepresentable, Joins == (), Key.QueryOutput: Hashable {
+            try fetchAll(connection, sectionBy: { $0[keyPath: sectionKeyPath] })
+        }
     }
 
     public struct Sectioning<Key>: Sendable {

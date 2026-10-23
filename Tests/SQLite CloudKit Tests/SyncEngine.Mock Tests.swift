@@ -1,7 +1,6 @@
 #if CloudKit && canImport(CloudKit)
     import CloudKit
     import Foundation
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -17,13 +16,13 @@
             }
 
             struct Device {
-                let database: DatabaseQueue
+                let database: SQLite.Database
                 let engine: SyncEngine
 
                 init(mock: SyncEngine.Mock) throws {
-                    database = try DatabaseQueue()
+                    database = try SQLite.Database()
                     try database.write {
-                        try $0.execute(sql: "CREATE TABLE notes (id TEXT PRIMARY KEY NOT NULL, body TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '') STRICT")
+                        try #sql("CREATE TABLE notes (id TEXT PRIMARY KEY NOT NULL, body TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '') STRICT").execute($0)
                     }
                     engine = try SyncEngine(for: database, tables: Note.self, mock: mock)
                 }
@@ -39,7 +38,7 @@
                 }
 
                 func ids() throws -> [String] {
-                    try database.read { try String.fetchAll($0, sql: "SELECT id FROM notes ORDER BY id") }
+                    try database.read { try Note.order(by: \.id).select(\.id).fetchAll($0) }
                 }
             }
 
@@ -48,12 +47,12 @@
                 let devices = try (0..<3).map { _ in try Device(mock: mock) }
                 for device in devices { try await device.start() }
                 try await devices[0].database.write {
-                    try $0.execute(sql: "INSERT INTO notes (id, body) VALUES ('a', 'one'), ('b', 'two')")
+                    try #sql("INSERT INTO notes (id, body) VALUES ('a', 'one'), ('b', 'two')").execute($0)
                 }
                 for device in devices { try await device.sync() }
                 #expect(try devices.allSatisfy { try $0.ids() == ["a", "b"] })
 
-                try await devices[1].database.write { try $0.execute(sql: "DELETE FROM notes WHERE id = 'a'") }
+                try await devices[1].database.write { try #sql("DELETE FROM notes WHERE id = 'a'").execute($0) }
                 try await devices[1].sync()
                 try await devices[0].sync()
                 try await devices[2].sync()
@@ -68,7 +67,7 @@
                 try await device.start()
                 try await other.start()
                 try await device.database.write { db in
-                    for index in 0..<450 { try db.execute(sql: "INSERT INTO notes (id, body) VALUES (?, 'x')", arguments: ["n\(index)"]) }
+                    for index in 0..<450 { try Note.insert { Note(id: "n\(index)", body: "x") }.execute(db) }
                 }
                 try await device.sync()
                 #expect(mock.records(in: device.engine.zone).count == 450)

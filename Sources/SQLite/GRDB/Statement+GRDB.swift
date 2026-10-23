@@ -1,89 +1,143 @@
 #if GRDB
-    public import GRDB
+    package import GRDB
     public import SQL
 
+    // Every typed operation comes twice: public, on the `SQLite.Connection` a read or write gives, and package-wide, on
+    // the driver's connection, which the CloudKit engine and white-box tests run on.
+
     extension SQL::Statement {
-        @inlinable
-        public func execute(_ db: GRDB.Database) throws where QueryValue == () {
+        public func execute(_ connection: SQLite.Connection) throws where QueryValue == () {
+            try translatingErrors { try execute(connection.database) }
+        }
+
+        public func fetchAll(_ connection: SQLite.Connection) throws -> [QueryValue.QueryOutput]
+        where QueryValue: QueryRepresentable {
+            try translatingErrors { try fetchAll(connection.database) }
+        }
+
+        public func fetchOne(_ connection: SQLite.Connection) throws -> QueryValue.QueryOutput?
+        where QueryValue: QueryRepresentable {
+            try translatingErrors { try fetchOne(connection.database) }
+        }
+
+        public func fetchCursor(_ connection: SQLite.Connection) throws -> QueryCursor<QueryValue.QueryOutput>
+        where QueryValue: QueryRepresentable {
+            try translatingErrors { try fetchCursor(connection.database) }
+        }
+
+        package func execute(_ db: GRDB.Database) throws where QueryValue == () {
             try QueryVoidCursor(db: db, query: query, cached: true).next()
         }
 
-        @inlinable
-        public func fetchAll(_ db: GRDB.Database) throws -> [QueryValue.QueryOutput]
+        package func fetchAll(_ db: GRDB.Database) throws -> [QueryValue.QueryOutput]
         where QueryValue: QueryRepresentable {
             try Array(QueryValueCursor<QueryValue>(db: db, query: query, cached: true))
         }
 
-        @inlinable
-        public func fetchOne(_ db: GRDB.Database) throws -> QueryValue.QueryOutput?
+        package func fetchOne(_ db: GRDB.Database) throws -> QueryValue.QueryOutput?
         where QueryValue: QueryRepresentable {
             try QueryValueCursor<QueryValue>(db: db, query: query, cached: true).next()
         }
 
-        @inlinable
-        public func fetchCursor(_ db: GRDB.Database) throws -> QueryCursor<QueryValue.QueryOutput>
+        package func fetchCursor(_ db: GRDB.Database) throws -> QueryCursor<QueryValue.QueryOutput>
         where QueryValue: QueryRepresentable {
-            try QueryValueCursor<QueryValue>(db: db, query: query, cached: false)
+            QueryCursor(try QueryValueCursor<QueryValue>(db: db, query: query, cached: false))
         }
     }
 
     extension SQL::Statement {
-        @inlinable
         public func fetchAll<each Value: QueryRepresentable>(
+            _ connection: SQLite.Connection
+        ) throws -> [(repeat (each Value).QueryOutput)]
+        where QueryValue == (repeat each Value) {
+            try translatingErrors { try fetchAll(connection.database) }
+        }
+
+        public func fetchOne<each Value: QueryRepresentable>(
+            _ connection: SQLite.Connection
+        ) throws -> (repeat (each Value).QueryOutput)?
+        where QueryValue == (repeat each Value) {
+            try translatingErrors { try fetchOne(connection.database) }
+        }
+
+        public func fetchCursor<each Value: QueryRepresentable>(
+            _ connection: SQLite.Connection
+        ) throws -> QueryCursor<(repeat (each Value).QueryOutput)>
+        where QueryValue == (repeat each Value) {
+            try translatingErrors { try fetchCursor(connection.database) }
+        }
+
+        package func fetchAll<each Value: QueryRepresentable>(
             _ db: GRDB.Database
         ) throws -> [(repeat (each Value).QueryOutput)]
         where QueryValue == (repeat each Value) {
             try Array(QueryPackCursor<repeat each Value>(db: db, query: query, cached: true))
         }
 
-        @inlinable
-        public func fetchOne<each Value: QueryRepresentable>(
+        package func fetchOne<each Value: QueryRepresentable>(
             _ db: GRDB.Database
         ) throws -> (repeat (each Value).QueryOutput)?
         where QueryValue == (repeat each Value) {
             try QueryPackCursor<repeat each Value>(db: db, query: query, cached: true).next()
         }
 
-        @inlinable
-        public func fetchCursor<each Value: QueryRepresentable>(
+        package func fetchCursor<each Value: QueryRepresentable>(
             _ db: GRDB.Database
         ) throws -> QueryCursor<(repeat (each Value).QueryOutput)>
         where QueryValue == (repeat each Value) {
-            try QueryPackCursor<repeat each Value>(db: db, query: query, cached: false)
+            QueryCursor(try QueryPackCursor<repeat each Value>(db: db, query: query, cached: false))
         }
     }
 
     extension SelectStatement where QueryValue == (), Joins == () {
-        @inlinable
-        public func fetchCount(_ db: GRDB.Database) throws -> Int {
+        public func fetchCount(_ connection: SQLite.Connection) throws -> Int {
+            try translatingErrors { try fetchCount(connection.database) }
+        }
+
+        public func fetchAll(_ connection: SQLite.Connection) throws -> [From.QueryOutput] {
+            try translatingErrors { try fetchAll(connection.database) }
+        }
+
+        public func fetchOne(_ connection: SQLite.Connection) throws -> From.QueryOutput? {
+            try translatingErrors { try fetchOne(connection.database) }
+        }
+
+        public func fetchCursor(_ connection: SQLite.Connection) throws -> QueryCursor<From.QueryOutput> {
+            try translatingErrors { try fetchCursor(connection.database) }
+        }
+
+        package func fetchCount(_ db: GRDB.Database) throws -> Int {
             try asSelect().count().fetchOne(db) ?? 0
         }
 
-        @inlinable
-        public func fetchAll(_ db: GRDB.Database) throws -> [From.QueryOutput] {
+        package func fetchAll(_ db: GRDB.Database) throws -> [From.QueryOutput] {
             try Array(QueryValueCursor<From>(db: db, query: query, cached: true))
         }
 
-        @inlinable
-        public func fetchOne(_ db: GRDB.Database) throws -> From.QueryOutput? {
+        package func fetchOne(_ db: GRDB.Database) throws -> From.QueryOutput? {
             try QueryValueCursor<From>(db: db, query: asSelect().limit(1).query, cached: true).next()
         }
 
-        @inlinable
-        public func fetchCursor(_ db: GRDB.Database) throws -> QueryCursor<From.QueryOutput> {
-            try QueryValueCursor<From>(db: db, query: query, cached: false)
+        package func fetchCursor(_ db: GRDB.Database) throws -> QueryCursor<From.QueryOutput> {
+            QueryCursor(try QueryValueCursor<From>(db: db, query: query, cached: false))
         }
     }
 
     extension SQLite {
-        public struct NotFound: Error, Hashable, Sendable {
+        public struct NotFound: Swift.Error, Hashable, Sendable {
             public init() {}
         }
     }
 
     extension SelectStatement where QueryValue == (), From: SQL::PrimaryKeyedTable, Joins == () {
-        @inlinable
         public func find(
+            _ connection: SQLite.Connection,
+            key primaryKey: some QueryExpression<From.PrimaryKey>
+        ) throws -> From.QueryOutput {
+            try translatingErrors { try find(connection.database, key: primaryKey) }
+        }
+
+        package func find(
             _ db: GRDB.Database,
             key primaryKey: some QueryExpression<From.PrimaryKey>
         ) throws -> From.QueryOutput {
@@ -95,28 +149,46 @@
     }
 
     extension SelectStatement where QueryValue == () {
-        @inlinable
         public func fetchAll<each J: SQL::Table>(
+            _ connection: SQLite.Connection
+        ) throws -> [(From.QueryOutput, repeat (each J).QueryOutput)]
+        where Joins == (repeat each J) {
+            try translatingErrors { try fetchAll(connection.database) }
+        }
+
+        public func fetchOne<each J: SQL::Table>(
+            _ connection: SQLite.Connection
+        ) throws -> (From.QueryOutput, repeat (each J).QueryOutput)?
+        where Joins == (repeat each J) {
+            try translatingErrors { try fetchOne(connection.database) }
+        }
+
+        public func fetchCursor<each J: SQL::Table>(
+            _ connection: SQLite.Connection
+        ) throws -> QueryCursor<(From.QueryOutput, repeat (each J).QueryOutput)>
+        where Joins == (repeat each J) {
+            try translatingErrors { try fetchCursor(connection.database) }
+        }
+
+        package func fetchAll<each J: SQL::Table>(
             _ db: GRDB.Database
         ) throws -> [(From.QueryOutput, repeat (each J).QueryOutput)]
         where Joins == (repeat each J) {
             try Array(QueryPackCursor<From, repeat each J>(db: db, query: query, cached: true))
         }
 
-        @inlinable
-        public func fetchOne<each J: SQL::Table>(
+        package func fetchOne<each J: SQL::Table>(
             _ db: GRDB.Database
         ) throws -> (From.QueryOutput, repeat (each J).QueryOutput)?
         where Joins == (repeat each J) {
             try QueryPackCursor<From, repeat each J>(db: db, query: asSelect().limit(1).query, cached: true).next()
         }
 
-        @inlinable
-        public func fetchCursor<each J: SQL::Table>(
+        package func fetchCursor<each J: SQL::Table>(
             _ db: GRDB.Database
         ) throws -> QueryCursor<(From.QueryOutput, repeat (each J).QueryOutput)>
         where Joins == (repeat each J) {
-            try QueryPackCursor<From, repeat each J>(db: db, query: query, cached: false)
+            QueryCursor(try QueryPackCursor<From, repeat each J>(db: db, query: query, cached: false))
         }
     }
 #endif

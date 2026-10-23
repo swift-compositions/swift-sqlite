@@ -1,5 +1,4 @@
 #if GRDB
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -37,53 +36,56 @@
         labels.joined(separator: ",")
     }
 
-    private func records() throws -> DatabaseQueue {
-        var configuration = Configuration()
+    private func records() throws -> SQLite.Database {
+        var configuration = SQLite.Configuration()
         configuration.prepareDatabase { database in
             database.add(function: $total)
         }
-        let queue = try DatabaseQueue(configuration: configuration)
+        let queue = try SQLite.Database(configuration: configuration)
         try queue.write { database in
-            try database.execute(
-                sql: #"CREATE TABLE "record" ("id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT)"#
+            try #sql(
+                #"CREATE TABLE "record" ("id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT)"#
             )
-            try database.execute(sql: #"INSERT INTO "record" DEFAULT VALUES"#)
-            try database.execute(sql: #"INSERT INTO "record" DEFAULT VALUES"#)
-            try database.execute(sql: #"INSERT INTO "record" DEFAULT VALUES"#)
+            .execute(database)
+            try #sql(#"INSERT INTO "record" DEFAULT VALUES"#).execute(database)
+            try #sql(#"INSERT INTO "record" DEFAULT VALUES"#).execute(database)
+            try #sql(#"INSERT INTO "record" DEFAULT VALUES"#).execute(database)
         }
         return queue
     }
 
-    private func numbers(count: Int) throws -> DatabaseQueue {
-        var configuration = Configuration()
+    private func numbers(count: Int) throws -> SQLite.Database {
+        var configuration = SQLite.Configuration()
         configuration.prepareDatabase { database in
             database.add(function: $total)
             database.add(function: $concatenation)
         }
-        let queue = try DatabaseQueue(configuration: configuration)
+        let queue = try SQLite.Database(configuration: configuration)
         try queue.write { database in
-            try database.execute(
-                sql: #"CREATE TABLE "number" ("value" INTEGER NOT NULL, "label" TEXT NOT NULL)"#
+            try #sql(
+                #"CREATE TABLE "number" ("value" INTEGER NOT NULL, "label" TEXT NOT NULL)"#
             )
-            try database.execute(
-                sql: """
+            .execute(database)
+            try #sql(
+                """
                     WITH RECURSIVE "sequence"("value") AS (
                       SELECT 1 UNION ALL SELECT "value" + 1 FROM "sequence" WHERE "value" < \(count)
                     )
                     INSERT INTO "number" SELECT "value", CAST("value" AS TEXT) FROM "sequence"
                     """
             )
+            .execute(database)
         }
         return queue
     }
 
     @Suite struct `A custom database function` {
         @Test func `a scalar function is callable until it is removed`() throws {
-            var configuration = Configuration()
+            var configuration = SQLite.Configuration()
             configuration.prepareDatabase { database in
                 database.add(function: $epoch)
             }
-            let queue = try DatabaseQueue(configuration: configuration)
+            let queue = try SQLite.Database(configuration: configuration)
             let instant = try queue.read { database in try Select($epoch()).fetchOne(database) }
             #expect(instant == Time.Instant(secondsSinceUnixEpoch: 0))
 
@@ -94,11 +96,11 @@
         }
 
         @Test func `a scalar function receives its argument`() throws {
-            var configuration = Configuration()
+            var configuration = SQLite.Configuration()
             configuration.prepareDatabase { database in
                 database.add(function: $exclaim)
             }
-            let queue = try DatabaseQueue(configuration: configuration)
+            let queue = try SQLite.Database(configuration: configuration)
             let text = try queue.read { database in try Select($exclaim("Blob")).fetchOne(database) }
             #expect(text == "Blob!")
         }

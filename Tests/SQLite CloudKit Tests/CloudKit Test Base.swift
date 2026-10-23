@@ -41,7 +41,7 @@
                 database: try cloudKitTestDatabase(
                     containerIdentifier: containerIdentifier,
                     attachMetadatabase: attachMetadatabase
-                )
+                ).writer
             )
             try await prepareDatabase(userDatabase)
             let privateDatabase = MockCloudDatabase(databaseScope: .private, dataManager: dataManager)

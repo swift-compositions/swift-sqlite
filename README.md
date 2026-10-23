@@ -2,11 +2,12 @@
 
 Fork of [pointfreeco/sqlite-data](https://github.com/pointfreeco/sqlite-data) 1.12.0, built on
 [swift-sql](https://github.com/swift-compositions/swift-sql) (a fork of swift-structured-queries)
-and GRDB.
+and GRDB, which stays private: no public declaration names a GRDB type, so a consumer never imports it.
 
 ## Products
 
-- `SQLite`: connections, execution, decoding, observed fetches and Tagged conformances over GRDB.
+- `SQLite`: `SQLite.Database` and `SQLite.Connection`, execution of swift-sql statements, decoding, observed fetches
+  and Tagged conformances.
 - `SQLite CloudKit`: the CloudKit synchronization engine, a file-for-file port of upstream's
   `Sources/SQLiteData/CloudKit`. See [UPSTREAM.md](UPSTREAM.md) for the base revision, the file map,
   the substitutions and how to take upstream changes.

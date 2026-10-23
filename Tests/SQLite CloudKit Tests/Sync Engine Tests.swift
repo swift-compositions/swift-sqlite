@@ -185,7 +185,7 @@
 
     @Test func `a sync engine for a temporary database in the test context`() throws {
         _ = try SyncEngine(
-            for: DatabasePool(
+            for: SQLite.Database(
                 path: URL.temporaryDirectory
                     .appending(path: "\(ProcessInfo.processInfo.globallyUniqueString).db")
                     .path(percentEncoded: false)
@@ -195,6 +195,6 @@
     }
 
     @Test func `a sync engine for an in-memory database in the preview context`() throws {
-        _ = try SyncEngine(for: DatabaseQueue(), context: .preview)
+        _ = try SyncEngine(for: SQLite.Database(), context: .preview)
     }
 #endif

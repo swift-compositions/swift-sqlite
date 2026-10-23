@@ -1,6 +1,8 @@
 #if Observation
     import Dispatch
     import GRDB
+    import SQL
+    import SQL_Macros
     import SQLite
     import Synchronization
     import Testing
@@ -21,14 +23,14 @@
     }
 
     struct Titles: FetchKeyRequest {
-        func fetch(_ database: GRDB.Database) throws -> [String] {
-            try String.fetchAll(database, sql: #"SELECT "title" FROM "reminder" ORDER BY "title""#)
+        func fetch(_ connection: SQLite.Connection) throws -> [String] {
+            try #sql(#"SELECT "title" FROM "reminder" ORDER BY "title""#, as: String.self).fetchAll(connection)
         }
     }
 
     struct Failing: FetchKeyRequest {
-        func fetch(_ database: GRDB.Database) throws -> [String] {
-            try String.fetchAll(database, sql: #"SELECT "title" FROM "missing""#)
+        func fetch(_ connection: SQLite.Connection) throws -> [String] {
+            try #sql(#"SELECT "title" FROM "missing""#, as: String.self).fetchAll(connection)
         }
     }
 
@@ -39,13 +41,19 @@
         }
     }
 
-    func reminders() throws -> DatabaseQueue {
-        let queue = try DatabaseQueue()
-        try queue.write { database in
-            try database.execute(sql: #"CREATE TABLE "reminder" ("title" TEXT NOT NULL)"#)
-            try database.execute(sql: #"INSERT INTO "reminder" VALUES ('Groceries')"#)
+    func reminders() throws -> SQLite.Database {
+        let database = try SQLite.Database()
+        try database.write { connection in
+            try #sql(#"CREATE TABLE "reminder" ("title" TEXT NOT NULL)"#).execute(connection)
+            try #sql(#"INSERT INTO "reminder" VALUES ('Groceries')"#).execute(connection)
         }
-        return queue
+        return database
+    }
+
+    func insert(_ title: String, into database: SQLite.Database) async throws {
+        try await database.write { connection in
+            try #sql(#"INSERT INTO "reminder" VALUES (\#(bind: title))"#).execute(connection)
+        }
     }
 
     @MainActor
@@ -57,18 +65,18 @@
         }
 
         @Test func `a write elsewhere reaches the store`() async throws {
-            let queue = try reminders()
-            let store = FetchStore(value: [], Titles(), database: queue)
-            try await queue.write { database in try database.execute(sql: #"INSERT INTO "reminder" VALUES ('Call mom')"#) }
+            let database = try reminders()
+            let store = FetchStore(value: [], Titles(), database: database)
+            try await insert("Call mom", into: database)
             await eventually { store.value.count == 2 }
             #expect(store.value == ["Call mom", "Groceries"])
         }
 
         @Test func `every change is delivered through the given scheduler`() async throws {
-            let queue = try reminders()
+            let database = try reminders()
             let scheduler = Recording()
-            let store = FetchStore(value: [], Titles(), database: queue, scheduling: scheduler)
-            try await queue.write { database in try database.execute(sql: #"INSERT INTO "reminder" VALUES ('Taxes')"#) }
+            let store = FetchStore(value: [], Titles(), database: database, scheduling: SQLite.Scheduler(scheduler))
+            try await insert("Taxes", into: database)
             await eventually { store.value.count == 2 }
             #expect(store.value == ["Groceries", "Taxes"])
             #expect(scheduler.deliveries.withLock { $0 } >= 1)
@@ -81,20 +89,20 @@
         }
 
         @Test func `a cancelled store stops following writes`() async throws {
-            let queue = try reminders()
-            let store = FetchStore(value: [], Titles(), database: queue)
+            let database = try reminders()
+            let store = FetchStore(value: [], Titles(), database: database)
             store.cancel()
-            try await queue.write { database in try database.execute(sql: #"INSERT INTO "reminder" VALUES ('Late')"#) }
+            try await insert("Late", into: database)
             try await Task.sleep(for: .milliseconds(100))
             #expect(store.value == ["Groceries"])
         }
 
         @Test func `an awaited load returns once the first value is in and keeps following`() async throws {
-            let queue = try reminders()
+            let database = try reminders()
             let store = FetchStore<[String]>(value: [])
-            try await store.load(Titles(), database: queue)
+            try await store.load(Titles(), database: database)
             #expect(store.value == ["Groceries"])
-            try await queue.write { database in try database.execute(sql: #"INSERT INTO "reminder" VALUES ('Call mom')"#) }
+            try await insert("Call mom", into: database)
             await eventually { store.value.count == 2 }
             #expect(store.value == ["Call mom", "Groceries"])
         }
@@ -107,25 +115,25 @@
         }
 
         @Test func `cancelling the subscription's task ends the observation`() async throws {
-            let queue = try reminders()
+            let database = try reminders()
             let store = FetchStore<[String]>(value: [])
-            let subscription = try await store.load(Titles(), database: queue)
+            let subscription = try await store.load(Titles(), database: database)
             let following = Task { try await subscription.task }
             try await Task.sleep(for: .milliseconds(20))
             following.cancel()
             await #expect(throws: CancellationError.self) { try await following.value }
             try await Task.sleep(for: .milliseconds(20))
-            try await queue.write { database in try database.execute(sql: #"INSERT INTO "reminder" VALUES ('Late')"#) }
+            try await insert("Late", into: database)
             try await Task.sleep(for: .milliseconds(100))
             #expect(store.value == ["Groceries"])
         }
 
         #if canImport(SwiftUI)
             @Test func `an animated store receives each change inside its animation`() async throws {
-                let queue = try reminders()
-                let store = FetchStore(value: [], Titles(), database: queue, scheduling: .animation(.default))
+                let database = try reminders()
+                let store = FetchStore(value: [], Titles(), database: database, scheduling: .animation(.default))
                 #expect(store.value == ["Groceries"])
-                try await queue.write { database in try database.execute(sql: #"INSERT INTO "reminder" VALUES ('Dentist')"#) }
+                try await insert("Dentist", into: database)
                 await eventually { store.value.count == 2 }
                 #expect(store.value == ["Dentist", "Groceries"])
             }

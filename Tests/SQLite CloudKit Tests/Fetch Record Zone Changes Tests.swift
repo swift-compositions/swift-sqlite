@@ -133,7 +133,7 @@
 
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertQuery(Reminder.all, database: userDatabase.database) {
+                assertQuery(Reminder.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌──────────────────────┐
                     │ Reminder(            │
@@ -149,7 +149,7 @@
                 }
                 assertQuery(
                     SyncMetadata.order(by: \.recordName).select { ($0.recordName, $0.parentRecordName) },
-                    database: syncEngine.metadatabase
+                    database: SQLite.Database(syncEngine.metadatabase)
                 ) {
                     """
                     ┌────────────────────┬────────────────────┐
@@ -219,7 +219,7 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertQuery(RemindersList.all, database: userDatabase.database) {
+                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌─────────────────────┐
                     │ RemindersList(      │
@@ -231,7 +231,7 @@
                 }
                 assertQuery(
                     SyncMetadata.order(by: \.recordName).select(\.recordName),
-                    database: syncEngine.metadatabase
+                    database: SQLite.Database(syncEngine.metadatabase)
                 ) {
                     """
                     ┌────────────────────┐
@@ -298,7 +298,7 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertQuery(Reminder.all, database: userDatabase.database) {
+                assertQuery(Reminder.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌───────────────────────┐
                     │ Reminder(             │
@@ -312,7 +312,7 @@
                     └───────────────────────┘
                     """
                 }
-                assertQuery(RemindersList.all, database: userDatabase.database) {
+                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌─────────────────────┐
                     │ RemindersList(      │
@@ -413,7 +413,7 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertQuery(SyncMetadata.select(\.recordName), writing: userDatabase.database) {
+                assertQuery(SyncMetadata.select(\.recordName), writing: userDatabase.sqliteDatabase) {
                     """
                     ┌────────────────────┐
                     │ "1:remindersLists" │
@@ -489,14 +489,14 @@
                 tagRecord.setValue("tag", forKey: "title", at: 0)
                 try await syncEngine.modifyRecords(scope: .private, saving: [tagRecord]).notify()
 
-                assertQuery(Tag.all, database: userDatabase.database) {
+                assertQuery(Tag.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌───────────────────┐
                     │ Tag(title: "tag") │
                     └───────────────────┘
                     """
                 }
-                assertQuery(SyncMetadata.all, writing: userDatabase.database) {
+                assertQuery(SyncMetadata.all, writing: userDatabase.sqliteDatabase) {
                     """
                     ┌────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                              │
@@ -571,14 +571,14 @@
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
                 await modifications.notify()
 
-                assertQuery(Tag.all, database: userDatabase.database) {
+                assertQuery(Tag.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌───────────────────┐
                     │ Tag(title: "tag") │
                     └───────────────────┘
                     """
                 }
-                assertQuery(SyncMetadata.all, writing: userDatabase.database) {
+                assertQuery(SyncMetadata.all, writing: userDatabase.sqliteDatabase) {
                     """
                     ┌────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                              │
@@ -641,14 +641,14 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertQuery(Tag.all, database: userDatabase.database) {
+                assertQuery(Tag.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌───────────────────────┐
                     │ Tag(title: "weekend") │
                     └───────────────────────┘
                     """
                 }
-                assertQuery(SyncMetadata.all, writing: userDatabase.database) {
+                assertQuery(SyncMetadata.all, writing: userDatabase.sqliteDatabase) {
                     """
                     ┌────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                  │

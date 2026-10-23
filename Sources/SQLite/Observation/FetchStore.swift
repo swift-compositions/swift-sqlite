@@ -1,5 +1,5 @@
 #if Observation
-    public import GRDB
+    internal import GRDB
     public import ISO_9075_Call_Level_Interface
     public import Observation
 
@@ -24,8 +24,8 @@
         public convenience init(
             value: Value,
             _ request: some FetchKeyRequest<Value>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) {
             self.init(value: value)
             start(request, database: database, scheduling: scheduler)
@@ -36,8 +36,8 @@
         @discardableResult
         public func load(
             _ request: some FetchKeyRequest<Value>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) async throws -> FetchSubscription {
             try await withCheckedThrowingContinuation { continuation in
                 loading?.resume(throwing: CancellationError())
@@ -50,33 +50,28 @@
         /// Starts following the request without waiting for its first value, as the property wrappers do.
         func start(
             _ request: some FetchKeyRequest<Value>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) {
             cancellable?.cancel()
             isLoading = true
-            cancellable =
-                if scheduler is ImmediateValueObservationScheduler {
-                    observe(request, database: database, scheduling: Immediate())
-                } else {
-                    observe(request, database: database, scheduling: scheduler)
-                }
+            cancellable = observe(request, database: database.writer, scheduling: scheduler.driver)
         }
 
         private func observe(
             _ request: some FetchKeyRequest<Value>,
-            database: some DatabaseReader,
+            database: any DatabaseReader,
             scheduling scheduler: some ValueObservationScheduler
         ) -> AnyDatabaseCancellable {
             ValueObservation
                 .tracking { database in
                     Result { () throws(ISO_9075.Error) -> Value in
                         do {
-                            return try request.fetch(database)
+                            return try request.fetch(SQLite.Connection(database))
                         } catch let error as ISO_9075.Error {
                             throw error
                         } catch {
-                            throw .execution("\(error)")
+                            throw .execution("\(SQLite.Error.translated(error))")
                         }
                     }
                 }
@@ -113,34 +108,16 @@
     #if canImport(SwiftUI)
         public import SwiftUI
 
-        public struct AnimatedScheduler: ValueObservationScheduler {
-            let animation: Animation?
-
-            public func immediateInitialValue() -> Bool { true }
-
-            public func schedule(_ action: @escaping @Sendable () -> Void) {
-                DispatchQueue.main.async {
-                    withAnimation(animation) { action() }
-                }
-            }
-        }
-
         extension FetchStore {
             /// ``load(_:database:scheduling:)`` with every change delivered inside `animation`, as sqlite-data's
             /// `load(_:database:animation:)`.
             @discardableResult
             public func load(
                 _ request: some FetchKeyRequest<Value>,
-                database: some DatabaseReader,
+                database: SQLite.Database,
                 animation: Animation?
             ) async throws -> FetchSubscription {
                 try await load(request, database: database, scheduling: .animation(animation))
-            }
-        }
-
-        extension ValueObservationScheduler where Self == AnimatedScheduler {
-            public static func animation(_ animation: Animation?) -> Self {
-                AnimatedScheduler(animation: animation)
             }
         }
     #endif

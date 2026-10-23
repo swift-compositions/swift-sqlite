@@ -128,6 +128,22 @@ let package = Package(
                 .treatAllWarnings(as: .error)
             ]
         ),
+        // A consumer's view: the Institute's modules only, never the driver. It compiles only while no public
+        // declaration of SQLite or SQLite CloudKit needs a GRDB type.
+        .testTarget(
+            name: "SQLite Consumer Tests",
+            dependencies: [
+                "SQLite",
+                .target(name: "SQLite CloudKit", condition: .when(traits: ["CloudKit"])),
+                .product(name: "SQL", package: "swift-sql"),
+                .product(name: "SQL Macros", package: "swift-sql"),
+                .product(name: "SQL Migrations", package: "swift-sql"),
+                .product(name: "ISO 9075 Call-Level Interface", package: "swift-iso-9075"),
+            ],
+            swiftSettings: [
+                .treatAllWarnings(as: .error)
+            ]
+        ),
         .testTarget(
             name: "SQLite Macros Implementation Tests",
             dependencies: [

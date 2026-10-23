@@ -413,7 +413,7 @@
                     }
                 }
 
-                assertQuery(Reminder.all, database: userDatabase.database) {
+                assertQuery(Reminder.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌───────────────────────┐
                     │ Reminder(             │

@@ -1,5 +1,4 @@
 #if Observation
-    public import GRDB
     public import SQL
 
     @MainActor
@@ -16,8 +15,8 @@
         public init<QueryValue: QueryRepresentable>(
             wrappedValue: Value,
             _ statement: some SQL::Statement<QueryValue>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) where Value == QueryValue.QueryOutput {
             projectedValue = FetchStore(value: wrappedValue)
             projectedValue.start(
@@ -30,8 +29,8 @@
         public init<Wrapped, QueryValue: QueryRepresentable>(
             wrappedValue: Wrapped? = nil,
             _ statement: some SQL::Statement<QueryValue>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) where Value == Wrapped?, Wrapped == QueryValue.QueryOutput {
             projectedValue = FetchStore(value: wrappedValue)
             projectedValue.start(StatementValue<QueryValue>(query: statement.query), database: database, scheduling: scheduler)

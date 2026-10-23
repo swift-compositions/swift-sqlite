@@ -34,12 +34,12 @@
             let identifier: RFC_4122.UUID
             var name = ""
         }
-        let database: DatabaseQueue
+        let database: SQLite.Database
         let incrementingUUID = IncrementingUUID()
 
         init() throws {
-            database = try DatabaseQueue()
-            database.writeWithoutTransaction { db in
+            database = try SQLite.Database()
+            try database.writeWithoutTransaction { db in
                 db.add(function: $uuid)
                 db.add(function: $customUUID)
             }
@@ -297,7 +297,7 @@
 
             try database.writeWithoutTransaction { db in
                 try #sql("PRAGMA foreign_keys = OFF").execute(db)
-                try db.inTransaction {
+                try db.transaction {
                     try SyncEngine.migratePrimaryKeys(
                         db,
                         tables: User.self,
@@ -362,7 +362,7 @@
 
             try database.writeWithoutTransaction { db in
                 try #sql("PRAGMA foreign_keys = OFF").execute(db)
-                try db.inTransaction {
+                try db.transaction {
                     try SyncEngine.migratePrimaryKeys(
                         db,
                         tables: PrimaryKeyNamedUnique.self,
@@ -1142,7 +1142,7 @@
             }
         }
 
-        private func seed(_ db: Database) throws {
+        private func seed(_ db: SQLite.Connection) throws {
             try #sql(
                 """
                 INSERT INTO "parents"
@@ -1185,7 +1185,7 @@
         {
             try database.writeWithoutTransaction { db in
                 try #sql("PRAGMA foreign_keys = OFF").execute(db)
-                try db.inTransaction {
+                try db.transaction {
                     try SyncEngine.migratePrimaryKeys(
                         db,
                         tables: repeat each tables,

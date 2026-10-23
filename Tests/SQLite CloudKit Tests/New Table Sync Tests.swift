@@ -60,7 +60,7 @@
 
                 assertQuery(
                     SyncMetadata.order(by: \.recordName).select(\.recordName),
-                    database: syncEngine.metadatabase
+                    database: SQLite.Database(syncEngine.metadatabase)
                 ) {
                     """
                     ┌────────────────────┐

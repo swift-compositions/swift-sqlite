@@ -1,17 +1,32 @@
 #if GRDB
     internal import Byte
-    public import GRDB
+    package import GRDB
     internal import GRDBSQLite
     internal import ISO_9075_Call_Level_Interface
     internal import RFC_4122
     public import SQL
 
-    public class QueryCursor<Element>: DatabaseCursor {
-        public var _isDone = false
-        public let _statement: GRDB.Statement
+    /// The rows of one statement, decoded one at a time as they are stepped through.
+    ///
+    /// A cursor is valid only inside the read or write that fetched it; it must not escape that closure.
+    public final class QueryCursor<Element> {
+        private let base: StatementCursor<Element>
+
+        package init(_ base: StatementCursor<Element>) {
+            self.base = base
+        }
+
+        /// The next row, or `nil` once every row has been read.
+        public func next() throws -> Element? {
+            try translatingErrors { try base.next() }
+        }
+    }
+
+    package class StatementCursor<Element>: DatabaseCursor {
+        package var _isDone = false
+        package let _statement: GRDB.Statement
         var decoder: SQLiteQueryDecoder
 
-        @usableFromInline
         init(db: GRDB.Database, query: ISO_9075.Fragment, cached: Bool) throws {
             (_statement, decoder) = try db.prepare(SQLite().render(query), cached: cached)
         }
@@ -21,7 +36,7 @@
             unsafe sqlite3_clear_bindings(_statement.sqliteStatement)
         }
 
-        public func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
+        package func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
             fatalError("Abstract method should be overridden in subclass")
         }
 
@@ -39,9 +54,7 @@
         }
     }
 
-    @usableFromInline
-    final class QueryValueCursor<QueryValue: QueryRepresentable>: QueryCursor<QueryValue.QueryOutput> {
-        @usableFromInline
+    final class QueryValueCursor<QueryValue: QueryRepresentable>: StatementCursor<QueryValue.QueryOutput> {
         override init(db: GRDB.Database, query: ISO_9075.Fragment, cached: Bool) throws {
             try super.init(db: db, query: query, cached: cached)
         }
@@ -51,12 +64,10 @@
         }
     }
 
-    @usableFromInline
     final class QuerySectionedCursor<
         Element: QueryRepresentable,
         SectionName: QueryRepresentable
-    >: QueryCursor<(Element.QueryOutput, SectionName.QueryOutput)> {
-        @usableFromInline
+    >: StatementCursor<(Element.QueryOutput, SectionName.QueryOutput)> {
         override init(db: GRDB.Database, query: ISO_9075.Fragment, cached: Bool) throws {
             try super.init(db: db, query: query, cached: cached)
         }
@@ -70,11 +81,9 @@
         }
     }
 
-    @usableFromInline
     final class QueryPackCursor<
         each QueryValue: QueryRepresentable
-    >: QueryCursor<(repeat (each QueryValue).QueryOutput)> {
-        @usableFromInline
+    >: StatementCursor<(repeat (each QueryValue).QueryOutput)> {
         override init(db: GRDB.Database, query: ISO_9075.Fragment, cached: Bool) throws {
             try super.init(db: db, query: query, cached: cached)
         }
@@ -86,9 +95,7 @@
         }
     }
 
-    @usableFromInline
-    final class QueryVoidCursor: QueryCursor<Void> {
-        @usableFromInline
+    final class QueryVoidCursor: StatementCursor<Void> {
         override init(db: GRDB.Database, query: ISO_9075.Fragment, cached: Bool) throws {
             try super.init(db: db, query: query, cached: cached)
         }

@@ -73,7 +73,7 @@
                 record.setValue(1, forKey: "id", at: now)
                 try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
 
-                assertQuery(SyncMetadata.select(\.recordName), database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.select(\.recordName), database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     ┌────────────────────────┐
                     │ "1:unrecognizedTables" │
@@ -83,7 +83,7 @@
 
                 try await syncEngine.modifyRecords(scope: .private, deleting: [record.recordID]).notify()
 
-                assertQuery(SyncMetadata.select(\.recordName), database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.select(\.recordName), database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     (No results)
                     """

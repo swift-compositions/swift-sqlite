@@ -34,7 +34,7 @@
 
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertQuery(Reminder.all, database: userDatabase.database) {
+                assertQuery(Reminder.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌───────────────────────┐
                     │ Reminder(             │
@@ -50,7 +50,7 @@
                 }
                 assertQuery(
                     SyncMetadata.select { ($0.recordName, $0.parentRecordName) },
-                    database: syncEngine.metadatabase
+                    database: SQLite.Database(syncEngine.metadatabase)
                 ) {
                     """
                     ┌────────────────────┬────────────────────┐
@@ -166,7 +166,7 @@
 
                 assertQuery(
                     SyncMetadata.order(by: \.recordName).select { ($0.recordName, $0.parentRecordName) },
-                    database: syncEngine.metadatabase
+                    database: SQLite.Database(syncEngine.metadatabase)
                 ) {
                     """
                     ┌────────────────────┬────────────────────┐
@@ -199,7 +199,7 @@
 
                 assertQuery(
                     SyncMetadata.order(by: \.recordName),
-                    database: syncEngine.metadatabase
+                    database: SQLite.Database(syncEngine.metadatabase)
                 ) {
                     """
                     ┌─────────────────────────────────────────────────────────────────────────────────────────┐
@@ -546,7 +546,7 @@
 
                 assertQuery(
                     RemindersList.join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) },
-                    writing: userDatabase.database
+                    writing: userDatabase.sqliteDatabase
                 ) {
                     """
                     ┌─────────────────────┬────────────────────────────────────────────────────────────────────┐
@@ -638,7 +638,7 @@
                                 isShared: $0.share.isNot(nil)
                             )
                         },
-                    database: userDatabase.database
+                    database: userDatabase.sqliteDatabase
                 )
                 var rows: [RecordNameAndIsShared]
                 #expect(rows == [RecordNameAndIsShared(recordName: "1:remindersLists", isShared: false)])
@@ -664,7 +664,7 @@
                                 isShared: $0.isShared
                             )
                         },
-                    database: userDatabase.database
+                    database: userDatabase.sqliteDatabase
                 )
                 var rows: [RecordNameAndIsShared]
                 #expect(rows == [RecordNameAndIsShared(recordName: "1:remindersLists", isShared: false)])

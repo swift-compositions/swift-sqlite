@@ -1,5 +1,4 @@
 #if GRDB
-    import GRDB
     import InlineSnapshotTesting
     import SQL
     import SQL_Macros
@@ -15,10 +14,10 @@
     }
 
     @Suite struct `An asserted query` {
-        let database: DatabaseQueue
+        let database: SQLite.Database
 
         init() throws {
-            database = try DatabaseQueue()
+            database = try SQLite.Database()
             try database.write { db in
                 try #sql(
                     """

@@ -1,13 +1,29 @@
 #if GRDB
     internal import Byte
-    public import GRDB
+    package import GRDB
     import GRDBSQLite
     import ISO_9075_Foundation
     import SQL
     internal import RFC_4122
 
-    extension GRDB.Database {
+    extension SQLite.Connection {
+        /// Adds `function` to this connection, for every statement it executes after. Call it from
+        /// ``SQLite/Configuration/prepareDatabase(_:)`` to have it on every connection.
         public func add(function: some ScalarDatabaseFunction) {
+            database.add(function: function)
+        }
+
+        public func add(function: some AggregateDatabaseFunction) {
+            database.add(function: function)
+        }
+
+        public func remove(function: some DatabaseFunction) {
+            database.remove(function: function)
+        }
+    }
+
+    extension GRDB.Database {
+        package func add(function: some ScalarDatabaseFunction) {
             unsafe sqlite3_create_function_v2(
                 sqliteConnection,
                 function.name,
@@ -36,7 +52,7 @@
             )
         }
 
-        public func add(function: some AggregateDatabaseFunction) {
+        package func add(function: some AggregateDatabaseFunction) {
             let body = unsafe Unmanaged.passRetained(AggregateDatabaseFunctionDefinition(function)).toOpaque()
             unsafe sqlite3_create_function_v2(
                 sqliteConnection,
@@ -74,7 +90,7 @@
             )
         }
 
-        public func remove(function: some DatabaseFunction) {
+        package func remove(function: some DatabaseFunction) {
             unsafe sqlite3_create_function_v2(
                 sqliteConnection,
                 function.name,

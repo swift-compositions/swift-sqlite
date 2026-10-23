@@ -3,14 +3,36 @@
         public import SQLite
         import CryptoKit
         public import Foundation
-        public import GRDB
+        package import GRDB
         public import RFC_4122
         public import SQL
         import SQL_Macros
 
         extension SyncEngine {
             public static func migratePrimaryKeys<each T: PrimaryKeyedTable>(
-                _ db: Database,
+                _ connection: SQLite.Connection,
+                tables: repeat (each T).Type,
+                dropUniqueConstraints: Bool = false,
+                uuid uuidFunction: (any ScalarDatabaseFunction<(), RFC_4122.UUID>)? = nil,
+                randomUUID: () -> RFC_4122.UUID = systemRandomUUID
+            ) throws
+            where
+                repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible,
+                repeat (each T).TableColumns.PrimaryColumn: TableColumnExpression
+            {
+                try translatingErrors {
+                    try migratePrimaryKeys(
+                        connection.database,
+                        tables: repeat each tables,
+                        dropUniqueConstraints: dropUniqueConstraints,
+                        uuid: uuidFunction,
+                        randomUUID: randomUUID
+                    )
+                }
+            }
+
+            package static func migratePrimaryKeys<each T: PrimaryKeyedTable>(
+                _ db: GRDB.Database,
                 tables: repeat (each T).Type,
                 dropUniqueConstraints: Bool = false,
                 uuid uuidFunction: (any ScalarDatabaseFunction<(), RFC_4122.UUID>)? = nil,

@@ -1,6 +1,5 @@
 #if GRDB
     import Order
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -43,9 +42,9 @@
     }
 
     private func ordered(by collation: some SQLite::DatabaseCollation) throws -> [String] {
-        let queue = try DatabaseQueue()
+        let queue = try SQLite.Database()
         try queue.write { database in
-            try database.execute(sql: #"CREATE TABLE "word" ("text" TEXT NOT NULL)"#)
+            try #sql(#"CREATE TABLE "word" ("text" TEXT NOT NULL)"#).execute(database)
             for text in ["a", "c", "b"] {
                 try Word.insert { Word(text: text) }.execute(database)
             }

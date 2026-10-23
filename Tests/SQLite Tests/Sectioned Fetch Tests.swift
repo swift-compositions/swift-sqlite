@@ -1,5 +1,4 @@
 #if Observation
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -12,11 +11,11 @@
         var list: String?
     }
 
-    func chores() throws -> DatabaseQueue {
-        let queue = try DatabaseQueue()
+    func chores() throws -> SQLite.Database {
+        let queue = try SQLite.Database()
         try queue.write { database in
-            try database.execute(sql: #"CREATE TABLE "chore" ("id" INTEGER PRIMARY KEY, "title" TEXT NOT NULL, "list" TEXT)"#)
-            try database.execute(sql: #"INSERT INTO "chore" VALUES (1, 'Milk', 'Home'), (2, 'Report', 'Work'), (3, 'Bread', 'Home'), (4, 'Idea', NULL)"#)
+            try #sql(#"CREATE TABLE "chore" ("id" INTEGER PRIMARY KEY, "title" TEXT NOT NULL, "list" TEXT)"#).execute(database)
+            try #sql(#"INSERT INTO "chore" VALUES (1, 'Milk', 'Home'), (2, 'Report', 'Work'), (3, 'Bread', 'Home'), (4, 'Idea', NULL)"#).execute(database)
         }
         return queue
     }

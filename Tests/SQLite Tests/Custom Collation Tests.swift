@@ -1,6 +1,5 @@
 #if GRDB
     import Order
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -16,10 +15,10 @@
         Order.Comparison(rhs, lhs)
     }
 
-    private func items(_ titles: [String] = []) throws -> DatabaseQueue {
-        let queue = try DatabaseQueue()
+    private func items(_ titles: [String] = []) throws -> SQLite.Database {
+        let queue = try SQLite.Database()
         try queue.write { database in
-            try database.execute(sql: #"CREATE TABLE "item" ("title" TEXT NOT NULL)"#)
+            try #sql(#"CREATE TABLE "item" ("title" TEXT NOT NULL)"#).execute(database)
             for title in titles {
                 try Item.insert { Item(title: title) }.execute(database)
             }

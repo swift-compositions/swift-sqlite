@@ -415,7 +415,7 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertQuery(SyncMetadata.select(\.recordName), database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.select(\.recordName), database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     ┌────────────────────┐
                     │ "1:remindersLists" │
@@ -588,7 +588,7 @@
                     try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
                 }
 
-                assertQuery(RemindersList.all, database: userDatabase.database) {
+                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌─────────────────┐
                     │ RemindersList(  │
@@ -600,7 +600,7 @@
                 }
                 assertQuery(
                     SyncMetadata.select(\.userModificationTime),
-                    database: syncEngine.metadatabase
+                    database: SQLite.Database(syncEngine.metadatabase)
                 ) {
                     """
                     ┌─────────────┐
@@ -723,14 +723,14 @@
                 record._recordChangeTag = .random(in: 9999 ... .max)
                 try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
 
-                assertQuery(Reminder.all, database: userDatabase.database) {
+                assertQuery(Reminder.all, database: userDatabase.sqliteDatabase) {
                     """
                     (No results)
                     """
                 }
                 assertQuery(
                     SyncMetadata.select(\.userModificationTime),
-                    database: syncEngine.metadatabase
+                    database: SQLite.Database(syncEngine.metadatabase)
                 ) {
                     """
                     ┌───┐
@@ -777,12 +777,12 @@
                 )
                 .notify()
 
-                assertQuery(RemindersList.all, database: userDatabase.database) {
+                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
                     """
                     (No results)
                     """
                 }
-                assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     (No results)
                     """

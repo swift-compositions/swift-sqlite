@@ -122,7 +122,7 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     ┌────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                      │
@@ -411,7 +411,7 @@
                     try #expect(RemindersList.find(1).fetchOne(db) == RemindersList(id: 1, title: "My Stuff"))
                 }
 
-                assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     ┌────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                      │
@@ -513,7 +513,7 @@
                     )
                 }
 
-                assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     ┌────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                      │
@@ -559,7 +559,7 @@
                 }
                 try await newSyncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     ┌────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                      │
@@ -838,7 +838,7 @@
                     )
                 )
                 try await syncEngine.modifyRecords(scope: .private, saving: [customRecord]).notify()
-                assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     (No results)
                     """
@@ -854,7 +854,7 @@
                     )
                 )
                 try await syncEngine.modifyRecords(scope: .private, saving: [customRecord]).notify()
-                assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     (No results)
                     """

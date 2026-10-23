@@ -273,7 +273,7 @@
                         )
                         """
                     }
-                    assertQuery(ChildWithOnDeleteSetNull.all, database: userDatabase.database) {
+                    assertQuery(ChildWithOnDeleteSetNull.all, database: userDatabase.sqliteDatabase) {
                         """
                         ┌───────────────────────────┐
                         │ ChildWithOnDeleteSetNull( │
@@ -283,7 +283,7 @@
                         └───────────────────────────┘
                         """
                     }
-                    assertQuery(Parent.all, database: userDatabase.database) {
+                    assertQuery(Parent.all, database: userDatabase.sqliteDatabase) {
                         """
                         ┌───────────────┐
                         │ Parent(id: 1) │

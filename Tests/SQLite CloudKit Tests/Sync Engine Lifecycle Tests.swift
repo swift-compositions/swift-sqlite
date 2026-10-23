@@ -25,7 +25,7 @@
 
                     try await Task.sleep(for: .seconds(1))
 
-                    assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                    assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                         """
                         ┌──────────────────────────────────────────┐
                         │ SyncMetadata(                            │
@@ -178,7 +178,7 @@
                     }
                     try await Task.sleep(for: .seconds(0.5))
 
-                    assertQuery(PendingRecordZoneChange.all, database: syncEngine.metadatabase) {
+                    assertQuery(PendingRecordZoneChange.all, database: SQLite.Database(syncEngine.metadatabase)) {
                         """
                         ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
                         │ PendingRecordZoneChange(                                                                    │
@@ -187,7 +187,7 @@
                         └─────────────────────────────────────────────────────────────────────────────────────────────┘
                         """
                     }
-                    assertQuery(RemindersList.all, database: userDatabase.database) {
+                    assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
                         """
                         ┌──────────────────────┐
                         │ RemindersList(       │
@@ -225,7 +225,7 @@
                         )
                         """
                     }
-                    assertQuery(PendingRecordZoneChange.all, database: syncEngine.metadatabase) {
+                    assertQuery(PendingRecordZoneChange.all, database: SQLite.Database(syncEngine.metadatabase)) {
                         """
                         (No results)
                         """
@@ -271,7 +271,7 @@
                     }
 
                     try await Task.sleep(for: .seconds(1))
-                    assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                    assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                         """
                         ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
                         │ SyncMetadata(                                                                                       │
@@ -560,7 +560,7 @@
                     }
                     try await Task.sleep(for: .seconds(1))
 
-                    assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                    assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                         """
                         ┌──────────────────────────────────────────┐
                         │ SyncMetadata(                            │
@@ -626,7 +626,7 @@
                     try await syncEngine.processPendingDatabaseChanges(scope: .private)
                     try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                    assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                    assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                         """
                         ┌─────────────────────────────────────────────────────────────────────────────────────────┐
                         │ SyncMetadata(                                                                           │

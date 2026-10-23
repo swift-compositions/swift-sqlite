@@ -1,11 +1,11 @@
 #if CloudKit
     #if canImport(CloudKit)
         public import CloudKit
-        public import GRDB
+        import GRDB
         import OSLog
         public import SQL
         import RFC_4122
-        import SQLite
+        public import SQLite
         import Synchronization
 
         extension SyncEngine {
@@ -63,7 +63,7 @@
                 each T1: PrimaryKeyedTable & _SendableMetatype,
                 each T2: PrimaryKeyedTable & _SendableMetatype
             >(
-                for database: any DatabaseWriter,
+                for database: SQLite.Database,
                 tables: repeat (each T1).Type,
                 privateTables: repeat (each T2).Type,
                 mock: Mock,
@@ -103,7 +103,7 @@
                             )
                         )
                     },
-                    userDatabase: UserDatabase(database: database),
+                    userDatabase: UserDatabase(database: database.writer),
                     logger: Logger(.disabled),
                     delegate: delegate,
                     tables: allTables,

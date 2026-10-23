@@ -1,5 +1,4 @@
 #if GRDB
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -12,14 +11,15 @@
     }
 
     @Suite struct `The statement cache` {
-        let queue: DatabaseQueue
+        let queue: SQLite.Database
 
         init() throws {
-            queue = try DatabaseQueue()
+            queue = try SQLite.Database()
             try queue.write { database in
-                try database.execute(
-                    sql: #"CREATE TABLE "record" ("id" INTEGER PRIMARY KEY, "value" TEXT NOT NULL)"#
+                try #sql(
+                    #"CREATE TABLE "record" ("id" INTEGER PRIMARY KEY, "value" TEXT NOT NULL)"#
                 )
+                .execute(database)
                 for id in 1...10 {
                     try Record.insert { Record(id: id, value: "value \(id)") }.execute(database)
                 }
@@ -60,7 +60,7 @@
         @Test func `survives a schema change between uses`() throws {
             try queue.write { database in
                 #expect(try Record.all.fetchCount(database) == 10)
-                try database.execute(sql: #"ALTER TABLE "record" ADD COLUMN "extra" TEXT"#)
+                try #sql(#"ALTER TABLE "record" ADD COLUMN "extra" TEXT"#).execute(database)
                 #expect(try Record.all.fetchCount(database) == 10)
                 #expect(try Record.where { $0.id.eq(5) }.fetchOne(database)?.value == "value 5")
             }

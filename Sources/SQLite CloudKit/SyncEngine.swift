@@ -3,7 +3,7 @@
         public import SQLite
         public import CloudKit
         import Byte
-        public import GRDB
+        package import GRDB
         import OrderedCollections
         public import OSLog
         public import RFC_4122
@@ -61,7 +61,7 @@
                 case binding(ISO_9075.Value.Failure)
                 case cancelled
                 case cloudKit(CKError)
-                case database(DatabaseError)
+                case database(SQLite.Error)
                 case schema(SchemaError)
                 case underlying(NSError)
                 case unencodableColumns(recordName: String, [String: Error])
@@ -73,7 +73,8 @@
                         switch error {
                         case let error as Error: error
                         case let error as CKError: .cloudKit(error)
-                        case let error as DatabaseError: .database(error)
+                        case let error as DatabaseError: .database(SQLite.Error(error))
+                        case let error as SQLite.Error: .database(error)
                         case let error as SchemaError: .schema(error)
                         case let error as ISO_9075.Value.Failure: .binding(error)
                         case is CancellationError: .cancelled
@@ -91,7 +92,7 @@
                 each T1: PrimaryKeyedTable & _SendableMetatype,
                 each T2: PrimaryKeyedTable & _SendableMetatype
             >(
-                for database: any DatabaseWriter,
+                for database: SQLite.Database,
                 tables: repeat (each T1).Type,
                 privateTables: repeat (each T2).Type,
                 containerIdentifier: String? = nil,
@@ -124,7 +125,7 @@
                 for privateTable in repeat each privateTables {
                     allPrivateTables.append(SynchronizedTable(for: privateTable))
                 }
-                let userDatabase = UserDatabase(database: database)
+                let userDatabase = UserDatabase(database: database.writer)
 
                 guard context == .live
                 else {
@@ -2252,8 +2253,21 @@
             }
         }
 
-        extension Database {
+        extension SQLite.Connection {
+            /// Attaches the sync engine's metadatabase to this connection, as sqlite-data's `attachMetadatabase`: call it
+            /// from ``SQLite/Configuration/prepareDatabase(_:)`` to query `SyncMetadata` alongside the synced tables.
             public func attachMetadatabase(
+                containerIdentifier: String? = nil,
+                context: SyncEngine.Context = .live
+            ) throws {
+                try translatingErrors {
+                    try database.attachMetadatabase(containerIdentifier: containerIdentifier, context: context)
+                }
+            }
+        }
+
+        extension GRDB.Database {
+            package func attachMetadatabase(
                 containerIdentifier: String? = nil,
                 context: SyncEngine.Context = .live
             ) throws {

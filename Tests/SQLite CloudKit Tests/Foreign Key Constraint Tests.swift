@@ -46,7 +46,7 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertQuery(Reminder.all, database: userDatabase.database) {
+                assertQuery(Reminder.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌───────────────────────┐
                     │ Reminder(             │
@@ -60,7 +60,7 @@
                     └───────────────────────┘
                     """
                 }
-                assertQuery(RemindersList.all, database: userDatabase.database) {
+                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌─────────────────────┐
                     │ RemindersList(      │
@@ -121,7 +121,7 @@
                 _ = try syncEngine.modifyRecords(scope: .private, saving: [modelBRecord])
                 try await syncEngine.modifyRecords(scope: .private, saving: [modelCRecord]).notify()
 
-                assertQuery(ModelA.all, database: userDatabase.database) {
+                assertQuery(ModelA.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌────────────────┐
                     │ ModelA(        │
@@ -132,17 +132,17 @@
                     └────────────────┘
                     """
                 }
-                assertQuery(ModelB.all, database: userDatabase.database) {
+                assertQuery(ModelB.all, database: userDatabase.sqliteDatabase) {
                     """
                     (No results)
                     """
                 }
-                assertQuery(ModelC.all, database: userDatabase.database) {
+                assertQuery(ModelC.all, database: userDatabase.sqliteDatabase) {
                     """
                     (No results)
                     """
                 }
-                assertQuery(UnsyncedRecordID.all, database: syncEngine.metadatabase) {
+                assertQuery(UnsyncedRecordID.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     ┌─────────────────────────────────┐
                     │ UnsyncedRecordID(               │
@@ -160,7 +160,7 @@
                 )
                 .notify()
 
-                assertQuery(ModelA.all, database: userDatabase.database) {
+                assertQuery(ModelA.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌────────────────┐
                     │ ModelA(        │
@@ -171,17 +171,17 @@
                     └────────────────┘
                     """
                 }
-                assertQuery(ModelB.all, database: userDatabase.database) {
+                assertQuery(ModelB.all, database: userDatabase.sqliteDatabase) {
                     """
                     (No results)
                     """
                 }
-                assertQuery(ModelC.all, database: userDatabase.database) {
+                assertQuery(ModelC.all, database: userDatabase.sqliteDatabase) {
                     """
                     (No results)
                     """
                 }
-                assertQuery(UnsyncedRecordID.all, database: syncEngine.metadatabase) {
+                assertQuery(UnsyncedRecordID.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     (No results)
                     """
@@ -244,7 +244,7 @@
                 )
                 .notify()
 
-                assertQuery(Reminder.all, database: userDatabase.database) {
+                assertQuery(Reminder.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌───────────────────────┐
                     │ Reminder(             │
@@ -258,7 +258,7 @@
                     └───────────────────────┘
                     """
                 }
-                assertQuery(RemindersList.all, database: userDatabase.database) {
+                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌─────────────────────┐
                     │ RemindersList(      │
@@ -325,7 +325,7 @@
                 _ = try syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord])
                 try await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord]).notify()
 
-                assertQuery(Reminder.all, database: userDatabase.database) {
+                assertQuery(Reminder.all, database: userDatabase.sqliteDatabase) {
                     """
                     (No results)
                     """
@@ -351,7 +351,7 @@
 
                 assertQuery(
                     SyncMetadata.order(by: \.recordName).select { ($0.recordName, $0.parentRecordName) },
-                    database: syncEngine.metadatabase
+                    database: SQLite.Database(syncEngine.metadatabase)
                 ) {
                     """
                     ┌────────────────────┬────────────────────┐
@@ -360,7 +360,7 @@
                     └────────────────────┴────────────────────┘
                     """
                 }
-                assertQuery(Reminder.all, database: userDatabase.database) {
+                assertQuery(Reminder.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌───────────────────────┐
                     │ Reminder(             │
@@ -374,7 +374,7 @@
                     └───────────────────────┘
                     """
                 }
-                assertQuery(RemindersList.all, database: userDatabase.database) {
+                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌─────────────────────┐
                     │ RemindersList(      │
@@ -393,7 +393,7 @@
                     try await relaunchedSyncEngine.processPendingRecordZoneChanges(scope: .private)
                 }
 
-                assertQuery(Reminder.all, database: userDatabase.database) {
+                assertQuery(Reminder.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌───────────────────────┐
                     │ Reminder(             │
@@ -493,7 +493,7 @@
 
                 assertQuery(
                     SyncMetadata.order(by: \.recordName).select { ($0.recordName, $0.parentRecordName) },
-                    database: syncEngine.metadatabase
+                    database: SQLite.Database(syncEngine.metadatabase)
                 ) {
                     """
                     ┌────────────────────┬────────────────────┐
@@ -503,7 +503,7 @@
                     └────────────────────┴────────────────────┘
                     """
                 }
-                assertQuery(Reminder.all, database: userDatabase.database) {
+                assertQuery(Reminder.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌───────────────────────┐
                     │ Reminder(             │
@@ -517,7 +517,7 @@
                     └───────────────────────┘
                     """
                 }
-                assertQuery(RemindersList.all, database: userDatabase.database) {
+                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌─────────────────────┐
                     │ RemindersList(      │
@@ -612,7 +612,7 @@
 
                 assertQuery(
                     SyncMetadata.select { ($0.recordName, $0.parentRecordName) },
-                    database: syncEngine.metadatabase
+                    database: SQLite.Database(syncEngine.metadatabase)
                 ) {
                     """
                     ┌────────────────────┬────────────────────┐
@@ -623,7 +623,7 @@
                     └────────────────────┴────────────────────┘
                     """
                 }
-                assertQuery(Reminder.all, database: userDatabase.database) {
+                assertQuery(Reminder.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌───────────────────────┐
                     │ Reminder(             │
@@ -692,7 +692,7 @@
 
                 assertQuery(
                     SyncMetadata.select { ($0.recordName, $0.parentRecordName) },
-                    database: syncEngine.metadatabase
+                    database: SQLite.Database(syncEngine.metadatabase)
                 ) {
                     """
                     ┌────────────────────┬────────────────────┐
@@ -703,7 +703,7 @@
                     └────────────────────┴────────────────────┘
                     """
                 }
-                assertQuery(Reminder.all, database: userDatabase.database) {
+                assertQuery(Reminder.all, database: userDatabase.sqliteDatabase) {
                     """
                     ┌───────────────────────┐
                     │ Reminder(             │
@@ -802,7 +802,7 @@
                     }
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-                assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
                     """
                     (No results)
                     """

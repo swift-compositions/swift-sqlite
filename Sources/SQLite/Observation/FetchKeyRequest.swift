@@ -1,19 +1,19 @@
 #if Observation
-    public import GRDB
     internal import ISO_9075_Foundation
     internal import SQL
+    internal import GRDB
 
     public protocol FetchKeyRequest<Value>: Sendable {
         associatedtype Value
 
-        func fetch(_ database: GRDB.Database) throws -> Value
+        func fetch(_ connection: SQLite.Connection) throws -> Value
     }
 
     struct StatementValue<QueryValue: QueryRepresentable>: FetchKeyRequest {
         let query: ISO_9075.Fragment
 
-        func fetch(_ database: GRDB.Database) throws -> QueryValue.QueryOutput? {
-            try QueryValueCursor<QueryValue>(db: database, query: query, cached: true).next()
+        func fetch(_ connection: SQLite.Connection) throws -> QueryValue.QueryOutput? {
+            try QueryValueCursor<QueryValue>(db: connection.database, query: query, cached: true).next()
         }
     }
 
@@ -21,8 +21,8 @@
         let base: Base
         let value: Wrapped
 
-        func fetch(_ database: GRDB.Database) throws -> Wrapped {
-            try base.fetch(database) ?? value
+        func fetch(_ connection: SQLite.Connection) throws -> Wrapped {
+            try base.fetch(connection) ?? value
         }
     }
 #endif

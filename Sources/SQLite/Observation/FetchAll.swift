@@ -1,5 +1,5 @@
 #if Observation
-    public import GRDB
+    internal import GRDB
     public import SQL
 
     @MainActor
@@ -18,8 +18,8 @@
         public init<QueryValue: QueryRepresentable>(
             wrappedValue: [Element] = [],
             _ statement: some SQL::Statement<QueryValue>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) where Element == QueryValue.QueryOutput {
             self.init(wrappedValue: wrappedValue)
             projectedValue.start(statement, database: database, scheduling: scheduler)
@@ -27,8 +27,8 @@
 
         public init(
             wrappedValue: [Element] = [],
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) where Element: SQL::Table, Element.QueryOutput == Element {
             self.init(wrappedValue: wrappedValue)
             let statement: Select<Element, Element, ()> = Element.all.selectStar()
@@ -38,8 +38,8 @@
         public init(
             wrappedValue: [Element] = [],
             @SectionBuilder<String?> sectionBy sectioning: (Element.TableColumns) -> Sectioning<String?>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) where Element: SQL::Table, Element.QueryOutput == Element {
             self.init(wrappedValue: wrappedValue)
             projectedValue.start(
@@ -53,8 +53,8 @@
         public init<S: SelectStatement>(
             wrappedValue: [Element] = [],
             _ statement: S,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) where S.QueryValue == (), S.From == Element, S.Joins == (), Element.QueryOutput == Element {
             self.init(wrappedValue: wrappedValue)
             let statement: Select<Element, Element, ()> = statement.selectStar()
@@ -65,8 +65,8 @@
             wrappedValue: [Element] = [],
             _ statement: S,
             @SectionBuilder<String?> sectionBy sectioning: (Element.TableColumns) -> Sectioning<String?>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) where S.QueryValue == (), S.From == Element, S.Joins == (), Element.QueryOutput == Element {
             self.init(wrappedValue: wrappedValue)
             projectedValue.start(
@@ -81,8 +81,8 @@
             wrappedValue: [Element] = [],
             _ statement: Select<QueryValue, From, ()>,
             @SectionBuilder<String?> sectionBy sectioning: (From.TableColumns) -> Sectioning<String?>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) where Element == QueryValue.QueryOutput {
             self.init(wrappedValue: wrappedValue)
             projectedValue.start(statement, sectionBy: sectioning(From.columns), database: database, scheduling: scheduler)
@@ -93,8 +93,8 @@
         // Starting without waiting for the first value, as the property wrappers do.
         func start<Element: Sendable, QueryValue: QueryRepresentable>(
             _ statement: some SQL::Statement<QueryValue>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) where Value == ResultsSectionCollection<Element, String?>, Element == QueryValue.QueryOutput {
             start(Unsectioned<QueryValue>(query: statement.query), database: database, scheduling: scheduler)
         }
@@ -102,8 +102,8 @@
         func start<Element: Sendable>(
             _ statement: Select<(), Element, ()>,
             sectionBy sectioning: Sectioning<String?>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) where Value == ResultsSectionCollection<Element, String?>, Element: SQL::Table, Element.QueryOutput == Element {
             let sectioned: Select<(Element, String?), Element, ()> = sectionedColumns(of: Element.self, sectioning) + statement
             start(Sectioned<Element>(query: sectioned.query), database: database, scheduling: scheduler)
@@ -112,8 +112,8 @@
         func start<Element: Sendable, QueryValue: QueryRepresentable, From: SQL::Table>(
             _ statement: Select<QueryValue, From, ()>,
             sectionBy sectioning: Sectioning<String?>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) where Value == ResultsSectionCollection<Element, String?>, Element == QueryValue.QueryOutput {
             let ordered: Select<QueryValue, From, ()> = sectionedOrder(of: From.self, sectioning) + statement
             let sectioned: Select<(QueryValue, String?), From, ()> = ordered + sectionedColumn(of: From.self, sectioning)
@@ -126,8 +126,8 @@
         @discardableResult
         public func load<Element: Sendable, QueryValue: QueryRepresentable>(
             _ statement: some SQL::Statement<QueryValue>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) async throws -> FetchSubscription where Value == ResultsSectionCollection<Element, String?>, Element == QueryValue.QueryOutput {
             return try await load(Unsectioned<QueryValue>(query: statement.query), database: database, scheduling: scheduler)
         }
@@ -136,8 +136,8 @@
         public func load<Element: Sendable>(
             _ statement: Select<(), Element, ()>,
             sectionBy sectioning: Sectioning<String?>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) async throws -> FetchSubscription where Value == ResultsSectionCollection<Element, String?>, Element: SQL::Table, Element.QueryOutput == Element {
             let sectioned: Select<(Element, String?), Element, ()> = sectionedColumns(of: Element.self, sectioning) + statement
             return try await load(Sectioned<Element>(query: sectioned.query), database: database, scheduling: scheduler)
@@ -147,8 +147,8 @@
         public func load<Element: Sendable, QueryValue: QueryRepresentable, From: SQL::Table>(
             _ statement: Select<QueryValue, From, ()>,
             sectionBy sectioning: Sectioning<String?>,
-            database: some DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler = .immediate
+            database: SQLite.Database,
+            scheduling scheduler: SQLite.Scheduler = .immediate
         ) async throws -> FetchSubscription where Value == ResultsSectionCollection<Element, String?>, Element == QueryValue.QueryOutput {
             let ordered: Select<QueryValue, From, ()> = sectionedOrder(of: From.self, sectioning) + statement
             let sectioned: Select<(QueryValue, String?), From, ()> = ordered + sectionedColumn(of: From.self, sectioning)
@@ -159,9 +159,9 @@
     struct Unsectioned<QueryValue: QueryRepresentable>: FetchKeyRequest where QueryValue.QueryOutput: Sendable {
         let query: ISO_9075.Fragment
 
-        func fetch(_ database: GRDB.Database) throws -> ResultsSectionCollection<QueryValue.QueryOutput, String?> {
+        func fetch(_ connection: SQLite.Connection) throws -> ResultsSectionCollection<QueryValue.QueryOutput, String?> {
             ResultsSectionCollection(
-                elements: try Array(QueryValueCursor<QueryValue>(db: database, query: query, cached: true)),
+                elements: try Array(QueryValueCursor<QueryValue>(db: connection.database, query: query, cached: true)),
                 sectionName: nil
             )
         }
@@ -170,9 +170,9 @@
     struct Sectioned<QueryValue: QueryRepresentable>: FetchKeyRequest where QueryValue.QueryOutput: Sendable {
         let query: ISO_9075.Fragment
 
-        func fetch(_ database: GRDB.Database) throws -> ResultsSectionCollection<QueryValue.QueryOutput, String?> {
+        func fetch(_ connection: SQLite.Connection) throws -> ResultsSectionCollection<QueryValue.QueryOutput, String?> {
             try ResultsSectionCollection(
-                cursor: QuerySectionedCursor<QueryValue, String?>(db: database, query: query, cached: true)
+                cursor: QuerySectionedCursor<QueryValue, String?>(db: connection.database, query: query, cached: true)
             )
         }
     }

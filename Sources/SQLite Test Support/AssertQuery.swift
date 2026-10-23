@@ -1,16 +1,15 @@
 #if GRDB
     import CustomDump
-    public import GRDB
     import InlineSnapshotTesting
     public import SQL
-    import SQLite
+    public import SQLite
     import SQL_Test_Support
 
     @_disfavoredOverload
     public func assertQuery<each V: QueryRepresentable, S: SQL::Statement<(repeat each V)>>(
         includeSQL: Bool = false,
         _ query: S,
-        database: some DatabaseReader,
+        database: SQLite.Database,
         sql: (() -> String)? = nil,
         results: (() -> String)? = nil,
         fileID: StaticString = #fileID,
@@ -32,7 +31,7 @@
     public func assertQuery<S: SelectStatement, each J: SQL::Table>(
         includeSQL: Bool = false,
         _ query: S,
-        database: some DatabaseReader,
+        database: SQLite.Database,
         sql: (() -> String)? = nil,
         results: (() -> String)? = nil,
         fileID: StaticString = #fileID,
@@ -59,7 +58,7 @@
     public func assertQuery<each V: QueryRepresentable, S: SQL::Statement<(repeat each V)>>(
         includeSQL: Bool = false,
         _ statement: S,
-        writing database: some DatabaseWriter,
+        writing database: SQLite.Database,
         sql: (() -> String)? = nil,
         results: (() -> String)? = nil,
         fileID: StaticString = #fileID,
@@ -81,7 +80,7 @@
     public func assertQuery<S: SelectStatement, each J: SQL::Table>(
         includeSQL: Bool = false,
         _ query: S,
-        writing database: some DatabaseWriter,
+        writing database: SQLite.Database,
         sql: (() -> String)? = nil,
         results: (() -> String)? = nil,
         fileID: StaticString = #fileID,

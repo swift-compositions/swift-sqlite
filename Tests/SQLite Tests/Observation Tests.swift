@@ -1,5 +1,4 @@
 #if Observation
-    import GRDB
     import ISO_9075_Call_Level_Interface
     import SQLite
     import Testing
@@ -11,8 +10,8 @@
     }
 
     extension `Observation Tests` {
-        static func database() async throws -> SQLite.Database<DatabaseQueue> {
-            let database = SQLite.Database(try DatabaseQueue())
+        static func database() async throws -> SQLite.Database {
+            let database = try SQLite.Database()
             _ = try await database.execute(#"CREATE TABLE "reminder" ("title" TEXT NOT NULL)"#)
             _ = try await database.execute(#"CREATE TABLE "note" ("body" TEXT NOT NULL)"#)
             _ = try await database.execute(#"INSERT INTO "reminder" VALUES ('Groceries')"#)

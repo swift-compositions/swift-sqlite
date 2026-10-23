@@ -1,5 +1,4 @@
 #if GRDB
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -14,16 +13,17 @@
 
     @Suite struct `A timestamp column` {
         @Test func `round-trips an instant through insert and update`() throws {
-            let queue = try DatabaseQueue()
+            let queue = try SQLite.Database()
             try queue.write { database in
-                try database.execute(
-                    sql: """
+                try #sql(
+                    """
                         CREATE TABLE "record" (
                           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
                           "instant" TEXT NOT NULL
                         ) STRICT
                         """
                 )
+                .execute(database)
             }
             let instant = try Time.Instant(secondsSinceUnixEpoch: 1_771_416_482, nanosecondFraction: 61_000_000)
             let inserted = try #require(

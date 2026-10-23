@@ -45,7 +45,7 @@
             }
 
             @Test func `deleting in a preview`() async throws {
-                @FetchAll(database: userDatabase.database) var remindersLists: [RemindersList]
+                @FetchAll(database: userDatabase.sqliteDatabase) var remindersLists: [RemindersList]
 
                 try await userDatabase.userWrite { db in
                     try db.seed {
@@ -54,7 +54,7 @@
                 }
 
                 await testClock.advance(by: .seconds(1))
-                try await $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.database)
+                try await $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.sqliteDatabase)
                 #expect(remindersLists.count == 1)
                 assertInlineSnapshot(of: container, as: .customDump) {
                     """
@@ -83,11 +83,11 @@
                 try await userDatabase.userWrite { db in
                     try RemindersList.delete().execute(db)
                 }
-                try await $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.database)
+                try await $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.sqliteDatabase)
                 #expect(remindersLists.count == 0)
 
                 await testClock.advance(by: .seconds(1))
-                try await $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.database)
+                try await $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.sqliteDatabase)
                 #expect(remindersLists.count == 0)
                 assertInlineSnapshot(of: container, as: .customDump) {
                     """

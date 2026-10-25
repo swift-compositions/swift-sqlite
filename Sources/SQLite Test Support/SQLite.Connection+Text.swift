@@ -71,11 +71,13 @@
             columns.firstIndex(of: name).flatMap { try? value(at: $0) } ?? .null
         }
 
-        /// The value of the column named `name`, as `Value`.
-        public subscript<Value: QueryRepresentable>(_ name: String) -> Value.QueryOutput {
-            get throws {
-                var decoder = SQLite.Row.Decoder(value: self[name])
-                return try Value(decoder: &decoder).queryOutput
+        /// The value of the column named `name`, decoded as `Value`; a value of another type is a test's mistake and stops it.
+        public subscript<Value: QueryDecodable>(_ name: String) -> Value {
+            var decoder = SQLite.Row.Decoder(value: self[name])
+            do {
+                return try Value(decoder: &decoder)
+            } catch {
+                preconditionFailure("column \(name) is not a \(Value.self): \(error)")
             }
         }
     }
@@ -93,7 +95,7 @@
             case .int(let number): String(number)
             case .double(let number): String(number)
             case .text(let text): "'" + text.replacing("'", with: "''") + "'"
-            case .blob(let bytes), .json(let bytes): "x'" + bytes.map { String($0.rawValue, radix: 16).leftPadding(2) }.joined() + "'"
+            case .blob(let bytes), .json(let bytes): "x'" + bytes.map { String($0.bitPattern, radix: 16).leftPadding(2) }.joined() + "'"
             default: "\(value)"
             }
         }

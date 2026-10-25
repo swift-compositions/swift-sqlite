@@ -8,17 +8,17 @@ public import SQLite_SQL
     extension SQLite.Connection {
         /// Adds `collation` to this connection. Call it from ``SQLite/Configuration/prepareDatabase(_:)`` to have it on
         /// every connection.
-        public func add(collation: some DatabaseCollation) {
+        public func add(collation: some SQLite_SQL.DatabaseCollation) {
             database.add(collation: collation)
         }
 
-        public func remove(collation: some DatabaseCollation) {
+        public func remove(collation: some SQLite_SQL.DatabaseCollation) {
             database.remove(collation: collation)
         }
     }
 
     extension GRDB.Database {
-        package func add(collation: some DatabaseCollation) {
+        package func add(collation: some SQLite_SQL.DatabaseCollation) {
             unsafe sqlite3_create_collation_v2(
                 sqliteConnection,
                 collation.name,
@@ -46,7 +46,7 @@ public import SQLite_SQL
                 }
             )
         }
-        package func remove(collation: some DatabaseCollation) {
+        package func remove(collation: some SQLite_SQL.DatabaseCollation) {
             unsafe sqlite3_create_collation_v2(
                 sqliteConnection,
                 collation.name,
@@ -61,7 +61,7 @@ public import SQLite_SQL
     extension Collation where Self == CanonicalCollation {
         public static var canonical: Self { Self() }
     }
-    public nonisolated struct CanonicalCollation: DatabaseCollation, Sendable {
+    public nonisolated struct CanonicalCollation: SQLite_SQL.DatabaseCollation, Sendable {
         public var name: String { "canonical" }
         public init() {}
         public func compare(
@@ -79,8 +79,8 @@ public import SQLite_SQL
     }
 
     private final class DatabaseCollationDefinition {
-        let collation: any DatabaseCollation
-        init(_ collation: some DatabaseCollation) {
+        let collation: any SQLite_SQL.DatabaseCollation
+        init(_ collation: some SQLite_SQL.DatabaseCollation) {
             self.collation = collation
         }
     }

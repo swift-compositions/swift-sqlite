@@ -10,21 +10,21 @@ public import SQLite_SQL
     extension SQLite.Connection {
         /// Adds `function` to this connection, for every statement it executes after. Call it from
         /// ``SQLite/Configuration/prepareDatabase(_:)`` to have it on every connection.
-        public func add(function: some ScalarDatabaseFunction) {
+        public func add(function: some SQLite_SQL.ScalarDatabaseFunction) {
             database.add(function: function)
         }
 
-        public func add(function: some AggregateDatabaseFunction) {
+        public func add(function: some SQLite_SQL.AggregateDatabaseFunction) {
             database.add(function: function)
         }
 
-        public func remove(function: some DatabaseFunction) {
+        public func remove(function: some SQLite_SQL.DatabaseFunction) {
             database.remove(function: function)
         }
     }
 
     extension GRDB.Database {
-        package func add(function: some ScalarDatabaseFunction) {
+        package func add(function: some SQLite_SQL.ScalarDatabaseFunction) {
             unsafe sqlite3_create_function_v2(
                 sqliteConnection,
                 function.name,
@@ -53,7 +53,7 @@ public import SQLite_SQL
             )
         }
 
-        package func add(function: some AggregateDatabaseFunction) {
+        package func add(function: some SQLite_SQL.AggregateDatabaseFunction) {
             let body = unsafe Unmanaged.passRetained(AggregateDatabaseFunctionDefinition(function)).toOpaque()
             unsafe sqlite3_create_function_v2(
                 sqliteConnection,
@@ -91,7 +91,7 @@ public import SQLite_SQL
             )
         }
 
-        package func remove(function: some DatabaseFunction) {
+        package func remove(function: some SQLite_SQL.DatabaseFunction) {
             unsafe sqlite3_create_function_v2(
                 sqliteConnection,
                 function.name,
@@ -106,7 +106,7 @@ public import SQLite_SQL
         }
     }
 
-    extension DatabaseFunction {
+    extension SQLite_SQL.DatabaseFunction {
         fileprivate var argumentCount: Int32 {
             Int32(argumentCount ?? -1)
         }
@@ -117,17 +117,17 @@ public import SQLite_SQL
     }
 
     private final class ScalarDatabaseFunctionDefinition {
-        let function: any ScalarDatabaseFunction
+        let function: any SQLite_SQL.ScalarDatabaseFunction
         var decoder: SQLiteFunctionDecoder
-        init(_ function: some ScalarDatabaseFunction) {
+        init(_ function: some SQLite_SQL.ScalarDatabaseFunction) {
             self.function = function
             self.decoder = SQLiteFunctionDecoder(name: function.name)
         }
     }
 
     private final class AggregateDatabaseFunctionDefinition {
-        let function: any AggregateDatabaseFunction
-        init(_ function: some AggregateDatabaseFunction) {
+        let function: any SQLite_SQL.AggregateDatabaseFunction
+        init(_ function: some SQLite_SQL.AggregateDatabaseFunction) {
             self.function = function
         }
     }
@@ -154,14 +154,14 @@ public import SQLite_SQL
         }
         let iterator: any AggregateDatabaseFunctionIteratorProtocol
         var decoder: SQLiteFunctionDecoder
-        init(_ body: some AggregateDatabaseFunction) {
+        init(_ body: some SQLite_SQL.AggregateDatabaseFunction) {
             self.iterator = AggregateDatabaseFunctionIterator(body)
             self.decoder = SQLiteFunctionDecoder(name: body.name)
         }
     }
 
     private protocol AggregateDatabaseFunctionIteratorProtocol<Body> {
-        associatedtype Body: AggregateDatabaseFunction
+        associatedtype Body: SQLite_SQL.AggregateDatabaseFunction
 
         var body: Body { get }
         func step(_ decoder: inout some QueryDecoder) throws
@@ -169,7 +169,7 @@ public import SQLite_SQL
     }
 
     private final class AggregateDatabaseFunctionIterator<
-        Body: AggregateDatabaseFunction
+        Body: SQLite_SQL.AggregateDatabaseFunction
     >: AggregateDatabaseFunctionIteratorProtocol {
         let body: Body
         var elements: [Body.Element] = []

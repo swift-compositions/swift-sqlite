@@ -3,6 +3,7 @@ public import SQLite_SQL
     package import GRDB
     internal import GRDBSQLite
     public import ISO_9075_Call_Level_Interface
+    public import SQL
 
     extension SQLite {
         public struct Row: ISO_9075.Row {
@@ -101,6 +102,13 @@ public import SQLite_SQL
         public enum Completion: Sendable {
             case commit
             case rollback
+        }
+    }
+
+    extension SQLite.Row {
+        /// Every row `statement` returns, each column by name, whatever its type: for a reader that compares whole rows.
+        public static func fetchAll(_ connection: SQLite.Connection, _ statement: some SQL::Statement) throws(ISO_9075.Error) -> [SQLite.Row] {
+            try connection.fetchAll(connection.dialect.render(statement.query)) { $0 }
         }
     }
 

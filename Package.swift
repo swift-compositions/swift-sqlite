@@ -13,6 +13,7 @@ let package = Package(
         .visionOS(.v27),
     ],
     products: [
+        .library(name: "SQLite SQL", targets: ["SQLite SQL"]),
         .library(name: "SQLite", targets: ["SQLite"]),
         .library(name: "SQLite CloudKit", targets: ["SQLite CloudKit"]),
         .library(name: "SQLite Test Support", targets: ["SQLite Test Support"]),
@@ -43,10 +44,27 @@ let package = Package(
         .package(url: "https://github.com/swift-atoms/swift-time.git", branch: "main"),
     ],
     targets: [
+        // SQLite's dialect as statements and expressions: functions, FTS5, JSON, dates, pragmas, triggers, views and the
+        // schema table. It runs nothing, so a target that depends on it alone can build every statement and execute none.
+        .target(
+            name: "SQLite SQL",
+            dependencies: [
+                "SQLite Macros Implementation",
+                .product(name: "SQL", package: "swift-sql"),
+                .product(name: "SQL Macros", package: "swift-sql"),
+                .product(name: "ISO 9075 Foundation", package: "swift-iso-9075"),
+                .product(name: "Byte", package: "swift-byte"),
+                .product(name: "Order", package: "swift-order"),
+                .product(name: "Time", package: "swift-time"),
+                .product(name: "RFC 4122", package: "swift-rfc-4122"),
+                .product(name: "Tagged", package: "swift-tagged", condition: .when(traits: ["Tagged"])),
+            ]
+        ),
+        // The database: connections, execution, observation, over GRDB as a private driver.
         .target(
             name: "SQLite",
             dependencies: [
-                "SQLite Macros Implementation",
+                "SQLite SQL",
                 .product(name: "SQL", package: "swift-sql"),
                 .product(name: "SQL Macros", package: "swift-sql"),
                 .product(name: "ISO 9075 Foundation", package: "swift-iso-9075"),

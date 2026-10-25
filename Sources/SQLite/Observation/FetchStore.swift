@@ -1,3 +1,4 @@
+public import SQLite_SQL
 #if Observation
     internal import GRDB
     public import ISO_9075_Call_Level_Interface

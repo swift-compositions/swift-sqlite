@@ -1,3 +1,4 @@
+public import SQLite_SQL
 #if Observation
     internal import Dispatch
     internal import GRDB

@@ -1,3 +1,4 @@
+public import SQLite_SQL
 #if GRDB
     internal import Byte
     package import GRDB

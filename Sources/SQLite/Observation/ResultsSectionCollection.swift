@@ -1,3 +1,4 @@
+public import SQLite_SQL
 #if GRDB
     internal import GRDB
     internal import OrderedCollections

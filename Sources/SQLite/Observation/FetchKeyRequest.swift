@@ -1,3 +1,4 @@
+public import SQLite_SQL
 #if Observation
     internal import ISO_9075_Foundation
     internal import SQL

@@ -1,3 +1,4 @@
+public import SQLite_SQL
 #if GRDB
     package import GRDB
     public import ISO_9075_Call_Level_Interface

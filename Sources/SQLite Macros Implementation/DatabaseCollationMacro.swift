@@ -369,7 +369,7 @@ extension DatabaseCollationMacro: PeerMacro {
         decls.append(
             """
             \(attributes)\(access)\(nonisolated)struct \(collationTypeName): \
-            SQLite::DatabaseCollation {
+            SQLite_SQL::DatabaseCollation {
             public var name: Swift.String {
             \(databaseCollationName)
             }

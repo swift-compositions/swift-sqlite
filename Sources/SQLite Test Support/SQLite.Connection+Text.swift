@@ -1,6 +1,7 @@
 #if GRDB
     package import GRDB
     public import ISO_9075_Foundation
+    import Byte
     public import SQL
     public import SQLite
 

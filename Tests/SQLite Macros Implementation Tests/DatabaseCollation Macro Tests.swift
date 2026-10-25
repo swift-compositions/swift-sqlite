@@ -34,7 +34,7 @@ struct `DatabaseCollation macro` {
               localized(arg0, arg1)
             }
 
-            private nonisolated struct __macro_local_9localizedfMu_: SQLite::DatabaseCollation {
+            private nonisolated struct __macro_local_9localizedfMu_: SQLite_SQL::DatabaseCollation {
               public var name: Swift.String {
                 "localized"
               }
@@ -79,7 +79,7 @@ struct `DatabaseCollation macro` {
               unsafe bytes(arg0, arg1)
             }
 
-            nonisolated struct __macro_local_5bytesfMu_: SQLite::DatabaseCollation {
+            nonisolated struct __macro_local_5bytesfMu_: SQLite_SQL::DatabaseCollation {
               public var name: Swift.String {
                 "bytes"
               }
@@ -129,7 +129,7 @@ struct `DatabaseCollation macro` {
               text(arg0, arg1)
             }
 
-            nonisolated struct __macro_local_4textfMu_: SQLite::DatabaseCollation {
+            nonisolated struct __macro_local_4textfMu_: SQLite_SQL::DatabaseCollation {
               public var name: Swift.String {
                 "text"
               }
@@ -187,7 +187,7 @@ struct `DatabaseCollation macro` {
               spans(arg0, arg1)
             }
 
-            nonisolated struct __macro_local_5spansfMu_: SQLite::DatabaseCollation {
+            nonisolated struct __macro_local_5spansfMu_: SQLite_SQL::DatabaseCollation {
               public var name: Swift.String {
                 "spans"
               }

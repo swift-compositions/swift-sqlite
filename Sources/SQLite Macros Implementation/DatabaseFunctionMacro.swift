@@ -135,7 +135,7 @@ extension DatabaseFunctionMacro: PeerMacro {
                     baseIsWeak
                     ? #"""
                     guard let base else {
-                    throw SQLite::_DatabaseFunctionDeallocated(
+                    throw SQLite_SQL::_DatabaseFunctionDeallocated(
                     """
                     Failed to invoke '\#(rawDeclarationName.trimmed)'; '\#(baseType)' was deallocated
                     """
@@ -215,7 +215,7 @@ extension DatabaseFunctionMacro: PeerMacro {
             decls.append(
                 """
                 \(attributes)\(access)\(nonisolated)struct \(functionTypeName): \
-                SQLite::ScalarDatabaseFunction, \
+                SQLite_SQL::ScalarDatabaseFunction, \
                 SQL::QueryExpression {
                 public typealias Input = ()
                 public typealias Output = \(raw: representableOutputType)
@@ -455,7 +455,7 @@ extension DatabaseFunctionMacro: PeerMacro {
 
                 argumentCounts.append("\(type)")
                 decodings.append(
-                    "let \(secondName) = try decoder.decode(SQLite::_requireQueryRepresentable(\(type).self))"
+                    "let \(secondName) = try decoder.decode(SQLite_SQL::_requireQueryRepresentable(\(type).self))"
                 )
                 decodingUnwrappings.append(
                     "guard let \(secondName) else { throw InvalidInvocation() }"
@@ -548,7 +548,7 @@ extension DatabaseFunctionMacro: PeerMacro {
 
                 argumentCounts.append("\(type)")
                 decodings.append(
-                    "let \(parameterName) = try decoder.decode(SQLite::_requireQueryRepresentable(\(type).self))"
+                    "let \(parameterName) = try decoder.decode(SQLite_SQL::_requireQueryRepresentable(\(type).self))"
                 )
                 decodingUnwrappings.append("guard let \(parameterName) else { throw InvalidInvocation() }")
                 canThrowInvalidInvocation = true
@@ -591,7 +591,7 @@ extension DatabaseFunctionMacro: PeerMacro {
             ? "0"
             : """
             var argumentCount = 0
-            \(argumentCounts.map { "argumentCount += SQLite::_columnWidth(\($0).self)\n" }.joined())\
+            \(argumentCounts.map { "argumentCount += SQLite_SQL::_columnWidth(\($0).self)\n" }.joined())\
             return argumentCount
             """
 
@@ -601,7 +601,7 @@ extension DatabaseFunctionMacro: PeerMacro {
                 guard let base else {
                 return .invalid(
                 ISO_9075_Foundation::ISO_9075.Value.Failure(
-                SQLite::_DatabaseFunctionDeallocated(
+                SQLite_SQL::_DatabaseFunctionDeallocated(
                 """
                 Failed to invoke '\#(declaration.name.trimmed)'; '\#(baseType)' was deallocated
                 """
@@ -868,7 +868,7 @@ extension DatabaseFunctionMacro: PeerMacro {
         decls.append(
             """
             \(attributes)\(access)\(nonisolated)struct \(functionTypeName): \
-            SQLite::\(raw: isAggregate ? "Aggregate" : "Scalar")DatabaseFunction {
+            SQLite_SQL::\(raw: isAggregate ? "Aggregate" : "Scalar")DatabaseFunction {
             public typealias Input = \(raw: representableInputType)
             public typealias Output = \(representableOutputType)
             public var name: Swift.String {

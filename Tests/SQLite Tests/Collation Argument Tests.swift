@@ -41,7 +41,7 @@
         }
     }
 
-    private func ordered(by collation: some SQLite::DatabaseCollation) throws -> [String] {
+    private func ordered(by collation: some SQLite_SQL::DatabaseCollation) throws -> [String] {
         let queue = try SQLite.Database()
         try queue.write { database in
             try #sql(#"CREATE TABLE "word" ("text" TEXT NOT NULL)"#).execute(database)

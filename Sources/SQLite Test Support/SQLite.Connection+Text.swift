@@ -1,4 +1,5 @@
 #if GRDB
+    package import GRDB
     public import ISO_9075_Foundation
     public import SQL
     public import SQLite
@@ -7,9 +8,14 @@
     // points for that text, in tests only: production code builds statements with swift-sql.
 
     extension SQLite.Connection {
-        /// Runs `sql`, binding each `?` outside quotes to the next of `arguments`.
+        /// Runs `sql`, binding each `?` outside quotes to the next of `arguments`. Without arguments, `sql` may hold several
+        /// statements, run in order.
         public func execute(sql: String, arguments: [any QueryBindable] = []) throws {
-            try SQLQueryExpression(ISO_9075.Fragment(text: sql, arguments: arguments)).execute(self)
+            if arguments.isEmpty {
+                try translatingErrors { try database.execute(sql: sql) }
+            } else {
+                try SQLQueryExpression(ISO_9075.Fragment(text: sql, arguments: arguments)).execute(self)
+            }
         }
     }
 

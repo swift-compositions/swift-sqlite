@@ -120,6 +120,7 @@ let package = Package(
                 .product(name: "Byte", package: "swift-byte"),
                 .product(name: "RFC 4122", package: "swift-rfc-4122"),
                 .product(name: "Time", package: "swift-time"),
+                .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["GRDB"])),
                 .product(name: "CustomDump", package: "swift-custom-dump"),
                 .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
             ]

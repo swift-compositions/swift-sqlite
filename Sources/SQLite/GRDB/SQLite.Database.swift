@@ -94,6 +94,17 @@ public import SQLite_SQL
         public func backup(to destination: SQLite.Database) throws {
             try translatingErrors { try writer.backup(to: destination.writer) }
         }
+
+        /// Closes the database's connections. A read or write after this throws.
+        public func close() throws {
+            try translatingErrors {
+                switch writer {
+                case let queue as DatabaseQueue: try queue.close()
+                case let pool as DatabasePool: try pool.close()
+                default: break
+                }
+            }
+        }
     }
 
     extension SQLite.Database {

@@ -45,6 +45,22 @@ public import SQLite_SQL
         }
     }
 
+    extension SQLite.Database {
+        /// ``observe(_:)`` for a read that throws any error, as a typed statement's fetch does.
+        @_disfavoredOverload
+        public func observe<Value: Equatable & Sendable>(
+            _ body: @escaping @Sendable (SQLite.Connection) throws -> Value
+        ) async throws(ISO_9075.Error) -> SQLite.Observation<Value> {
+            try await observe { (connection: SQLite.Connection) throws(ISO_9075.Error) -> Value in
+                do {
+                    return try body(connection)
+                } catch {
+                    throw .observed(error)
+                }
+            }
+        }
+    }
+
     extension ISO_9075.Error {
         fileprivate static func observed(_ error: any Swift.Error) -> Self {
             (error as? Self) ?? .execution("\(error)")

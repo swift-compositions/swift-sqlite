@@ -103,4 +103,27 @@ public import SQLite_SQL
             case rollback
         }
     }
+
+    extension SQLite.Connection: CustomStringConvertible {
+        /// The connection's name, distinct for every open connection of a database: a key for what a caller keeps per
+        /// connection.
+        public var description: String { database.description }
+    }
+
+    extension SQLite.Connection {
+        /// What an observation's read depends on, besides the rows it read.
+        public enum Region: Sendable {
+            /// Every table: a read that answered from what it kept instead of reading still changes with any write.
+            case all
+        }
+
+        /// Makes the observation this connection reads for depend on `region`.
+        public func track(_ region: Region) throws {
+            try translatingErrors {
+                switch region {
+                case .all: try database.registerAccess(to: .fullDatabase)
+                }
+            }
+        }
+    }
 #endif

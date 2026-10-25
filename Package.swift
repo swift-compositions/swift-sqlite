@@ -114,7 +114,12 @@ let package = Package(
             name: "SQLite Test Support",
             dependencies: [
                 "SQLite",
+                .product(name: "SQL", package: "swift-sql"),
                 .product(name: "SQL Test Support", package: "swift-sql"),
+                .product(name: "ISO 9075 Foundation", package: "swift-iso-9075"),
+                .product(name: "Byte", package: "swift-byte"),
+                .product(name: "RFC 4122", package: "swift-rfc-4122"),
+                .product(name: "Time", package: "swift-time"),
                 .product(name: "CustomDump", package: "swift-custom-dump"),
                 .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
             ]

@@ -6,15 +6,13 @@
     import SQLite
     import Testing
 
-    extension SQLite.Connection {
-        /// Migration DDL must invalidate the driver's per-connection schema metadata. A typed fetch alone cannot
-        /// reveal this bug: SQLite reparses statements while GRDB can still return cached column metadata.
-        @Suite struct Schema {
-            @Suite struct Integration {}
-        }
+    /// Migration DDL must invalidate the driver's per-connection schema metadata. A typed fetch alone cannot
+    /// reveal this bug: SQLite reparses statements while GRDB can still return cached column metadata.
+    @Suite struct `A connection's schema cache` {
+        @Suite struct Integration {}
     }
 
-    extension SQLite.Connection.Schema.Integration {
+    extension `A connection's schema cache`.Integration {
         private static func migrator() -> Migrator<SQLite.Database> {
             var migrator = Migrator<SQLite.Database>()
             migrator.register("Create items") { connection throws(ISO_9075.Error) in

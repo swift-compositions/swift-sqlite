@@ -8,17 +8,15 @@ private struct Record {
     let id: Int
 }
 
-extension SQLite.Pragma {
-    @Suite struct Test {
-        @Suite struct Unit {}
+@Suite struct `SQLite pragmas` {
+    @Suite struct Unit {}
 
-        #if GRDB
-            @Suite struct Integration {}
-        #endif
-    }
+    #if GRDB
+        @Suite struct Integration {}
+    #endif
 }
 
-extension SQLite.Pragma.Test.Unit {
+extension `SQLite pragmas`.Unit {
     @Test func `scalar reads render their pragma names`() {
         #expect(SQLite().render(SQLite.Pragma.ForeignKeys.get.query).sql == "PRAGMA foreign_keys")
         #expect(SQLite().render(SQLite.Pragma.DeferForeignKeys.get.query).sql == "PRAGMA defer_foreign_keys")
@@ -70,7 +68,7 @@ extension SQLite.Pragma.Test.Unit {
 #if GRDB
     import GRDB
 
-    extension SQLite.Pragma.Test.Integration {
+    extension `SQLite pragmas`.Integration {
         @Test func `scalar pragmas round trip typed values`() throws {
             let database = try DatabaseQueue()
 

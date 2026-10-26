@@ -30,6 +30,7 @@
             var now = Instant(offset: .zero)
             var nextID = 0
             var sleepers: [Sleeper] = []
+            var sleeps = 0
         }
 
         private let state = Mutex(State())
@@ -53,6 +54,7 @@
                         guard !Task.isCancelled else { return .failure(CancellationError()) }
                         guard deadline > state.now else { return .success(()) }
                         state.sleepers.append(Sleeper(id: id, deadline: deadline, continuation: continuation))
+                        state.sleeps += 1
                         return nil
                     }
                     resumption.map { continuation.resume(with: $0) }
@@ -76,6 +78,17 @@
             .forEach { $0.continuation.resume() }
             for _ in 0..<20 {
                 await Task.detached(priority: .background) { await Task.yield() }.value
+            }
+        }
+
+        /// Advances the clock and waits until something sleeps on it again. A loop that sleeps, works and sleeps again,
+        /// as the sync engine's preview timer does, has then finished the work this advance released, so what it wrote
+        /// can be asserted without racing it (coenttb/work#202).
+        func cycle(by duration: Duration) async {
+            let sleeps = state.withLock { $0.sleeps }
+            await advance(by: duration)
+            for _ in 0..<500 where state.withLock({ $0.sleeps }) == sleeps {
+                try? await Task.sleep(for: .milliseconds(10))
             }
         }
     }

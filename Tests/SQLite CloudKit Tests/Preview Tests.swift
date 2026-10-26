@@ -18,7 +18,7 @@
                         RemindersList(id: 1, title: "Personal")
                     }
                 }
-                await testClock.advance(by: .seconds(1))
+                await testClock.cycle(by: .seconds(1))
                 assertInlineSnapshot(of: container, as: .customDump) {
                     """
                     MockCloudContainer(
@@ -53,7 +53,7 @@
                     }
                 }
 
-                await testClock.advance(by: .seconds(1))
+                await testClock.cycle(by: .seconds(1))
                 try await $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.sqliteDatabase)
                 #expect(remindersLists.count == 1)
                 assertInlineSnapshot(of: container, as: .customDump) {
@@ -86,7 +86,7 @@
                 try await $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.sqliteDatabase)
                 #expect(remindersLists.count == 0)
 
-                await testClock.advance(by: .seconds(1))
+                await testClock.cycle(by: .seconds(1))
                 try await $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.sqliteDatabase)
                 #expect(remindersLists.count == 0)
                 assertInlineSnapshot(of: container, as: .customDump) {

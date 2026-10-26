@@ -26,6 +26,14 @@
             <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "SQLite CloudKit Tests" BuildableName = "SQLite CloudKit Tests" BlueprintName = "SQLite CloudKit Tests" ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry buildForTesting = "YES" buildForRunning = "NO" buildForProfiling = "NO" buildForArchiving = "NO" buildForAnalyzing = "YES">
+            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "SQLite Consumer Tests" BuildableName = "SQLite Consumer Tests" BlueprintName = "SQLite Consumer Tests" ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry buildForTesting = "YES" buildForRunning = "NO" buildForProfiling = "NO" buildForArchiving = "NO" buildForAnalyzing = "YES">
+            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "SQLite Macros Implementation Tests" BuildableName = "SQLite Macros Implementation Tests" BlueprintName = "SQLite Macros Implementation Tests" ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction buildConfiguration = "Debug" shouldUseLaunchSchemeArgsEnv = "YES">

@@ -28,6 +28,22 @@
         "identifier" : "SQLite CloudKit Tests",
         "name" : "SQLite CloudKit Tests"
       }
+    },
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "SQLite Consumer Tests",
+        "name" : "SQLite Consumer Tests"
+      }
+    },
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "SQLite Macros Implementation Tests",
+        "name" : "SQLite Macros Implementation Tests"
+      }
     }
   ],
   "version" : 1

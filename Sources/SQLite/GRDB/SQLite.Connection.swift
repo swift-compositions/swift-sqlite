@@ -134,4 +134,35 @@ public import SQLite_SQL
             }
         }
     }
+
+    extension SQLite.Connection {
+        /// What a trace reports about this connection.
+        public enum Trace: Sendable {
+            /// A statement about to run, as it was prepared.
+            case statement(Statement)
+
+            public struct Statement: Sendable {
+                /// The statement's text, with `?` where it binds values.
+                public let sql: String
+            }
+
+            /// Which events a trace reports.
+            public struct Options: OptionSet, Sendable {
+                public let rawValue: Int
+                public init(rawValue: Int) { self.rawValue = rawValue }
+
+                /// Every statement about to run.
+                public static let statement = Options(rawValue: 1 << 0)
+            }
+        }
+
+        /// Reports what `options` names to `body` for as long as the connection is open, until another trace replaces it.
+        public func trace(options: Trace.Options = .statement, _ body: @escaping @Sendable (Trace) -> Void) {
+            var traced: GRDB.Database.TracingOptions = []
+            if options.contains(.statement) { traced.insert(.statement) }
+            database.trace(options: traced) { event in
+                if case .statement(let statement) = event { body(.statement(Trace.Statement(sql: statement.sql))) }
+            }
+        }
+    }
 #endif

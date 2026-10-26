@@ -116,6 +116,7 @@ let package = Package(
                 "SQLite",
                 .product(name: "SQL", package: "swift-sql"),
                 .product(name: "SQL Test Support", package: "swift-sql"),
+                .product(name: "SQL Foundation Integration", package: "swift-sql"),
                 .product(name: "ISO 9075 Foundation", package: "swift-iso-9075"),
                 .product(name: "Byte", package: "swift-byte"),
                 .product(name: "RFC 4122", package: "swift-rfc-4122"),

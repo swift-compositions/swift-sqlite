@@ -1,0 +1,34 @@
+{
+  "configurations" : [
+    {
+      "id" : "11423BF0-9FC0-4FBB-BEB3-F859924EA64E",
+      "name" : "swift-sqlite-Package",
+      "options" : {}
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "defaultTestExecutionTimeAllowance" : 120,
+    "maximumTestExecutionTimeAllowance" : 300,
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "SQLite Tests",
+        "name" : "SQLite Tests"
+      }
+    },
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "SQLite CloudKit Tests",
+        "name" : "SQLite CloudKit Tests"
+      }
+    }
+  ],
+  "version" : 1
+}

@@ -39,7 +39,7 @@ let package = Package(
         .package(url: "https://github.com/swift-atoms/swift-order.git", branch: "main"),
         .package(url: "https://github.com/swift-iso/swift-iso-9075.git", branch: "main"),
         .package(url: "https://github.com/swift-ietf/swift-rfc-4122.git", branch: "main"),
-        .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "603.0.0"),
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", "604.0.0"..<"605.0.0"),
         .package(url: "https://github.com/swift-atoms/swift-tagged.git", branch: "main"),
         .package(url: "https://github.com/swift-atoms/swift-time.git", branch: "main"),
     ],

@@ -88,6 +88,21 @@
             }
         }
 
+        @Test func `a typed write throws the institute's error with its result code`() async throws {
+            let database = try await Item.database()
+            do throws(SQLite.Error) {
+                try await database.write { connection throws(SQLite.Error) in
+                    try Item.insert { Item(id: "a", title: "Duplicate") }.execute(connection)
+                }
+                Issue.record("A duplicate primary key was inserted")
+            } catch {
+                #expect(error.code == .constraint)
+                #expect(error.extendedCode == .primaryKeyConstraint)
+            }
+            let count = try await database.read { connection in try Item.fetchCount(connection) }
+            #expect(count == 2)
+        }
+
         @Test func `observes with FetchAll`() async throws {
             let database = try await Item.database()
             @FetchAll(Item.order(by: \.id), database: database) var items: [Item]

@@ -4,19 +4,19 @@ public import SQLite_SQL
     public import SQL
 
     extension SQL::Table {
-        public static func fetchAll(_ connection: SQLite.Connection) throws -> [QueryOutput] {
+        public static func fetchAll(_ connection: SQLite.Connection) throws(SQLite.Error) -> [QueryOutput] {
             try all.fetchAll(connection)
         }
 
-        public static func fetchOne(_ connection: SQLite.Connection) throws -> QueryOutput? {
+        public static func fetchOne(_ connection: SQLite.Connection) throws(SQLite.Error) -> QueryOutput? {
             try all.fetchOne(connection)
         }
 
-        public static func fetchCount(_ connection: SQLite.Connection) throws -> Int {
+        public static func fetchCount(_ connection: SQLite.Connection) throws(SQLite.Error) -> Int {
             try all.fetchCount(connection)
         }
 
-        public static func fetchCursor(_ connection: SQLite.Connection) throws -> QueryCursor<QueryOutput> {
+        public static func fetchCursor(_ connection: SQLite.Connection) throws(SQLite.Error) -> QueryCursor<QueryOutput> {
             try all.fetchCursor(connection)
         }
 

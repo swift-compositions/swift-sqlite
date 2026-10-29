@@ -1,6 +1,7 @@
 public import SQLite_SQL
 #if GRDB
     package import GRDB
+    public import ISO_9075_Call_Level_Interface
 
     extension SQLite {
         /// An error SQLite reported: its result code, its message, and the statement that gave it.
@@ -107,6 +108,55 @@ public import SQLite_SQL
             return try await body()
         } catch {
             throw SQLite.Error.translated(error)
+        }
+    }
+
+    extension SQLite.Error {
+        /// A failure the call-level interface reported, in SQLite's terms: a value that could not be decoded or bound
+        /// is a datatype mismatch (`SQLITE_MISMATCH`); any other is an error (`SQLITE_ERROR`), described in ``message``.
+        package init(_ error: ISO_9075.Error) {
+            switch error {
+            case .decoding, .binding: self.init(extendedCode: .mismatch, message: "\(error)")
+            case .connection, .execution, .transaction: self.init(extendedCode: .error, message: "\(error)")
+            }
+        }
+
+        /// Any error a read, a write or a statement can meet, as an ``SQLite/Error``: the driver's by its result code,
+        /// the call-level interface's by ``init(_:)-(ISO_9075.Error)``, and a cancelled task as an interrupt.
+        package static func typed(_ error: any Swift.Error) -> SQLite.Error {
+            switch error {
+            case let error as SQLite.Error: error
+            case let error as GRDB.DatabaseError: SQLite.Error(error)
+            case let error as ISO_9075.Error: SQLite.Error(error)
+            case is CancellationError: SQLite.Error(extendedCode: .interrupt, message: "cancelled")
+            default: SQLite.Error(extendedCode: .error, message: "\(error)")
+            }
+        }
+    }
+
+    extension ISO_9075.Error {
+        /// An ``SQLite/Error`` as the call-level interface's error, for a contract that names no database: an execution
+        /// error described by its result code, message and statement.
+        public init(_ error: SQLite.Error) {
+            self = .execution(error.description)
+        }
+    }
+
+    /// Runs `body`, throwing what fails as ``SQLite/Error``.
+    package func executing<T>(_ body: () throws -> T) throws(SQLite.Error) -> T {
+        do {
+            return try body()
+        } catch {
+            throw SQLite.Error.typed(error)
+        }
+    }
+
+    /// Runs `body`, throwing what fails as ``SQLite/Error``.
+    package func executing<T>(_ body: () async throws -> T) async throws(SQLite.Error) -> T {
+        do {
+            return try await body()
+        } catch {
+            throw SQLite.Error.typed(error)
         }
     }
 #endif

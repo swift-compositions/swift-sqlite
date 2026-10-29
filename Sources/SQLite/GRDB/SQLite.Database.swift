@@ -19,8 +19,8 @@ public import SQLite_SQL
             }
 
             /// A new, empty database in memory, gone when the last copy of this value is.
-            public init(configuration: SQLite.Configuration = SQLite.Configuration()) throws {
-                self.init(try translatingErrors { try DatabaseQueue(configuration: configuration.driver) })
+            public init(configuration: SQLite.Configuration = SQLite.Configuration()) throws(SQLite.Error) {
+                self.init(try executing { try DatabaseQueue(configuration: configuration.driver) })
             }
 
             /// The database at `path`, created when there is none.
@@ -32,8 +32,8 @@ public import SQLite_SQL
                 path: String,
                 kind: Kind = .pool,
                 configuration: SQLite.Configuration = SQLite.Configuration()
-            ) throws {
-                let writer: any DatabaseWriter = try translatingErrors {
+            ) throws(SQLite.Error) {
+                let writer: any DatabaseWriter = try executing {
                     switch kind {
                     case .queue: try DatabaseQueue(path: path, configuration: configuration.driver)
                     case .pool: try DatabasePool(path: path, configuration: configuration.driver)
@@ -56,10 +56,12 @@ public import SQLite_SQL
     }
 
     extension SQLite.Database {
+        @_disfavoredOverload
         public func read<T>(_ body: (SQLite.Connection) throws -> T) throws -> T {
             try translatingErrors { try writer.read { database in try body(SQLite.Connection(database)) } }
         }
 
+        @_disfavoredOverload
         public func write<T>(_ body: (SQLite.Connection) throws -> T) throws -> T {
             try translatingErrors { try writer.write { database in try body(SQLite.Connection(database)) } }
         }
@@ -91,13 +93,13 @@ public import SQLite_SQL
         }
 
         /// Copies every page of this database into `destination`, replacing what it held.
-        public func backup(to destination: SQLite.Database) throws {
-            try translatingErrors { try writer.backup(to: destination.writer) }
+        public func backup(to destination: SQLite.Database) throws(SQLite.Error) {
+            try executing { try writer.backup(to: destination.writer) }
         }
 
         /// Closes the database's connections. A read or write after this throws.
-        public func close() throws {
-            try translatingErrors {
+        public func close() throws(SQLite.Error) {
+            try executing {
                 switch writer {
                 case let queue as DatabaseQueue: try queue.close()
                 case let pool as DatabasePool: try pool.close()
@@ -107,13 +109,38 @@ public import SQLite_SQL
         }
     }
 
+    // A closure that throws only ``SQLite/Error`` (or nothing) runs typed: what fails is an ``SQLite/Error``.
     extension SQLite.Database {
+        public func read<T>(_ body: (SQLite.Connection) throws(SQLite.Error) -> T) throws(SQLite.Error) -> T {
+            try executing { try writer.read { database in try body(SQLite.Connection(database)) } }
+        }
+
+        public func write<T>(_ body: (SQLite.Connection) throws(SQLite.Error) -> T) throws(SQLite.Error) -> T {
+            try executing { try writer.write { database in try body(SQLite.Connection(database)) } }
+        }
+
+        public func read<T: Sendable>(
+            _ body: @Sendable (SQLite.Connection) throws(SQLite.Error) -> T
+        ) async throws(SQLite.Error) -> T {
+            try await executing { try await writer.read { database in try body(SQLite.Connection(database)) } }
+        }
+
+        public func write<T: Sendable>(
+            _ body: @Sendable (SQLite.Connection) throws(SQLite.Error) -> T
+        ) async throws(SQLite.Error) -> T {
+            try await executing { try await writer.write { database in try body(SQLite.Connection(database)) } }
+        }
+    }
+
+    extension SQLite.Database {
+        @_disfavoredOverload
         public func read<Value: Sendable>(
             _ body: @Sendable (Connection) throws(ISO_9075.Error) -> Value
         ) async throws(ISO_9075.Error) -> Value {
             try await scope { try await writer.read { database in try body(Connection(database)) } }
         }
 
+        @_disfavoredOverload
         public func write<Value: Sendable>(
             _ body: @Sendable (Connection) throws(ISO_9075.Error) -> Value
         ) async throws(ISO_9075.Error) -> Value {

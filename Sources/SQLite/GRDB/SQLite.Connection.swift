@@ -126,8 +126,8 @@ public import SQLite_SQL
         }
 
         /// Makes the observation this connection reads for depend on `region`.
-        public func track(_ region: Region) throws {
-            try translatingErrors {
+        public func track(_ region: Region) throws(SQLite.Error) {
+            try executing {
                 switch region {
                 case .all: try database.registerAccess(to: .fullDatabase)
                 }

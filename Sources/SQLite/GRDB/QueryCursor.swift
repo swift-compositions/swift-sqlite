@@ -18,8 +18,8 @@ public import SQLite_SQL
         }
 
         /// The next row, or `nil` once every row has been read.
-        public func next() throws -> Element? {
-            try translatingErrors { try base.next() }
+        public func next() throws(SQLite.Error) -> Element? {
+            try executing { try base.next() }
         }
     }
 

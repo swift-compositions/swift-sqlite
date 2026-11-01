@@ -23,6 +23,7 @@ let package = Package(
         .trait(name: "Observation", description: "Observed fetches", enabledTraits: ["GRDB"]),
         .trait(name: "CloudKit", description: "CloudKit synchronization", enabledTraits: ["GRDB", "Observation"]),
         .trait(name: "Tagged", description: "SQLite conformances for swift-atoms Tagged"),
+        .trait(name: "Dependencies", description: "The ambient database as a dependency value", enabledTraits: ["GRDB"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-collections.git", from: "1.0.0"),
@@ -42,6 +43,7 @@ let package = Package(
         .package(url: "https://github.com/swiftlang/swift-syntax.git", "604.0.0"..<"605.0.0"),
         .package(url: "https://github.com/swift-atoms/swift-tagged.git", branch: "main"),
         .package(url: "https://github.com/swift-atoms/swift-time.git", branch: "main"),
+        .package(url: "https://github.com/swift-compositions/swift-dependencies.git", branch: "main"),
     ],
     targets: [
         // SQLite's dialect as statements and expressions: functions, FTS5, JSON, dates, pragmas, triggers, views and the
@@ -80,6 +82,7 @@ let package = Package(
                     condition: .when(traits: ["GRDB", "Observation", "CloudKit"])
                 ),
                 .product(name: "Tagged", package: "swift-tagged", condition: .when(traits: ["Tagged"])),
+                .product(name: "Dependencies", package: "swift-dependencies", condition: .when(traits: ["Dependencies"])),
             ]
         ),
         .target(
@@ -135,6 +138,7 @@ let package = Package(
                 .product(name: "SQL Migrations", package: "swift-sql"),
                 .product(name: "ISO 9075 Call-Level Interface", package: "swift-iso-9075"),
                 .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["GRDB"])),
+                .product(name: "Dependencies", package: "swift-dependencies", condition: .when(traits: ["Dependencies"])),
                 .product(name: "CustomDump", package: "swift-custom-dump"),
                 .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
             ],

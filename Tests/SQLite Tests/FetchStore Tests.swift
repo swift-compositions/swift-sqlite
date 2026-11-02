@@ -57,7 +57,7 @@
     }
 
     @MainActor
-    @Suite struct `An observed fetch` {
+    @Suite(.timeLimit(.minutes(2))) struct `An observed fetch` {
         @Test func `the store holds the fetched value at once`() throws {
             let store = FetchStore(value: [], Titles(), database: try reminders())
             #expect(store.value == ["Groceries"])

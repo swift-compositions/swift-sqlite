@@ -55,7 +55,7 @@
         }
     }
 
-    @Suite struct `A collation expansion` {
+    @Suite(.timeLimit(.minutes(2))) struct `A collation expansion` {
         @Test func `compares String arguments`() throws {
             #expect(try ordered(by: $reversedStrings) == ["c", "b", "a"])
         }

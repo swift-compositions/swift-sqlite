@@ -9,7 +9,7 @@
 
     /// Several devices on one ``SyncEngine/Mock``: what each one writes, and deletes, reaches every other.
     extension SyncEngine.Mock {
-        @Suite struct Devices {
+        @Suite(.timeLimit(.minutes(2))) struct Devices {
             @Table("notes") struct Note: Equatable {
                 let id: String
                 var body: String

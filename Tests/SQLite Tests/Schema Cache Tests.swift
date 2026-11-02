@@ -8,8 +8,8 @@
 
     /// Migration DDL must invalidate the driver's per-connection schema metadata. A typed fetch alone cannot
     /// reveal this bug: SQLite reparses statements while GRDB can still return cached column metadata.
-    @Suite struct `A connection's schema cache` {
-        @Suite struct Integration {}
+    @Suite(.timeLimit(.minutes(2))) struct `A connection's schema cache` {
+        @Suite(.timeLimit(.minutes(2))) struct Integration {}
     }
 
     extension `A connection's schema cache`.Integration {

@@ -8,7 +8,7 @@
     import Testing
 
     @MainActor
-    @Suite struct `Userland synchronization` {
+    @Suite(.timeLimit(.minutes(2))) struct `Userland synchronization` {
         @Test func `a fetch observes rows written to a synchronized database`() throws {
             let database = try cloudKitTestDatabase(
                 containerIdentifier: "tests",

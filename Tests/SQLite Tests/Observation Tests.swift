@@ -5,8 +5,8 @@
 
     @Suite(.timeLimit(.minutes(1)))
     struct `Observation Tests` {
-        @Suite struct Unit {}
-        @Suite struct `Edge Case` {}
+        @Suite(.timeLimit(.minutes(2))) struct Unit {}
+        @Suite(.timeLimit(.minutes(2))) struct `Edge Case` {}
     }
 
     extension `Observation Tests` {

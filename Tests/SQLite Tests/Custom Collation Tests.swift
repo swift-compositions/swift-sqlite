@@ -26,7 +26,7 @@
         return queue
     }
 
-    @Suite struct `A custom collation` {
+    @Suite(.timeLimit(.minutes(2))) struct `A custom collation` {
         @Test func `orders rows until it is removed`() throws {
             let queue = try items(["a", "c", "b"])
             try queue.write { database in database.add(collation: $reversed) }

@@ -5,7 +5,7 @@
     import SQLite
     import Testing
 
-    @Suite struct `A UUID column` {
+    @Suite(.timeLimit(.minutes(2))) struct `A UUID column` {
         @Test func `decodes text in any case`() throws {
             let queue = try SQLite.Database()
             try queue.read { database in

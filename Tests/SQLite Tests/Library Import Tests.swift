@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@Suite struct `Library imports` {
+@Suite(.timeLimit(.minutes(2))) struct `Library imports` {
     @Test func `no library target imports CustomDump`() throws {
         let sources = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appending(path: "Sources")

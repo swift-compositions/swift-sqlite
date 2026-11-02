@@ -8,11 +8,11 @@ private struct Record {
     let id: Int
 }
 
-@Suite struct `SQLite pragmas` {
-    @Suite struct Unit {}
+@Suite(.timeLimit(.minutes(2))) struct `SQLite pragmas` {
+    @Suite(.timeLimit(.minutes(2))) struct Unit {}
 
     #if GRDB
-        @Suite struct Integration {}
+        @Suite(.timeLimit(.minutes(2))) struct Integration {}
     #endif
 }
 

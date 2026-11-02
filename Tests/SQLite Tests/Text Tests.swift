@@ -12,7 +12,7 @@
 
     private let textWithNul = "a\u{0}b"
 
-    @Suite struct `Text with NUL characters` {
+    @Suite(.timeLimit(.minutes(2))) struct `Text with NUL characters` {
         let queue: SQLite.Database
 
         init() throws {

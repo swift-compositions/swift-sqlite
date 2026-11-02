@@ -11,7 +11,7 @@
     import SQLite_Test_Support
     import Testing
 
-    @Suite struct `Primary key migration` {
+    @Suite(.timeLimit(.minutes(2))) struct `Primary key migration` {
         @Table("parents") struct Parent: Identifiable {
             let id: RFC_4122.UUID
             var title = ""

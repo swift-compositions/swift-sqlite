@@ -10,7 +10,7 @@ private struct Item {
     var price: Double
 }
 
-@Suite struct `The SQLite dialect` {
+@Suite(.timeLimit(.minutes(2))) struct `The SQLite dialect` {
     @Test func `spells an unbounded limit as -1`() {
         #expect(SQLite().render(Item.offset(10).select(\.id).query).sql.hasSuffix("LIMIT -1 OFFSET ?"))
     }

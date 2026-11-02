@@ -3,7 +3,7 @@ import SQLite_Macros_Implementation
 import SnapshotTesting
 import Testing
 
-@Suite(.macros(["DatabaseCollation": DatabaseCollationMacro.self], record: .missing))
+@Suite(.macros(["DatabaseCollation": DatabaseCollationMacro.self], record: .missing), .timeLimit(.minutes(2)))
 struct `DatabaseCollation macro` {
     @Test func `a String collation marks its raw buffer decoding unsafe`() {
         assertMacro {

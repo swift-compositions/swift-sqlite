@@ -9,7 +9,7 @@
         var value = 0
     }
 
-    @Suite struct `A query cursor` {
+    @Suite(.timeLimit(.minutes(2))) struct `A query cursor` {
         let queue: SQLite.Database
 
         init() throws {

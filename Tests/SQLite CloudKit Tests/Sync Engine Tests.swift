@@ -11,7 +11,7 @@
 
     extension CloudKitTestBase {
         @MainActor
-        @Suite struct `Sync engine` {
+        @Suite(.timeLimit(.minutes(2))) struct `Sync engine` {
             @Test func `in-memory URLs are detected`() throws {
                 #expect(URL(string: "")?.isInMemory == nil)
                 #expect(URL(string: ":memory:")?.isInMemory == true)

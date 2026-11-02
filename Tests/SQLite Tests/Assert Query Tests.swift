@@ -13,7 +13,7 @@
         var date = Time.Instant(secondsSinceUnixEpoch: 42)
     }
 
-    @Suite struct `An asserted query` {
+    @Suite(.timeLimit(.minutes(2))) struct `An asserted query` {
         let database: SQLite.Database
 
         init() throws {

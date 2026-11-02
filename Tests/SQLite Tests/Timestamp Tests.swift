@@ -11,7 +11,7 @@
         var instant: Time.Instant
     }
 
-    @Suite struct `A timestamp column` {
+    @Suite(.timeLimit(.minutes(2))) struct `A timestamp column` {
         @Test func `round-trips an instant through insert and update`() throws {
             let queue = try SQLite.Database()
             try queue.write { database in

@@ -7,7 +7,7 @@
     @testable import SQLite_CloudKit
     import Testing
 
-    @Suite struct `Metadatabase` {
+    @Suite(.timeLimit(.minutes(2))) struct `Metadatabase` {
         @Test func `an in-memory database gets an in-memory metadatabase`() throws {
             let url = try URL.metadatabase(databasePath: ":memory:", containerIdentifier: nil)
             #expect(url.isInMemory)

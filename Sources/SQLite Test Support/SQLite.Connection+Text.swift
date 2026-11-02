@@ -117,7 +117,10 @@
                     quote = character
                     buffer.append(character)
                 } else if character == "?", let argument = remaining.popFirst() {
-                    if !buffer.isEmpty { segments.append(.sql(buffer)); buffer = "" }
+                    if !buffer.isEmpty {
+                        segments.append(.sql(buffer))
+                        buffer = ""
+                    }
                     segments.append(.value(argument.queryBinding))
                 } else {
                     buffer.append(character)

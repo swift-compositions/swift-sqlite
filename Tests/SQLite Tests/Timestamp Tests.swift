@@ -17,11 +17,11 @@
             try queue.write { database in
                 try #sql(
                     """
-                        CREATE TABLE "record" (
-                          "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-                          "instant" TEXT NOT NULL
-                        ) STRICT
-                        """
+                    CREATE TABLE "record" (
+                      "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+                      "instant" TEXT NOT NULL
+                    ) STRICT
+                    """
                 )
                 .execute(database)
             }

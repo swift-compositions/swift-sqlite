@@ -68,11 +68,11 @@
             .execute(database)
             try #sql(
                 """
-                    WITH RECURSIVE "sequence"("value") AS (
-                      SELECT 1 UNION ALL SELECT "value" + 1 FROM "sequence" WHERE "value" < \(count)
-                    )
-                    INSERT INTO "number" SELECT "value", CAST("value" AS TEXT) FROM "sequence"
-                    """
+                WITH RECURSIVE "sequence"("value") AS (
+                  SELECT 1 UNION ALL SELECT "value" + 1 FROM "sequence" WHERE "value" < \(count)
+                )
+                INSERT INTO "number" SELECT "value", CAST("value" AS TEXT) FROM "sequence"
+                """
             )
             .execute(database)
         }

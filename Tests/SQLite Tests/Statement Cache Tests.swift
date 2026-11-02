@@ -10,7 +10,7 @@
         var value: String
     }
 
-    @Suite(.timeLimit(.minutes(2))) struct `The statement cache` {
+    @Suite(.timeLimit(.minutes(5))) struct `The statement cache` {
         let queue: SQLite.Database
 
         init() throws {

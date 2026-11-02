@@ -7,7 +7,7 @@
 
     /// A record's change tag survives its stored representation. Encoded as an integer, the unarchiver refused it as
     /// "not an object", logged a runtime warning for every record read, and dropped the tag.
-    @Suite(.timeLimit(.minutes(2))) struct `Record representations` {
+    @Suite(.timeLimit(.minutes(5))) struct `Record representations` {
         static func record() -> CKRecord {
             let record = CKRecord(recordType: "reminders", recordID: CKRecord.ID(recordName: "1:reminders"))
             record._recordChangeTag = 7

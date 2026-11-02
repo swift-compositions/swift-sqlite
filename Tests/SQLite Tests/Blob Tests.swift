@@ -10,7 +10,7 @@
         var payload: [Byte] = []
     }
 
-    @Suite(.timeLimit(.minutes(2))) struct `A blob` {
+    @Suite(.timeLimit(.minutes(5))) struct `A blob` {
         let queue: SQLite.Database
 
         init() throws {

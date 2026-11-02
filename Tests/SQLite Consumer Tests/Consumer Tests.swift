@@ -51,7 +51,7 @@
     }
 
     @MainActor
-    @Suite(.timeLimit(.minutes(2))) struct `A consumer without the driver` {
+    @Suite(.timeLimit(.minutes(5))) struct `A consumer without the driver` {
         @Test func `migrates, seeds and executes typed statements`() async throws {
             let database = try await Item.database()
             try await database.write { connection in

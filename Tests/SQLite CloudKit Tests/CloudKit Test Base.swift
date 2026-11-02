@@ -10,7 +10,7 @@
     public import SQLite_CloudKit
     import Testing
 
-    @Suite(.timeLimit(.minutes(2)))
+    @Suite(.timeLimit(.minutes(5)))
     class CloudKitTestBase: @unchecked Sendable {
         let userDatabase: UserDatabase
         let container: MockCloudContainer

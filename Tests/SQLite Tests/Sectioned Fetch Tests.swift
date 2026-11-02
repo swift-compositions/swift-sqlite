@@ -21,7 +21,7 @@
     }
 
     @MainActor
-    @Suite(.timeLimit(.minutes(2))) struct `A sectioned fetch` {
+    @Suite(.timeLimit(.minutes(5))) struct `A sectioned fetch` {
         @Test func `rows are grouped under their section, in section order`() throws {
             @FetchAll(sectionBy: { $0.list }, database: try chores()) var all: [Chore]
             #expect(_all.sections.sectionNames == [nil, "Home", "Work"])

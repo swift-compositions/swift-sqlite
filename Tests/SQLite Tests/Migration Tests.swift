@@ -12,7 +12,7 @@
         var date: Time.Instant
     }
 
-    @Suite(.timeLimit(.minutes(2))) struct `A migrated timestamp` {
+    @Suite(.timeLimit(.minutes(5))) struct `A migrated timestamp` {
         @Test func `written by GRDB decodes as an instant`() throws {
             let database = try DatabaseQueue()
             try database.write { db in

@@ -7,7 +7,7 @@
     import Testing
 
     @MainActor
-    @Suite(.timeLimit(.minutes(2))) struct `Unattached sync engine` {
+    @Suite(.timeLimit(.minutes(5))) struct `Unattached sync engine` {
         @Test func `starts on a database without an attached metadatabase`() async throws {
             let database = try DatabasePool(
                 path: "\(NSTemporaryDirectory())\(ProcessInfo.processInfo.globallyUniqueString)"

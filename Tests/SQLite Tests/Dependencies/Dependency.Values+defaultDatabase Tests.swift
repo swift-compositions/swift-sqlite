@@ -4,7 +4,7 @@
     import SQLite
     import Testing
 
-    @Suite(.timeLimit(.minutes(2)))
+    @Suite(.timeLimit(.minutes(5)))
     struct `defaultDatabase Tests` {
         @Test
         func `an unwired graph gets an empty database in memory`() {

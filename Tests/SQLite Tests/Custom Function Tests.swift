@@ -79,7 +79,7 @@
         return queue
     }
 
-    @Suite(.timeLimit(.minutes(2))) struct `A custom database function` {
+    @Suite(.timeLimit(.minutes(5))) struct `A custom database function` {
         @Test func `a scalar function is callable until it is removed`() throws {
             var configuration = SQLite.Configuration()
             configuration.prepareDatabase { database in

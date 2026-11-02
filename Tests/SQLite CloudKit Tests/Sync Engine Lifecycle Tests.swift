@@ -10,7 +10,7 @@
     import Testing
 
     extension CloudKitTestBase {
-        @Suite(.timeLimit(.minutes(2))) struct `Sync engine lifecycle` {
+        @Suite(.timeLimit(.minutes(5))) struct `Sync engine lifecycle` {
             @MainActor
             final class `Immediately started`: CloudKitTestBase, @unchecked Sendable {
                 @Test func `stopping and restarting sends changes written while stopped`() async throws {

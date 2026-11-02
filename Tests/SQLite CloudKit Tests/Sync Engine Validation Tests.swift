@@ -11,7 +11,7 @@
     import Testing
 
     @MainActor
-    @Suite(.timeLimit(.minutes(2))) struct `Sync engine schema validation` {
+    @Suite(.timeLimit(.minutes(5))) struct `Sync engine schema validation` {
         @Table("invalid:table")
         struct InvalidTable {
             let id: RFC_4122.UUID

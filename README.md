@@ -1,137 +1,36 @@
 # swift-sqlite
 
-Fork of [pointfreeco/sqlite-data](https://github.com/pointfreeco/sqlite-data) 1.12.0, built on
-[swift-sql](https://github.com/swift-compositions/swift-sql) (a fork of swift-structured-queries)
-and GRDB, which stays private: no public declaration names a GRDB type, so a consumer never imports it.
+Use this package when your app keeps its data in an SQLite file and you want to read, write and observe it with typed statements, without importing the driver underneath. Start from `SQLite.Database`; for values that follow the database into SwiftUI or other observers, use `FetchAll`, `FetchOne` or `FetchStore`. To keep the rows of that database in sync with iCloud through CloudKit, add the `SQLite CloudKit` product and start from `SyncEngine`. For PostgreSQL, use swift-postgresql instead.
 
-## Products
+## Laws
 
-- `SQLite`: `SQLite.Database` and `SQLite.Connection`, execution of swift-sql statements, decoding, observed fetches
-  and Tagged conformances.
-- `SQLite CloudKit`: the CloudKit synchronization engine, a file-for-file port of upstream's
-  `Sources/SQLiteData/CloudKit`. The base revision, the file map, the substitutions and how to take
-  upstream changes are below.
-- `SQLite Test Support`: fixtures for tests.
-
-Each part sits behind a package trait: `GRDB`, `Observation`, `CloudKit` and `Tagged`. No trait is a
-default; consumers request the ones they use.
-
-## Upstream
-
-**Base: tag 1.12.0, commit `164bb5f223738af3d5da7a1b8de14e67e4d9cd5d`.**
-Upstream 1.12.1 (`aa613accbe882b561f26e37a348a8f42e92cd398`) changes only the README and one visionOS
-collation line; it has no CloudKit change, so the base stays 1.12.0 until a release changes
-`Sources/SQLiteData/CloudKit` or `Tests/SQLiteDataTests/CloudKitTests`.
-
-### File map
-
-Upstream `Sources/SQLiteData/CloudKit` to `Sources/SQLite CloudKit`, same names one to one, except:
-
-| upstream | here | note |
-|---|---|---|
-| `Internal/Triggers.swift` | `Internal/CloudKitTriggers.swift` | renamed |
-| `DefaultSyncEngine.swift` | none | swift-dependencies key; the engine is passed explicitly |
-| `Internal/DatetimeGenerator.swift` | none | replaced by an explicit time input |
-| `Internal/DefaultNotificationCenter.swift` | none | replaced by an explicit input |
-| none | `Internal/Foundation+Atoms.swift` | bridges Foundation `UUID`/`Date` to `RFC_4122.UUID`/`Time.Instant` |
-| none | `Traits/Tagged.swift` | swift-atoms Tagged conformances (upstream has them outside `CloudKit/`) |
-
-Tests: upstream `Tests/SQLiteDataTests/CloudKitTests` (32 files, 195 `@Test`) to
-`Tests/SQLite CloudKit Tests`, with the same names.
-
-### Substitutions
-
-- `QueryBinding` becomes `ISO_9075.Value`; `QueryFragment` becomes `ISO_9075.Fragment`.
-- `@Dependency` and `prepareDependencies` become explicit inputs (swift-dependencies, IssueReporting,
-  Perception and ConcurrencyExtras are not dependencies).
-- Foundation `UUID` becomes `RFC_4122.UUID`; `Date` becomes `Time.Instant`.
-- StructuredQueries `@Table`, `#sql`, `Insert.onConflictDoUpdate` become the swift-sql equivalents of
-  the same names; `@DatabaseFunction` and `createTemporaryTrigger` come from `Sources/SQLite`.
-- SQL function prefix `sqlitedata_icloud_` becomes `swiftsqlite_icloud_`; metadatabase schema name
-  `sqlitedata_icloud` becomes `sqlite_icloud`.
-- Upstream `///` documentation is kept as is, including its links to upstream's DocC catalogue,
-  so that upstream hunks apply.
-
-### The driver is private
-
-GRDB is swift-sqlite's driver and nothing else: no file imports it `public`, and no public declaration names one of its
-types, so a consumer never imports it. Upstream's public GRDB types become the Institute's:
-
-| upstream (GRDB) | here |
-|---|---|
-| `any DatabaseWriter`, `any DatabaseReader`, `DatabaseQueue`, `DatabasePool` | `SQLite.Database`: `init(configuration:)` in memory, `init(path:kind:configuration:)` with `Kind.queue` or `.pool` |
-| `Database`, the handle a `read`/`write` closure is given | `SQLite.Connection` |
-| `Configuration`, `prepareDatabase` | `SQLite.Configuration`: `readonly`, `foreignKeysEnabled`, `busyTimeout`, `label`, `maximumReaderCount`, `prepareDatabase(_:)` |
-| `DatabaseError` | `SQLite.Error` (`code`, `extendedCode`, `message`, `statement`) |
-| `ValueObservationScheduler` | `SQLite.Scheduler` (`.immediate`, `.animation(_:)`) |
-| `QueryCursor: DatabaseCursor` | `QueryCursor` with `next()` |
-| `db.inTransaction`, `db.inSavepoint` | `SQLite.Connection.transaction(_:)`, `.savepoint(_:)` |
-| `db.add(function:)`, `db.add(collation:)`, `db.seed`, `db.attachMetadatabase` | the same, on `SQLite.Connection` |
-| `SyncEngine(for: any DatabaseWriter, …)`, `SyncEngine.Error.database(DatabaseError)` | `SyncEngine(for: SQLite.Database, …)`, `.database(SQLite.Error)` |
-
-SQL enters only as a swift-sql statement or fragment; GRDB's `sql: String` entry points are not reachable. Inside the
-package the CloudKit engine still runs on GRDB's `Database`: every typed operation also has a `package` overload taking
-it, so upstream hunks to `Sources/SQLiteData/CloudKit` apply as before, with the substitutions above at the public
-surface only.
-
-### Taking an upstream release
-
-1. `git diff <base>..<tag> -- Sources/SQLiteData/CloudKit Tests/SQLiteDataTests/CloudKitTests`
-   in a clone of pointfreeco/sqlite-data.
-2. Apply it file by file to `Sources/SQLite CloudKit` and `Tests/SQLite CloudKit Tests`, applying the
-   substitutions above to every hunk.
-3. Run the CloudKit suites in CI on macOS and on the iOS simulator at the exact head, and read the counts
-   from the log (at least 195 CloudKit tests on each platform).
-4. Move the base in this README to the new tag and commit.
-
-### Deviations in tests
-
-- `Testing/SyncEngine.Mock.swift` (not upstream, `@_spi(Testing)`): `SyncEngine.Mock`, one mock container that several
-  engines share, as the devices on one account share a container, with `SyncEngine.init(for:tables:privateTables:mock:…)`,
-  `receive(_:)` and `receive(deletion:reason:)`, so that a client can test convergence between
-  devices. Upstream's tests give each engine a container of its own.
-- `MockCloudDatabase` keeps every deletion with the change tag it was made at, and `MockSyncEngine.fetchChanges`
-  delivers each one to every engine whose last fetch came before it; upstream forgets a deletion after its first fetch,
-  so a second device never learned of it. `MockSyncEngine` sends at most 199 changes per batch and keeps sending while a
-  batch was cut at that limit, as CKSyncEngine does; upstream sends one batch, which the mock database refuses above 199.
-  Below 200 changes a send behaves as upstream. Deletions do not quite: each now takes a change tag, it reaches every
-  engine on the database, and one is not delivered when the record was saved again after it. This touches tests only
-  (`SyncEngine.Mock Tests.swift` covers it), never a live engine.
-
-- `App Lifecycle Tests`: the two background-notification tests wait until the pending changes are sent
-  (up to 120 s) instead of sleeping one second; on the iOS simulator under parallel load the Task that
-  upstream's one-second sleep waits for does not run in time. Everything else is as upstream.
-
-### Observation (`Sources/SQLite/Observation`, trait `Observation`)
-
-Compared against `pointfreeco/sqlite-data` at `6390b5c076764c74713a3fd4ebcc3b61b2220dda` (14 Sep 2026), the
-same `Fetch*` sources as the base.
-
-| swift-sqlite | sqlite-data | Difference |
-|---|---|---|
-| `FetchKeyRequest` | `Sources/SQLiteData/FetchKeyRequest.swift` `FetchKeyRequest` | Same shape. |
-| `Fetch`, `FetchAll`, `FetchOne` | `Fetch.swift`, `FetchAll.swift`, `FetchOne.swift` | The value lives in a main-actor `@Observable` `FetchStore` (the projected value), not in swift-sharing's `SharedReader`. |
-| `FetchStore.load(_:database:scheduling:) async throws -> FetchSubscription` | `Fetch.load(_:database:) async throws -> FetchSubscription` and `load(_:database:scheduler:)` | Returns once the first value is in, or throws its error; keeps following until cancelled, as upstream. `database:` is required until a default database exists (below). The scheduler parameter is spelled `scheduling:`, as everywhere in swift-sqlite. |
-| `FetchStore.load(_:database:animation:)` | `Fetch.load(_:database:animation:)` | Same; built on `.animation(_:)`. |
-| `FetchStore.load(_:database:scheduling:)` for statements and sectioned statements (`FetchAll.swift`) | `FetchAll.load(_:database:)` and its `sectionBy` overloads | Same, awaitable. |
-| `FetchSubscription` (`task`, `cancel()`) | `FetchSubscription.swift` | Same API. Uses `Synchronization.Mutex` instead of ConcurrencyExtras' `LockIsolated`, and an unfinished `AsyncStream` instead of `Task.never()`; cancelling ends the store's observation (`FetchStore.cancel()`), keeping its last value, where upstream swaps the reader for a constant one. |
-| `ResultsSectionCollection`, `SectionBuilder`, `Sectioning` | `ResultsSectionCollection.swift`, `FetchAll+Sections.swift` | Same. |
-| `SQLite.Scheduler.animation(_:)` | `Internal/FetchKey+SwiftUI.swift` `AnimatedScheduler`, `.animation(_:)` | Same idea; the scheduler is the Institute's `SQLite.Scheduler`, not GRDB's `ValueObservationScheduler`. |
-| `SQLite.Scheduler.immediate` | GRDB's `.immediate` | Checks the main actor instead of the main thread (Linux). |
-
-### Not yet ported
-
-| sqlite-data | Why not yet |
-|---|---|
-| One observation per identical request, shared by every reader (`Fetch.sharedReader`, `Internal/FetchKey.swift` keyed by request, database and scheduler) | Planned after the default database. |
-| `defaultDatabase(path:configuration:)` and `@Dependency(\.defaultDatabase)` (`StructuredQueries+GRDB/DefaultDatabase.swift`) | Upstream reads it through `@Dependency`; by the substitutions above swift-sqlite keeps `database:` as the explicit input. The key is ported as is into swift-interface-composable-architecture (`Interface ComposableArchitecture SQLite`, `151ba05`), which already depends on swift-dependencies; it moves here behind a trait with coenttb/work#115. |
-| `Fetch.publisher` (Combine) | Not needed by any consumer. |
-
-## Examples
-
-`Examples/` holds upstream's sample apps (Case Studies, CloudKitDemo, Reminders, SyncUps) as they were at the base; they still use SQLiteData's API and Xcode project and are not ported.
-
-## License
-
-MIT, Copyright (c) 2025 Point-Free, Inc. The notice is kept in [LICENSE](LICENSE), as the license
-requires for copies of upstream code. Changes made in this fork are listed under Upstream above.
+- `SQLite.Database.observe(_:)` returns once the current answer is in, which is its first element. After that it yields a new answer after each commit that changes it, in commit order. A commit that leaves the answer equal yields nothing, and a failing first read is thrown by `SQLite.Database.observe(_:)` itself.
+- A `FetchStore` on the default scheduler holds its value as soon as it exists. A failing fetch keeps the last value and records the error. A cancelled store stops following writes.
+- A sectioned `FetchAll` orders rows by the section first, ascending unless you give an ordering term, so a nil section comes first. Rows within a section keep the statement's own order. An unsectioned fetch is one section named nil.
+- Prepared statements are cached per connection and rebound on each use, and they survive a schema change. A cursor gets its own statement, so other fetches on the same connection while it is open don't disturb it.
+- Custom functions and collations belong to one connection. Add them in `SQLite.Configuration.prepareDatabase(_:)` to have them on every connection. Once removed, a statement that uses one throws.
+- An aggregate `@DatabaseFunction` sees every row, in the given order when you pass `order:`.
+- `CanonicalCollation` orders strings as Swift `String` comparison does, and treats canonically equivalent strings as equal.
+- `Time.Instant` columns are text and keep fractional seconds through insert and update. Text that GRDB wrote for a `Date` decodes as a `Time.Instant`.
+- `RFC_4122.UUID` decodes from text in any letter case. Text containing NUL binds and decodes whole.
+- Inserting no rows and updating no columns run as no-ops.
+- An offset without a limit renders as `LIMIT -1`. Pragma writes render their values inline, with booleans as 1 and 0, not as bindings.
+- When nothing is wired, `Dependency.Values.defaultDatabase` is an in-memory database.
+- `SyncEngine` checks the schema when it is created and throws if a synchronized table has `:` in its name, a foreign key to a table it doesn't synchronize, a UNIQUE constraint other than the primary key, or a foreign key cycle, including a table that references itself. A table with exactly one foreign key must use `ON DELETE CASCADE`, `SET NULL` or `SET DEFAULT`.
+- Each row is one CloudKit record named `<primary key>:<table name>`, whose type is the table name. A local write fails with the message `SyncEngine.invalidRecordNameError` when that name starts with `_`, is longer than 255 bytes, or is not ASCII.
+- A row of a table with exactly one foreign key is sent with the referenced row as its CloudKit parent and lives in the parent's zone. With two or more foreign keys a row has no parent. Moving a child to a parent in another zone moves the child and all its descendants.
+- Merging is per field. Each field carries its own modification time, so when two devices edit different fields of one row, both edits survive.
+- Fetched records that lack this package's modification time are ignored, so records written by other clients never reach the database.
+- A record that arrives before its parent row is held and inserted once the parent arrives, even after a relaunch.
+- When another device deleted the parent a local child was moved to, the child follows its foreign key's `ON DELETE` action. When a local delete of a parent races a remote insert of a child into it, the parent is restored.
+- Fields the local schema doesn't know are kept on the server record and sent back, so an older device never erases a newer column. After a migration adds a column, rows are filled from the last known server records: a field the record lacks takes the column default, and a field cleared to nil stays NULL.
+- Rows hidden by a table's default scope still synchronize in both directions.
+- Writes made while the engine is stopped or not yet started are recorded and sent once it starts, deletes included.
+- A blob column is uploaded as a CloudKit asset named by the hash of its bytes, so changed bytes are uploaded again.
+- Only a row with no foreign key, of a table that is synchronized and not private, can be shared, and only once the engine is running and the row has been sent. Sharing the same row twice reuses its one share. Rows of private tables never enter a share and stay in the private database.
+- In a read-only share, local inserts, updates and deletes fail with the message `SyncEngine.writePermissionError` and roll back. If CloudKit refuses a write the local share allowed, the write is reverted when the send fails.
+- Deleting the root of a share you own deletes the share and its records. Deleting the root of a share someone else owns only leaves the share: local rows go and the owner's records stay.
+- On sign out, the engine deletes every synchronized row locally, server untouched, unless a `SyncEngineDelegate` implements the account change hook. Unsynchronized tables are kept.
+- A remote deletion of the engine's zone deletes all synchronized rows locally. A zone deletion caused by an encrypted data reset keeps the rows and uploads them again.
+- An in-memory user database is rejected in the live context. In the test and preview contexts each one gets its own metadatabase. In the preview context, changes sync about a second after each write.
+- `SyncEngine.migratePrimaryKeys(_:tables:dropUniqueConstraints:uuid:randomUUID:)` turns integer primary keys, and tables without one, into UUID text keys. An integer key and every integer foreign key to it map to the same UUID, so references survive, and rowids, constraints, indexes and triggers are kept. UNIQUE constraints stay unless `dropUniqueConstraints` is true, and a table that keeps one can't be synchronized. Text, compound and UUID keys are refused and the table left as it was.

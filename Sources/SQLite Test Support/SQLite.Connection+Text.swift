@@ -1,5 +1,5 @@
 #if GRDB
-    package import GRDB
+    import GRDB
     public import ISO_9075_Foundation
     import Byte
     public import SQL

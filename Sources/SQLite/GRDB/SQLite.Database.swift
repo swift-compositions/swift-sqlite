@@ -43,10 +43,10 @@ public import SQLite_SQL
                 configuration: SQLite.Configuration = SQLite.Configuration()
             ) throws(SQLite.Error) {
                 if configuration.readonly {
-                    guard access(path, F_OK) == 0 else {
+                    guard unsafe access(path, F_OK) == 0 else {
                         throw SQLite.Error(extendedCode: .cannotOpen, message: "no database at \(path)")
                     }
-                    if access(path + "-shm", F_OK) != 0 {
+                    if unsafe access(path + "-shm", F_OK) != 0 {
                         self.init(try executing { try DatabaseQueue(path: path, configuration: configuration.restored) })
                         return
                     }

@@ -1,6 +1,6 @@
-public import SQLite_SQL
+import SQLite_SQL
 #if Observation
-    public import Synchronization
+    import Synchronization
 
     /// A subscription associated with `@FetchAll`, `@FetchOne`, and `@Fetch` observation.
     ///

@@ -1,5 +1,12 @@
 public import SQLite_SQL
 #if GRDB
+    #if canImport(Darwin)
+        import Darwin
+    #elseif canImport(Glibc)
+        import Glibc
+    #elseif canImport(Musl)
+        import Musl
+    #endif
     package import GRDB
     public import ISO_9075_Call_Level_Interface
 
@@ -23,7 +30,9 @@ public import SQLite_SQL
                 self.init(try executing { try DatabaseQueue(configuration: configuration.driver) })
             }
 
-            /// The database at `path`, created when there is none.
+            /// The database at `path`, created when there is none. A read-only database is never created: with none
+            /// at `path` this throws ``SQLite/Error/Code/cannotOpen``. One with no `-shm` file beside it, such as a
+            /// copied or restored one, reads on a single connection whatever `kind` asks for.
             ///
             /// - Parameters:
             ///   - kind: ``Kind/pool``, the default, reads concurrently with a write in WAL mode; ``Kind/queue`` serialises
@@ -33,6 +42,15 @@ public import SQLite_SQL
                 kind: Kind = .pool,
                 configuration: SQLite.Configuration = SQLite.Configuration()
             ) throws(SQLite.Error) {
+                if configuration.readonly {
+                    guard access(path, F_OK) == 0 else {
+                        throw SQLite.Error(extendedCode: .cannotOpen, message: "no database at \(path)")
+                    }
+                    if access(path + "-shm", F_OK) != 0 {
+                        self.init(try executing { try DatabaseQueue(path: path, configuration: configuration.restored) })
+                        return
+                    }
+                }
                 let writer: any DatabaseWriter = try executing {
                     switch kind {
                     case .queue: try DatabaseQueue(path: path, configuration: configuration.driver)

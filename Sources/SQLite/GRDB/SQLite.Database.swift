@@ -144,9 +144,10 @@ public import SQLite_SQL
         }
     }
 
-    // A queue's read starts with `sqlite3_get_autocommit`, which on a SQLite built without API armor, as Linux's is,
-    // dereferences a closed connection. So a read asks first. A pool's read and every write throw by themselves.
     extension SQLite.Database {
+        /// Throws ``SQLite/Error/Code/misuse`` when a queue is closed. A queue's read starts with
+        /// `sqlite3_get_autocommit`, which on a SQLite built without API armor, as Linux's is, dereferences a closed
+        /// connection. So a read asks first. A pool's read and every write throw by themselves.
         private func requireOpen() throws(SQLite.Error) {
             guard let queue = writer as? DatabaseQueue else { return }
             if queue.inDatabase({ unsafe $0.sqliteConnection == nil }) {
@@ -154,6 +155,7 @@ public import SQLite_SQL
             }
         }
 
+        /// Throws ``SQLite/Error/Code/misuse`` when a queue is closed, without blocking the caller's thread.
         private func requireOpen() async throws(SQLite.Error) {
             guard let queue = writer as? DatabaseQueue else { return }
             let closed = try await executing {

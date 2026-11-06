@@ -86,7 +86,10 @@ public import SQLite_SQL
     extension SQLite.Database {
         @_disfavoredOverload
         public func read<T>(_ body: (SQLite.Connection) throws -> T) throws -> T {
-            try translatingErrors { try writer.read { database in try body(SQLite.Connection(database)) } }
+            try translatingErrors {
+                try requireOpen()
+                return try writer.read { database in try body(SQLite.Connection(database)) }
+            }
         }
 
         @_disfavoredOverload
@@ -104,7 +107,10 @@ public import SQLite_SQL
 
         @_disfavoredOverload
         public func read<T: Sendable>(_ body: @Sendable (SQLite.Connection) throws -> T) async throws -> T {
-            try await translatingErrors { try await writer.read { database in try body(SQLite.Connection(database)) } }
+            try await translatingErrors {
+                try await requireOpen()
+                return try await writer.read { database in try body(SQLite.Connection(database)) }
+            }
         }
 
         @_disfavoredOverload
@@ -138,10 +144,34 @@ public import SQLite_SQL
         }
     }
 
+    // A queue's read starts with `sqlite3_get_autocommit`, which on a SQLite built without API armor, as Linux's is,
+    // dereferences a closed connection. So a read asks first. A pool's read and every write throw by themselves.
+    extension SQLite.Database {
+        private func requireOpen() throws(SQLite.Error) {
+            guard let queue = writer as? DatabaseQueue else { return }
+            if queue.inDatabase({ unsafe $0.sqliteConnection == nil }) {
+                throw SQLite.Error(extendedCode: .misuse, message: "Connection is closed")
+            }
+        }
+
+        private func requireOpen() async throws(SQLite.Error) {
+            guard let queue = writer as? DatabaseQueue else { return }
+            let closed = try await executing {
+                try await queue.writeWithoutTransaction { unsafe $0.sqliteConnection == nil }
+            }
+            if closed {
+                throw SQLite.Error(extendedCode: .misuse, message: "Connection is closed")
+            }
+        }
+    }
+
     // A closure that throws only ``SQLite/Error`` (or nothing) runs typed: what fails is an ``SQLite/Error``.
     extension SQLite.Database {
         public func read<T>(_ body: (SQLite.Connection) throws(SQLite.Error) -> T) throws(SQLite.Error) -> T {
-            try executing { try writer.read { database in try body(SQLite.Connection(database)) } }
+            try executing {
+                try requireOpen()
+                return try writer.read { database in try body(SQLite.Connection(database)) }
+            }
         }
 
         public func write<T>(_ body: (SQLite.Connection) throws(SQLite.Error) -> T) throws(SQLite.Error) -> T {
@@ -151,7 +181,10 @@ public import SQLite_SQL
         public func read<T: Sendable>(
             _ body: @Sendable (SQLite.Connection) throws(SQLite.Error) -> T
         ) async throws(SQLite.Error) -> T {
-            try await executing { try await writer.read { database in try body(SQLite.Connection(database)) } }
+            try await executing {
+                try await requireOpen()
+                return try await writer.read { database in try body(SQLite.Connection(database)) }
+            }
         }
 
         public func write<T: Sendable>(
@@ -166,7 +199,10 @@ public import SQLite_SQL
         public func read<Value: Sendable>(
             _ body: @Sendable (Connection) throws(ISO_9075.Error) -> Value
         ) async throws(ISO_9075.Error) -> Value {
-            try await scope { try await writer.read { database in try body(Connection(database)) } }
+            try await scope {
+                try await requireOpen()
+                return try await writer.read { database in try body(Connection(database)) }
+            }
         }
 
         @_disfavoredOverload

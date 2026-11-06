@@ -51,6 +51,22 @@
         }
 
         @Test(arguments: [SQLite.Database.Kind.pool, .queue])
+        func `a read-only database still refuses a write after a read`(kind: SQLite.Database.Kind) throws {
+            let path = try Self.restoredStore(in: Self.folder())
+            let database = try SQLite.Database(path: try Path::Path(validating: path), kind: kind, configuration: Self.readonly)
+            let first = #expect(throws: SQLite.Error.self) {
+                try database.write { try $0.execute(sql: "INSERT INTO item (id) VALUES (2)") }
+            }
+            #expect(first?.code == .readonly)
+            #expect(try database.read { try Int.fetchOne($0, sql: "SELECT count(*) FROM item") } == 1)
+            let second = #expect(throws: SQLite.Error.self) {
+                try database.write { try $0.execute(sql: "INSERT INTO item (id) VALUES (3)") }
+            }
+            #expect(second?.code == .readonly)
+            #expect(try database.read { try Int.fetchOne($0, sql: "SELECT count(*) FROM item") } == 1)
+        }
+
+        @Test(arguments: [SQLite.Database.Kind.pool, .queue])
         func `a store with its shm file still opens read-only`(kind: SQLite.Database.Kind) throws {
             let path = try Self.folder().appending(path: "live.sqlite").path(percentEncoded: false)
             let writer = try SQLite.Database(path: try Path::Path(validating: path))

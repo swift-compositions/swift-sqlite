@@ -34,16 +34,14 @@ public import SQLite_SQL
     }
 
     extension SQLite.Configuration {
-        /// The driver's configuration for a read-only database with no `-shm` file. SQLite can't open such a WAL
-        /// database on a read-only connection, which may not create that file. So it opens read and write and refuses
-        /// writes by `PRAGMA query_only`, before any other statement. A write throws ``SQLite/Error/Code/readonly``,
-        /// as a read-only connection's does.
-        package var restored: GRDB.Configuration {
-            var configuration = driver
-            configuration.readonly = false
-            configuration.prepareDatabase { database in
-                try database.execute(sql: "PRAGMA query_only = ON")
-            }
+        /// The driver's configuration for the connection that holds a read-only database's `-shm` file. SQLite can't
+        /// open a WAL database with no such file on a read-only connection, which may not create it. So this one opens
+        /// read and write, creates the file, and runs nothing else; the connections that read are truly read-only.
+        /// `PRAGMA query_only` won't do in its place: GRDB turns it off at the end of every read.
+        package var holder: GRDB.Configuration {
+            var configuration = GRDB.Configuration()
+            configuration.busyMode = driver.busyMode
+            configuration.label = label
             return configuration
         }
 

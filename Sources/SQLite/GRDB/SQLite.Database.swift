@@ -22,8 +22,18 @@ public import SQLite_SQL
 
             package let writer: any DatabaseWriter
 
+            /// Holds the `-shm` file of a read-only database that had none. Declared after `writer` so that it closes
+            /// last: only a connection that can write removes the `-shm` and `-wal` files when it closes.
+            private let holder: DatabaseQueue?
+
             package init(_ writer: any DatabaseWriter) {
                 self.writer = writer
+                self.holder = nil
+            }
+
+            private init(_ writer: any DatabaseWriter, holder: DatabaseQueue?) {
+                self.writer = writer
+                self.holder = holder
             }
 
             /// A new, empty database in memory, gone when the last copy of this value is.
@@ -33,7 +43,8 @@ public import SQLite_SQL
 
             /// The database at `path`, created when there is none. A read-only database is never created: with none
             /// at `path` this throws ``SQLite/Error/Code/cannotOpen``. One with no `-shm` file beside it, such as a
-            /// copied or restored one, reads on a single connection whatever `kind` asks for.
+            /// copied or restored one, gets that file for as long as the database stays open, which takes write access
+            /// to its folder.
             ///
             /// - Parameters:
             ///   - kind: ``Kind/pool``, the default, reads concurrently with a write in WAL mode; ``Kind/queue`` serialises
@@ -44,13 +55,13 @@ public import SQLite_SQL
                 configuration: SQLite.Configuration = SQLite.Configuration()
             ) throws(SQLite.Error) {
                 let path = path.string
+                var holder: DatabaseQueue?
                 if configuration.readonly {
                     guard unsafe access(path, F_OK) == 0 else {
                         throw SQLite.Error(extendedCode: .cannotOpen, message: "no database at \(path)")
                     }
                     if unsafe access(path + "-shm", F_OK) != 0 {
-                        self.init(try executing { try DatabaseQueue(path: path, configuration: configuration.restored) })
-                        return
+                        holder = try executing { try DatabaseQueue(path: path, configuration: configuration.holder) }
                     }
                 }
                 let writer: any DatabaseWriter = try executing {
@@ -59,7 +70,7 @@ public import SQLite_SQL
                     case .pool: try DatabasePool(path: path, configuration: configuration.driver)
                     }
                 }
-                self.init(writer)
+                self.init(writer, holder: holder)
             }
 
             /// How a database file is opened.
@@ -127,6 +138,7 @@ public import SQLite_SQL
                 case let pool as DatabasePool: try pool.close()
                 default: break
                 }
+                try holder?.close()
             }
         }
     }

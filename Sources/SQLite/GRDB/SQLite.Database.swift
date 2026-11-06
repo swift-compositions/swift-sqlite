@@ -26,12 +26,7 @@ public import SQLite_SQL
             /// last: only a connection that can write removes the `-shm` and `-wal` files when it closes.
             private let holder: DatabaseQueue?
 
-            package init(_ writer: any DatabaseWriter) {
-                self.writer = writer
-                self.holder = nil
-            }
-
-            private init(_ writer: any DatabaseWriter, holder: DatabaseQueue?) {
+            package init(_ writer: any DatabaseWriter, holder: DatabaseQueue? = nil) {
                 self.writer = writer
                 self.holder = holder
             }

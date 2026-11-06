@@ -52,7 +52,7 @@ let package = Package(
         .target(
             name: "SQLite SQL",
             dependencies: [
-                "SQLite Macros Implementation",
+                .target(name: "SQLite Macros Implementation"),
                 .product(name: "SQL", package: "swift-sql"),
                 .product(name: "SQL Macros", package: "swift-sql"),
                 .product(name: "ISO 9075 Foundation", package: "swift-iso-9075"),
@@ -67,7 +67,7 @@ let package = Package(
         .target(
             name: "SQLite",
             dependencies: [
-                "SQLite SQL",
+                .target(name: "SQLite SQL"),
                 .product(name: "Path", package: "swift-path"),
                 .product(name: "SQL", package: "swift-sql"),
                 .product(name: "SQL Macros", package: "swift-sql"),
@@ -90,7 +90,7 @@ let package = Package(
         .target(
             name: "SQLite CloudKit",
             dependencies: [
-                "SQLite",
+                .target(name: "SQLite"),
                 .product(name: "SQL", package: "swift-sql"),
                 .product(name: "SQL Macros", package: "swift-sql"),
                 .product(name: "Byte", package: "swift-byte"),
@@ -118,7 +118,7 @@ let package = Package(
         .target(
             name: "SQLite Test Support",
             dependencies: [
-                "SQLite",
+                .target(name: "SQLite"),
                 .product(name: "SQL", package: "swift-sql"),
                 .product(name: "SQL Test Support", package: "swift-sql"),
                 .product(name: "SQL Foundation Integration", package: "swift-sql"),
@@ -134,9 +134,9 @@ let package = Package(
         .testTarget(
             name: "SQLite Tests",
             dependencies: [
-                "SQLite",
+                .target(name: "SQLite"),
                 .product(name: "Path", package: "swift-path"),
-                "SQLite Test Support",
+                .target(name: "SQLite Test Support"),
                 .product(name: "SQL Macros", package: "swift-sql"),
                 .product(name: "SQL Migrations", package: "swift-sql"),
                 .product(name: "ISO 9075 Call-Level Interface", package: "swift-iso-9075"),
@@ -152,10 +152,10 @@ let package = Package(
         .testTarget(
             name: "SQLite CloudKit Tests",
             dependencies: [
-                "SQLite",
+                .target(name: "SQLite"),
                 .product(name: "Path", package: "swift-path"),
-                "SQLite CloudKit",
-                "SQLite Test Support",
+                .target(name: "SQLite CloudKit"),
+                .target(name: "SQLite Test Support"),
                 .product(name: "SQL Macros", package: "swift-sql"),
                 .product(name: "CustomDump", package: "swift-custom-dump"),
                 .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
@@ -169,7 +169,7 @@ let package = Package(
         .testTarget(
             name: "SQLite Consumer Tests",
             dependencies: [
-                "SQLite",
+                .target(name: "SQLite"),
                 .target(name: "SQLite CloudKit", condition: .when(traits: ["CloudKit"])),
                 .product(name: "SQL", package: "swift-sql"),
                 .product(name: "SQL Macros", package: "swift-sql"),
@@ -183,7 +183,7 @@ let package = Package(
         .testTarget(
             name: "SQLite Macros Implementation Tests",
             dependencies: [
-                "SQLite Macros Implementation",
+                .target(name: "SQLite Macros Implementation"),
                 .product(name: "MacroTesting", package: "swift-macro-testing"),
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ]

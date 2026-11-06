@@ -41,6 +41,7 @@ let package = Package(
         .package(url: "https://github.com/swift-iso/swift-iso-9075.git", branch: "main"),
         .package(url: "https://github.com/swift-ietf/swift-rfc-4122.git", branch: "main"),
         .package(url: "https://github.com/swiftlang/swift-syntax.git", "604.0.0"..<"605.0.0"),
+        .package(url: "https://github.com/swift-atoms/swift-path.git", branch: "main"),
         .package(url: "https://github.com/swift-atoms/swift-tagged.git", branch: "main"),
         .package(url: "https://github.com/swift-atoms/swift-time.git", branch: "main"),
         .package(url: "https://github.com/swift-compositions/swift-dependencies.git", branch: "main"),
@@ -67,6 +68,7 @@ let package = Package(
             name: "SQLite",
             dependencies: [
                 "SQLite SQL",
+                .product(name: "Path", package: "swift-path"),
                 .product(name: "SQL", package: "swift-sql"),
                 .product(name: "SQL Macros", package: "swift-sql"),
                 .product(name: "ISO 9075 Foundation", package: "swift-iso-9075"),
@@ -133,6 +135,7 @@ let package = Package(
             name: "SQLite Tests",
             dependencies: [
                 "SQLite",
+                .product(name: "Path", package: "swift-path"),
                 "SQLite Test Support",
                 .product(name: "SQL Macros", package: "swift-sql"),
                 .product(name: "SQL Migrations", package: "swift-sql"),
@@ -150,6 +153,7 @@ let package = Package(
             name: "SQLite CloudKit Tests",
             dependencies: [
                 "SQLite",
+                .product(name: "Path", package: "swift-path"),
                 "SQLite CloudKit",
                 "SQLite Test Support",
                 .product(name: "SQL Macros", package: "swift-sql"),

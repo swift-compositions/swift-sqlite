@@ -9,6 +9,7 @@ public import SQLite_SQL
     #endif
     package import GRDB
     public import ISO_9075_Call_Level_Interface
+    public import Path
 
     extension SQLite {
         /// A SQLite database: one file, or one in memory, and the connections that read and write it.
@@ -38,10 +39,11 @@ public import SQLite_SQL
             ///   - kind: ``Kind/pool``, the default, reads concurrently with a write in WAL mode; ``Kind/queue`` serialises
             ///     every access on one connection.
             public init(
-                path: String,
+                path: Path::Path,
                 kind: Kind = .pool,
                 configuration: SQLite.Configuration = SQLite.Configuration()
             ) throws(SQLite.Error) {
+                let path = path.string
                 if configuration.readonly {
                     guard unsafe access(path, F_OK) == 0 else {
                         throw SQLite.Error(extendedCode: .cannotOpen, message: "no database at \(path)")
@@ -69,6 +71,8 @@ public import SQLite_SQL
             }
 
             /// The path of the database file; for a database in memory, `:memory:`.
+            // swift-linter:disable:next raw concept
+            // REASON: GRDB's report of the database location: a file path, or :memory: or an empty text for a database with no file, which File.Path does not describe and refuses when empty.
             public var path: String { writer.path }
         }
     }

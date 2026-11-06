@@ -1,5 +1,6 @@
 #if GRDB
     import Foundation
+    import Path
     import GRDB
     import ISO_9075_Call_Level_Interface
     import SQL_Migrations
@@ -51,7 +52,7 @@
             configuration.maximumReaderCount = 1
             try await verify(
                 try SQLite.Database(
-                    path: directory.appending(path: "schema.sqlite").path(percentEncoded: false),
+                    path: try Path::Path(validating: directory.appending(path: "schema.sqlite").path(percentEncoded: false)),
                     kind: .pool,
                     configuration: configuration
                 )

@@ -2,6 +2,7 @@
     import CloudKit
     import Byte
     import Foundation
+    import Path
     import GRDB
     import SQL
     import SQL_Macros
@@ -100,7 +101,7 @@
         let url = URL.temporaryDirectory.appending(
             path: "\(ProcessInfo.processInfo.globallyUniqueString).sqlite"
         )
-        let database = try SQLite.Database(path: url.path(), configuration: configuration)
+        let database = try SQLite.Database(path: try Path::Path(validating: url.path()), configuration: configuration)
         try database.write { db in
             try #sql(
                 """

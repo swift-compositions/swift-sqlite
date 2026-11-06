@@ -1,6 +1,7 @@
 #if CloudKit && canImport(CloudKit)
     import CloudKit
     import Foundation
+    import Path
     import GRDB
     import InlineSnapshotTesting
     import SQL
@@ -186,9 +187,11 @@
     @Test func `a sync engine for a temporary database in the test context`() throws {
         _ = try SyncEngine(
             for: SQLite.Database(
-                path: URL.temporaryDirectory
-                    .appending(path: "\(ProcessInfo.processInfo.globallyUniqueString).db")
-                    .path(percentEncoded: false)
+                path: Path::Path(
+                    validating: URL.temporaryDirectory
+                        .appending(path: "\(ProcessInfo.processInfo.globallyUniqueString).db")
+                        .path(percentEncoded: false)
+                )
             ),
             context: .test
         )

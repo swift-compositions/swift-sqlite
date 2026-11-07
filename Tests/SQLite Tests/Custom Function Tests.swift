@@ -27,12 +27,12 @@
     }
 
     @DatabaseFunction
-    private func total(_ values: some Swift.Sequence<Int>) -> Int {
+    private func total(_ values: some Sequence<Int>) -> Int {
         values.reduce(0, +)
     }
 
     @DatabaseFunction
-    private func concatenation(_ labels: some Swift.Sequence<String>) -> String {
+    private func concatenation(_ labels: some Sequence<String>) -> String {
         labels.joined(separator: ",")
     }
 

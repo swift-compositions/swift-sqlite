@@ -56,7 +56,7 @@
                 try storage.withLock { storage throws -> Data in
                     guard let data = storage[url]
                     else {
-                        struct FileNotFound: Error {}
+                        struct FileNotFound: Swift.Error {}
                         throw FileNotFound()
                     }
                     return data

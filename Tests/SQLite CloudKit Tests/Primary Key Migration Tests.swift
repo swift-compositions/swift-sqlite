@@ -242,7 +242,7 @@
                 .execute(db)
             }
 
-            let error = #expect(throws: (any Error).self) {
+            let error = #expect(throws: (any Swift.Error).self) {
                 try migrate(tables: Parent.self)
             }
             assertInlineSnapshot(of: error?.localizedDescription, as: .customDump) {
@@ -832,7 +832,7 @@
                 .execute(db)
             }
 
-            let error = #expect(throws: (any Error).self) {
+            let error = #expect(throws: (any Swift.Error).self) {
                 try migrate(tables: PhoneNumber.self)
             }
             assertInlineSnapshot(of: error?.localizedDescription, as: .customDump) {
@@ -880,7 +880,7 @@
                 .execute(db)
             }
 
-            let error = #expect(throws: (any Error).self) {
+            let error = #expect(throws: (any Swift.Error).self) {
                 try migrate(tables: Parent.self)
             }
             assertInlineSnapshot(of: error?.localizedDescription, as: .customDump) {

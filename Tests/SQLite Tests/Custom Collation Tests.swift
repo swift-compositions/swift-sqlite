@@ -36,7 +36,7 @@
             #expect(titles == ["c", "b", "a"])
 
             try queue.write { database in database.remove(collation: $reversed) }
-            #expect(throws: (any Error).self) {
+            #expect(throws: (any Swift.Error).self) {
                 try queue.read { database in
                     _ = try Item.order { $0.title.collate($reversed) }.fetchAll(database)
                 }

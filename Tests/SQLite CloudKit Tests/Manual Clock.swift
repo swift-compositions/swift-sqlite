@@ -23,7 +23,7 @@
         private struct Sleeper {
             let id: Int
             let deadline: Instant
-            let continuation: CheckedContinuation<Void, any Error>
+            let continuation: CheckedContinuation<Void, any Swift.Error>
         }
 
         private struct State {
@@ -50,7 +50,7 @@
             }
             try await withTaskCancellationHandler {
                 try await withCheckedThrowingContinuation { continuation in
-                    let resumption: Result<Void, any Error>? = state.withLock { state in
+                    let resumption: Result<Void, any Swift.Error>? = state.withLock { state in
                         guard !Task.isCancelled else { return .failure(CancellationError()) }
                         guard deadline > state.now else { return .success(()) }
                         state.sleepers.append(Sleeper(id: id, deadline: deadline, continuation: continuation))

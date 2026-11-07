@@ -83,7 +83,7 @@
             package func records(
                 for ids: [CKRecord.ID],
                 desiredKeys: [CKRecord.FieldKey]?
-            ) throws -> [CKRecord.ID: Result<CKRecord, any Error>] {
+            ) throws -> [CKRecord.ID: Result<CKRecord, any Swift.Error>] {
                 let accountStatus = container.accountStatus()
                 guard accountStatus == .available
                 else { throw ckError(forAccountStatus: accountStatus) }
@@ -91,7 +91,7 @@
                 guard ids.count < 200
                 else { throw CKError(.limitExceeded) }
 
-                var results: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
+                var results: [CKRecord.ID: Result<CKRecord, any Swift.Error>] = [:]
                 for id in ids {
                     results[id] = Result { try record(for: id) }
                 }
@@ -104,8 +104,8 @@
                 savePolicy: CKModifyRecordsOperation.RecordSavePolicy = .ifServerRecordUnchanged,
                 atomically: Bool = true
             ) throws -> (
-                saveResults: [CKRecord.ID: Result<CKRecord, any Error>],
-                deleteResults: [CKRecord.ID: Result<Void, any Error>]
+                saveResults: [CKRecord.ID: Result<CKRecord, any Swift.Error>],
+                deleteResults: [CKRecord.ID: Result<Void, any Swift.Error>]
             ) {
                 let accountStatus = container.accountStatus()
                 guard accountStatus == .available
@@ -118,8 +118,8 @@
 
                 return state.withLock { state in
                     let previousStorage = state.storage
-                    var saveResults: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
-                    var deleteResults: [CKRecord.ID: Result<Void, any Error>] = [:]
+                    var saveResults: [CKRecord.ID: Result<CKRecord, any Swift.Error>] = [:]
+                    var deleteResults: [CKRecord.ID: Result<Void, any Swift.Error>] = [:]
 
                     switch savePolicy {
                     case .ifServerRecordUnchanged:
@@ -139,13 +139,10 @@
                                 recordToSave.parent == nil,
                                 recordToSave.share == nil
                             {
-                                // NB: Emit 'permissionFailure' if saving to shared database with no parent reference
-                                //     or share reference.
                                 saveResults[recordToSave.recordID] = .failure(CKError(.permissionFailure))
                                 continue
                             }
 
-                            // NB: Emit 'zoneNotFound' error if saving record with a zone not found in database.
                             guard state.storage[recordToSave.recordID.zoneID] != nil
                             else {
                                 saveResults[recordToSave.recordID] = .failure(CKError(.zoneNotFound))
@@ -209,18 +206,14 @@
                                         .load(assetURL)
                                 }
 
-                                // TODO: This should merge copy's values to more accurately reflect reality
                                 state.storage[recordToSave.recordID.zoneID]?.records[recordToSave.recordID] =
                                     databaseCopy
                                 guard let savedCopy = databaseCopy.copy() as? CKRecord
                                 else { fatalError("Could not copy CKRecord.") }
                                 saveResults[recordToSave.recordID] = .success(savedCopy)
 
-                                // NB: "Touch" parent records when saving a child:
                                 if let parent = recordToSave.parent,
-                                    // If the parent isn't also being saved in this batch.
                                     !recordsToSave.contains(where: { $0.recordID == parent.recordID }),
-                                    // And if the parent is in the database.
                                     let parentRecord = state.storage[parent.recordID.zoneID]?.records[parent.recordID]?
                                         .copy()
                                         as? CKRecord
@@ -232,9 +225,6 @@
 
                             switch (existingRecord, recordToSave._recordChangeTag) {
                             case (.some(let existingRecord), .some(let recordToSaveChangeTag)):
-                                // We are trying to save a record with a change tag that also already exists in the
-                                // DB. If the tags match, we can save the record. Otherwise, we notify the sync engine
-                                // that the server record has changed since it was last synced.
                                 if existingRecord._recordChangeTag == recordToSaveChangeTag {
                                     precondition(existingRecord._recordChangeTag != nil)
                                     saveRecordToDatabase()
@@ -251,9 +241,6 @@
                                 }
                                 break
                             case (.some(let existingRecord), .none):
-                                // We are trying to save a record that does not have a change tag yet also already
-                                // exists in the DB. This means the user has created a new CKRecord from scratch,
-                                // giving it a new identity, rather than leveraging an existing CKRecord.
                                 saveResults[recordToSave.recordID] = .failure(
                                     CKError(
                                         .serverRejectedRequest,
@@ -264,12 +251,8 @@
                                     )
                                 )
                             case (.none, .some):
-                                // We are trying to save a record with a change tag but it does not exist in the DB.
-                                // This means the record was deleted by another device.
                                 saveResults[recordToSave.recordID] = .failure(CKError(.unknownItem))
                             case (.none, .none):
-                                // We are trying to save a record with no change tag and no existing record in the DB.
-                                // This means it's a brand new record.
                                 saveRecordToDatabase()
                             }
                         }
@@ -304,8 +287,6 @@
                             state.recordDeletion(recordIDToDelete, recordType)
                         }
 
-                        // NB: If deleting a share that the current user owns, delete the shared records and all
-                        //     associated records.
                         if databaseScope == .shared,
                             let shareToDelete = recordToDelete as? CKShare,
                             shareToDelete.recordID.zoneID.ownerName == CKCurrentUserDefaultName
@@ -353,14 +334,12 @@
                         else {
                             continue
                         }
-                        // Every successful save and deletion becomes a '.batchRequestFailed'.
                         for saveSuccessRecordID in saveSuccessRecordIDs {
                             saveResults[saveSuccessRecordID] = .failure(CKError(.batchRequestFailed))
                         }
                         for deleteSuccessRecordID in deleteSuccessRecordIDs {
                             deleteResults[deleteSuccessRecordID] = .failure(CKError(.batchRequestFailed))
                         }
-                        // All storage changes are reverted in zone.
                         state.storage[zoneID]?.records = previousStorage[zoneID]?.records ?? [:]
                     }
                     return (saveResults: saveResults, deleteResults: deleteResults)
@@ -371,16 +350,16 @@
                 saving recordZonesToSave: [CKRecordZone] = [],
                 deleting recordZoneIDsToDelete: [CKRecordZone.ID] = []
             ) throws -> (
-                saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
-                deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
+                saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Swift.Error>],
+                deleteResults: [CKRecordZone.ID: Result<Void, any Swift.Error>]
             ) {
                 let accountStatus = container.accountStatus()
                 guard accountStatus == .available
                 else { throw ckError(forAccountStatus: accountStatus) }
 
                 return state.withLock { state in
-                    var saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>] = [:]
-                    var deleteResults: [CKRecordZone.ID: Result<Void, any Error>] = [:]
+                    var saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Swift.Error>] = [:]
+                    var deleteResults: [CKRecordZone.ID: Result<Void, any Swift.Error>] = [:]
 
                     for recordZoneToSave in recordZonesToSave {
                         state.storage[recordZoneToSave.zoneID] =

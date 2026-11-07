@@ -794,7 +794,7 @@
             }
 
             @Test func `insert with a foreign key constraint failure`() async throws {
-                await #expect(throws: (any Error).self) {
+                await #expect(throws: (any Swift.Error).self) {
                     try await userDatabase.userWrite { db in
                         try db.seed {
                             Reminder(id: 1, title: "Get milk", remindersListID: 1)

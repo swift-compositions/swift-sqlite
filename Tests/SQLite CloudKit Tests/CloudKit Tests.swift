@@ -661,7 +661,7 @@
                 #expect(
                     try await userDatabase.read { db in try RemindersList.find(1).fetchOne(db)?.title } == "Work"
                 )
-                await #expect(throws: (any Error).self) {
+                await #expect(throws: (any Swift.Error).self) {
                     try await userDatabase.userWrite { db in
                         try RemindersList.find(1).update { $0.title = "Local" }.execute(db)
                     }

@@ -167,7 +167,6 @@ public import SQLite_SQL
         }
     }
 
-    // A closure that throws only ``SQLite/Error`` (or nothing) runs typed: what fails is an ``SQLite/Error``.
     extension SQLite.Database {
         public func read<T>(_ body: (SQLite.Connection) throws(SQLite.Error) -> T) throws(SQLite.Error) -> T {
             try executing {

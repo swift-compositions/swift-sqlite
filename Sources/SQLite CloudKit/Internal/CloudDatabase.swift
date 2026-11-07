@@ -10,7 +10,7 @@
             func records(
                 for ids: [CKRecord.ID],
                 desiredKeys: [CKRecord.FieldKey]?
-            ) async throws -> [CKRecord.ID: Result<CKRecord, any Error>]
+            ) async throws -> [CKRecord.ID: Result<CKRecord, any Swift.Error>]
 
             func modifyRecords(
                 saving recordsToSave: [CKRecord],
@@ -18,16 +18,16 @@
                 savePolicy: CKModifyRecordsOperation.RecordSavePolicy,
                 atomically: Bool
             ) async throws -> (
-                saveResults: [CKRecord.ID: Result<CKRecord, any Error>],
-                deleteResults: [CKRecord.ID: Result<Void, any Error>]
+                saveResults: [CKRecord.ID: Result<CKRecord, any Swift.Error>],
+                deleteResults: [CKRecord.ID: Result<Void, any Swift.Error>]
             )
 
             func modifyRecordZones(
                 saving recordZonesToSave: [CKRecordZone],
                 deleting recordZoneIDsToDelete: [CKRecordZone.ID]
             ) async throws -> (
-                saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
-                deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
+                saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Swift.Error>],
+                deleteResults: [CKRecordZone.ID: Result<Void, any Swift.Error>]
             )
         }
 
@@ -36,8 +36,8 @@
                 saving recordsToSave: [CKRecord],
                 deleting recordIDsToDelete: [CKRecord.ID]
             ) async throws -> (
-                saveResults: [CKRecord.ID: Result<CKRecord, any Error>],
-                deleteResults: [CKRecord.ID: Result<Void, any Error>]
+                saveResults: [CKRecord.ID: Result<CKRecord, any Swift.Error>],
+                deleteResults: [CKRecord.ID: Result<Void, any Swift.Error>]
             ) {
                 try await modifyRecords(
                     saving: recordsToSave,
@@ -49,7 +49,7 @@
 
             package func records(
                 for ids: [CKRecord.ID]
-            ) async throws -> [CKRecord.ID: Result<CKRecord, any Error>] {
+            ) async throws -> [CKRecord.ID: Result<CKRecord, any Swift.Error>] {
                 try await records(for: ids, desiredKeys: nil)
             }
         }
@@ -73,7 +73,7 @@
             func records(
                 for ids: [CKRecord.ID],
                 desiredKeys: [CKRecord.FieldKey]?
-            ) async throws -> [CKRecord.ID: Result<CKRecord, any Error>] {
+            ) async throws -> [CKRecord.ID: Result<CKRecord, any Swift.Error>] {
                 try await rawValue.records(for: ids)
             }
 
@@ -83,8 +83,8 @@
                 savePolicy: CKModifyRecordsOperation.RecordSavePolicy,
                 atomically: Bool
             ) async throws -> (
-                saveResults: [CKRecord.ID: Result<CKRecord, any Error>],
-                deleteResults: [CKRecord.ID: Result<Void, any Error>]
+                saveResults: [CKRecord.ID: Result<CKRecord, any Swift.Error>],
+                deleteResults: [CKRecord.ID: Result<Void, any Swift.Error>]
             ) {
                 try await rawValue.modifyRecords(
                     saving: recordsToSave,
@@ -98,8 +98,8 @@
                 saving recordZonesToSave: [CKRecordZone],
                 deleting recordZoneIDsToDelete: [CKRecordZone.ID]
             ) async throws -> (
-                saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
-                deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
+                saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Swift.Error>],
+                deleteResults: [CKRecordZone.ID: Result<Void, any Swift.Error>]
             ) {
                 try await rawValue.modifyRecordZones(
                     saving: recordZonesToSave,

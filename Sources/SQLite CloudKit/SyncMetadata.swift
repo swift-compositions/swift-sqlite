@@ -139,7 +139,6 @@
                 parentRecordID.parentRecordType
             }
 
-            // NB: Workaround for https://github.com/groue/GRDB.swift/discussions/1844
             public var hasLastKnownServerRecord: some QueryExpression<Bool> {
                 #sql(
                     """
@@ -148,7 +147,6 @@
                 )
             }
 
-            // NB: Workaround for https://github.com/groue/GRDB.swift/discussions/1844
             public var isShared: some QueryExpression<Bool> {
                 #sql(
                     """
@@ -202,7 +200,7 @@
                 }
             }
 
-            package static func findAll(_ recordIDs: some Collection<CKRecord.ID>) -> Where<Self> {
+            package static func findAll(_ recordIDs: some Swift.Collection<CKRecord.ID>) -> Where<Self> {
                 let condition: ISO_9075.Fragment = recordIDs.map {
                     "(\(bind: $0.recordName), \(bind: $0.zoneID.zoneName), \(bind: $0.zoneID.ownerName))"
                 }

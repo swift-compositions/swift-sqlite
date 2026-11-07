@@ -25,7 +25,7 @@
                 }
             }
             package static func findAll(
-                _ recordIDs: some Collection<CKRecord.ID>
+                _ recordIDs: some Swift.Collection<CKRecord.ID>
             ) -> Where<
                 UnsyncedRecordID
             > {

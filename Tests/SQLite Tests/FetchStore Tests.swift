@@ -109,7 +109,7 @@
 
         @Test func `an awaited load throws the request's error and keeps the last value`() async throws {
             let store = FetchStore(value: ["kept"])
-            await #expect(throws: (any Error).self) { try await store.load(Failing(), database: try reminders()) }
+            await #expect(throws: (any Swift.Error).self) { try await store.load(Failing(), database: try reminders()) }
             #expect(store.value == ["kept"])
             #expect(store.loadError != nil)
         }

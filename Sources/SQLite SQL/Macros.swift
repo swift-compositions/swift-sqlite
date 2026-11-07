@@ -42,7 +42,7 @@ public macro DatabaseFunction<each T: QueryRepresentable & QueryExpression>(
 @attached(peer, names: overloaded, prefixed(`$`))
 public macro DatabaseFunction<each T: QueryRepresentable & QueryExpression, R: QueryBindable>(
     _ name: String = "",
-    as representableFunctionType: ((any Sequence<(repeat each T)>) -> R).Type,
+    as representableFunctionType: ((any Swift.Sequence<(repeat each T)>) -> R).Type,
     isDeterministic: Bool = false
 ) =
     #externalMacro(
@@ -53,7 +53,7 @@ public macro DatabaseFunction<each T: QueryRepresentable & QueryExpression, R: Q
 @attached(peer, names: overloaded, prefixed(`$`))
 public macro DatabaseFunction<each T: QueryRepresentable & QueryExpression>(
     _ name: String = "",
-    as representableFunctionType: ((any Sequence<(repeat each T)>) -> Void).Type,
+    as representableFunctionType: ((any Swift.Sequence<(repeat each T)>) -> Void).Type,
     isDeterministic: Bool = false
 ) =
     #externalMacro(

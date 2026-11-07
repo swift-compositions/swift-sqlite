@@ -36,7 +36,7 @@ public protocol AggregateDatabaseFunction<Input, Output>: DatabaseFunction {
 
     func step(_ decoder: inout some QueryDecoder) throws -> Element
 
-    func invoke(_ arguments: some Sequence<Element>) throws -> ISO_9075.Value
+    func invoke(_ arguments: some Swift.Sequence<Element>) throws -> ISO_9075.Value
 }
 
 extension AggregateDatabaseFunction {

@@ -67,7 +67,7 @@
                 }
             }
 
-            private struct DecodingError: Error {}
+            private struct DecodingError: Swift.Error {}
         }
     #endif
 

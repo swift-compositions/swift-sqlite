@@ -67,8 +67,6 @@
                     }
                 }
 
-                // Each engine receives a deletion made after its last fetch once, unless the record was saved again
-                // since; every engine on the database sees every deletion, as every device does in CloudKit.
                 let lastChangeTag = self.state.changeTag.withLock { $0 }
                 let deleted = database.state.withLock { state in
                     state.deletedRecords.filter { recordID, _, changeTag in
@@ -99,7 +97,6 @@
 
                     try await parentSyncEngine.processPendingDatabaseChanges(scope: database.databaseScope)
                 }
-                // One batch, as upstream; more while a batch was cut at its limit, as CKSyncEngine sends them all.
                 var pending = state.pendingRecordZoneChanges
                 var batches = 0
                 while !pending.isEmpty, batches < 10_000 {
@@ -118,8 +115,6 @@
                 var recordsToSave: [CKRecord] = []
                 var recordIDsSkipped: [CKRecord.ID] = []
                 var recordIDsToDelete: [CKRecord.ID] = []
-                // At most 199 changes per batch, within the mock database's limit on one modification, as
-                // CKSyncEngine's batches keep within CloudKit's.
                 for pendingChange in pendingChanges.prefix(199) {
                     switch pendingChange {
                     case .saveRecord(let recordID):

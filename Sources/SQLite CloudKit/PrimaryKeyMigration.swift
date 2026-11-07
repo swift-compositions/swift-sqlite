@@ -532,7 +532,7 @@
             }
         }
 
-        private struct SyntaxError: Error {}
+        private struct SyntaxError: Swift.Error {}
 
         extension SQLite.Pragma.Table.Info {
             var isInt: Bool {

@@ -44,7 +44,7 @@
         func `a read-only database refuses a write`(kind: SQLite.Database.Kind) throws {
             let path = try Self.restoredStore(in: Self.folder())
             let database = try SQLite.Database(path: try Path::Path(validating: path), kind: kind, configuration: Self.readonly)
-            #expect(throws: (any Error).self) {
+            #expect(throws: (any Swift.Error).self) {
                 try database.write { try $0.execute(sql: "INSERT INTO item (id) VALUES (2)") }
             }
             #expect(try database.read { try Int.fetchOne($0, sql: "SELECT count(*) FROM item") } == 1)
@@ -74,7 +74,7 @@
             #expect(FileManager.default.fileExists(atPath: path + "-shm"))
             let database = try SQLite.Database(path: try Path::Path(validating: path), kind: kind, configuration: Self.readonly)
             #expect(try database.read { try Int.fetchOne($0, sql: "SELECT count(*) FROM item") } == 0)
-            #expect(throws: (any Error).self) {
+            #expect(throws: (any Swift.Error).self) {
                 try database.write { try $0.execute(sql: "INSERT INTO item (id) VALUES (2)") }
             }
         }

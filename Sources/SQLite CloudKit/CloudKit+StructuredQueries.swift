@@ -14,8 +14,6 @@
                 let archiver = NSKeyedArchiver(requiringSecureCoding: true)
                 queryOutput.encodeSystemFields(with: archiver)
                 if let recordChangeTag = queryOutput._recordChangeTag {
-                    // An object, as the decoder reads it: `encode(_:forKey:)` with an `Int` writes an integer, which
-                    // `decodeObject(of:forKey:)` refuses with a warning and drops the tag.
                     archiver.encode(NSNumber(value: recordChangeTag), forKey: "_recordChangeTag")
                 }
                 return .blob([Byte](archiver.encodedData))
@@ -49,7 +47,7 @@
                 self.init(queryOutput: queryOutput)
             }
 
-            private struct DecodingError: Error {}
+            private struct DecodingError: Swift.Error {}
         }
 
         public struct _AllFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
@@ -59,8 +57,6 @@
                 let archiver = NSKeyedArchiver(requiringSecureCoding: true)
                 queryOutput.encode(with: archiver)
                 if let recordChangeTag = queryOutput._recordChangeTag {
-                    // An object, as the decoder reads it: `encode(_:forKey:)` with an `Int` writes an integer, which
-                    // `decodeObject(of:forKey:)` refuses with a warning and drops the tag.
                     archiver.encode(NSNumber(value: recordChangeTag), forKey: "_recordChangeTag")
                 }
                 return .blob([Byte](archiver.encodedData))
@@ -94,7 +90,7 @@
                 self.init(queryOutput: queryOutput)
             }
 
-            private struct DecodingError: Error {}
+            private struct DecodingError: Swift.Error {}
         }
 
         extension CKDatabase.Scope {

@@ -438,7 +438,7 @@
 
                 public func cloudSharingController(
                     _ csc: UICloudSharingController,
-                    failedToSaveShareWithError error: any Error
+                    failedToSaveShareWithError error: any Swift.Error
                 ) {
                     didFinish(.failure(SyncEngine.Error(error)))
                 }

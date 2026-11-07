@@ -5,9 +5,6 @@
     public import SQL
     public import SQLite
 
-    // Tests that probe a store's triggers, migrations and schema state the SQL they test as text. These are the entry
-    // points for that text, in tests only: production code builds statements with swift-sql.
-
     extension SQLite.Connection {
         /// Runs `sql`, binding each `?` outside quotes to the next of `arguments`. Without arguments, `sql` may hold several
         /// statements, run in order.

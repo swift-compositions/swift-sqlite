@@ -38,7 +38,7 @@
 
         @Test func `rejects a table name containing a colon`() async throws {
             let error = try #require(
-                await #expect(throws: (any Error).self) {
+                await #expect(throws: (any Swift.Error).self) {
                     let database = try DatabaseQueue()
                     _ = try await SyncEngine(
                         container: MockCloudContainer(
@@ -68,7 +68,7 @@
 
         @Test func `rejects a foreign key with no action on delete`() async throws {
             let error = try #require(
-                await #expect(throws: (any Error).self) {
+                await #expect(throws: (any Swift.Error).self) {
                     let database = try DatabaseQueue()
                     try await database.write { db in
                         try #sql(
@@ -127,7 +127,7 @@
 
         @Test func `rejects a foreign key that restricts deletes`() async throws {
             let error = try #require(
-                await #expect(throws: (any Error).self) {
+                await #expect(throws: (any Swift.Error).self) {
                     let database = try DatabaseQueue()
                     try await database.write { db in
                         try #sql(
@@ -186,7 +186,7 @@
 
         @Test func `rejects a foreign key to a table that is not synchronized`() async throws {
             let error = try #require(
-                await #expect(throws: (any Error).self) {
+                await #expect(throws: (any Swift.Error).self) {
                     let database = try DatabaseQueue()
                     try await database.write { db in
                         try #sql(
@@ -292,7 +292,7 @@
 
         @Test func `rejects a uniqueness constraint on a synchronized table`() async throws {
             let error = try #require(
-                await #expect(throws: (any Error).self) {
+                await #expect(throws: (any Swift.Error).self) {
                     let database = try DatabaseQueue()
                     try await database.write { db in
                         try #sql(
@@ -334,7 +334,7 @@
 
         @Test func `rejects a table that references itself`() async throws {
             let error = try #require(
-                await #expect(throws: (any Error).self) {
+                await #expect(throws: (any Swift.Error).self) {
                     let database = try DatabaseQueue()
                     try await database.write { db in
                         try #sql(

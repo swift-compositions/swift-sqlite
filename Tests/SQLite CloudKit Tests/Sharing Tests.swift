@@ -23,7 +23,7 @@
 
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                let error = await #expect(throws: (any Error).self) {
+                let error = await #expect(throws: (any Swift.Error).self) {
                     _ = try await self.syncEngine.share(record: reminder, configure: { _ in })
                 }
                 assertInlineSnapshot(of: error?.localizedDescription, as: .customDump) {
@@ -62,7 +62,7 @@
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
                 syncEngine.stop()
 
-                let error = await #expect(throws: (any Error).self) {
+                let error = await #expect(throws: (any Swift.Error).self) {
                     _ = try await self.syncEngine.share(record: remindersList, configure: { _ in })
                 }
                 assertInlineSnapshot(of: error?.localizedDescription, as: .customDump) {
@@ -83,7 +83,7 @@
             }
 
             @Test func `sharing a record of an unsynchronized table throws`() async throws {
-                let error = await #expect(throws: (any Error).self) {
+                let error = await #expect(throws: (any Swift.Error).self) {
                     _ = try await self.syncEngine.share(
                         record: UnsyncedModel(id: 42),
                         configure: { _ in }
@@ -110,7 +110,7 @@
             }
 
             @Test func `sharing a record of a private table throws`() async throws {
-                let error = await #expect(throws: (any Error).self) {
+                let error = await #expect(throws: (any Swift.Error).self) {
                     _ = try await self.syncEngine.share(
                         record: RemindersListPrivate(remindersListID: 1),
                         configure: { _ in }
@@ -285,7 +285,7 @@
             }
 
             @Test func `sharing a record before it is synchronized throws`() async throws {
-                let error = await #expect(throws: (any Error).self) {
+                let error = await #expect(throws: (any Swift.Error).self) {
                     _ = try await self.syncEngine.share(
                         record: RemindersList(id: 1),
                         configure: { _ in }
@@ -979,7 +979,7 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                let error = await #expect(throws: (any Error).self) {
+                let error = await #expect(throws: (any Swift.Error).self) {
                     try await self.syncEngine.unshare(record: remindersList)
                 }
                 assertInlineSnapshot(

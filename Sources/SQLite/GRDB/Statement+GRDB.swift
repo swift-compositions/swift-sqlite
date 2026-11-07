@@ -3,9 +3,6 @@ public import SQLite_SQL
     package import GRDB
     public import SQL
 
-    // Every typed operation comes twice: public, on the `SQLite.Connection` a read or write gives, and package-wide, on
-    // the driver's connection, which the CloudKit engine and white-box tests run on.
-
     extension SQL::Statement {
         public func execute(_ connection: SQLite.Connection) throws(SQLite.Error) where QueryValue == () {
             try executing { try execute(connection.database) }

@@ -661,7 +661,6 @@
                 table: some SynchronizableTable<T>,
                 db: Database
             ) throws {
-                // try T.update { $0.primaryKey = $0.primaryKey }.execute(db)
                 try #sql(
                     """
                     UPDATE \(T.self) SET \(quote: T.primaryKey.name) = \(quote: T.primaryKey.name)
@@ -805,7 +804,6 @@
                 }
 
                 guard isRunning else {
-                    // TODO: Perform this work in a trigger instead of a task.
                     Task { [changes = oldChanges + newChanges] in
                         do {
                             try await userDatabase.write { db in
@@ -2056,8 +2054,8 @@
             private func updateQuery<T>(
                 for _: some SynchronizableTable<T>,
                 record: CKRecord,
-                columnNames: some Collection<String>,
-                changedColumnNames: some Collection<String>
+                columnNames: some Swift.Collection<String>,
+                changedColumnNames: some Swift.Collection<String>
             ) async throws -> ISO_9075.Fragment {
                 let nonPrimaryKeyChangedColumns =
                     changedColumnNames
@@ -2508,7 +2506,7 @@
         private func upsert<T>(
             _: some SynchronizableTable<T>,
             record: CKRecord,
-            columnNames: some Collection<String>,
+            columnNames: some Swift.Collection<String>,
             dataManager: some DataManager
         ) -> ISO_9075.Fragment {
             let setColumnNames = T.TableColumns.writableColumns.map(\.name)

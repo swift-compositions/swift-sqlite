@@ -27,12 +27,12 @@
     }
 
     @DatabaseFunction
-    private func total(_ values: some Sequence<Int>) -> Int {
+    private func total(_ values: some Swift.Sequence<Int>) -> Int {
         values.reduce(0, +)
     }
 
     @DatabaseFunction
-    private func concatenation(_ labels: some Sequence<String>) -> String {
+    private func concatenation(_ labels: some Swift.Sequence<String>) -> String {
         labels.joined(separator: ",")
     }
 
@@ -90,7 +90,7 @@
             #expect(instant == Time.Instant(secondsSinceUnixEpoch: 0))
 
             try queue.write { database in database.remove(function: $epoch) }
-            #expect(throws: (any Error).self) {
+            #expect(throws: (any Swift.Error).self) {
                 try queue.read { database in _ = try Select($epoch()).fetchOne(database) }
             }
         }

@@ -22,7 +22,7 @@
 
             guard !url.isInMemory || context != .live
             else {
-                struct InMemoryDatabase: Error {}
+                struct InMemoryDatabase: Swift.Error {}
                 throw InMemoryDatabase()
             }
 

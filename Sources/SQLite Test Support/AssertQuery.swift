@@ -113,7 +113,7 @@
     ) {
         guard !includeSQL
         else {
-            return SQL_Test_Support.assertQuery(
+            return SQL_Test_Support::assertQuery(
                 statement,
                 execute: execute,
                 sql: sql,

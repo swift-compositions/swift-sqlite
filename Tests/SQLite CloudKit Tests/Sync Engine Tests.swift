@@ -105,7 +105,7 @@
             }
 
             @Test func `an in-memory user database is rejected in the live context`() async throws {
-                let error = await #expect(throws: (any Error).self) {
+                let error = await #expect(throws: (any Swift.Error).self) {
                     try await SyncEngine(
                         container: MockCloudContainer(
                             containerIdentifier: "test",

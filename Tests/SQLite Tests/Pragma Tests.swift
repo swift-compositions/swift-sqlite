@@ -17,49 +17,49 @@ private struct Record {
 }
 
 extension `SQLite pragmas`.Unit {
-    @Test func `scalar reads render their pragma names`() {
-        #expect(SQLite().render(SQLite.Pragma.ForeignKeys.get.query).sql == "PRAGMA foreign_keys")
-        #expect(SQLite().render(SQLite.Pragma.DeferForeignKeys.get.query).sql == "PRAGMA defer_foreign_keys")
-        #expect(SQLite().render(SQLite.Pragma.JournalMode.get.query).sql == "PRAGMA journal_mode")
-        #expect(SQLite().render(SQLite.Pragma.UserVersion.get.query).sql == "PRAGMA user_version")
+    @Test func `scalar reads render their pragma names`() throws {
+        #expect(try SQLite().render(SQLite.Pragma.ForeignKeys.get.query).sql == "PRAGMA foreign_keys")
+        #expect(try SQLite().render(SQLite.Pragma.DeferForeignKeys.get.query).sql == "PRAGMA defer_foreign_keys")
+        #expect(try SQLite().render(SQLite.Pragma.JournalMode.get.query).sql == "PRAGMA journal_mode")
+        #expect(try SQLite().render(SQLite.Pragma.UserVersion.get.query).sql == "PRAGMA user_version")
     }
 
-    @Test func `checks render their pragma names`() {
-        #expect(SQLite().render(SQLite.Pragma.QuickCheck.get.query).sql == "PRAGMA quick_check")
-        #expect(SQLite().render(SQLite.Pragma.IntegrityCheck.get.query).sql == "PRAGMA integrity_check")
+    @Test func `checks render their pragma names`() throws {
+        #expect(try SQLite().render(SQLite.Pragma.QuickCheck.get.query).sql == "PRAGMA quick_check")
+        #expect(try SQLite().render(SQLite.Pragma.IntegrityCheck.get.query).sql == "PRAGMA integrity_check")
     }
 
-    @Test func `boolean writes render numeric SQLite booleans`() {
-        #expect(SQLite().render(SQLite.Pragma.ForeignKeys.set(true).query).sql == "PRAGMA foreign_keys = 1")
-        #expect(SQLite().render(SQLite.Pragma.ForeignKeys.set(false).query).sql == "PRAGMA foreign_keys = 0")
-        #expect(SQLite().render(SQLite.Pragma.DeferForeignKeys.set(true).query).sql == "PRAGMA defer_foreign_keys = 1")
-        #expect(SQLite().render(SQLite.Pragma.DeferForeignKeys.set(false).query).sql == "PRAGMA defer_foreign_keys = 0")
+    @Test func `boolean writes render numeric SQLite booleans`() throws {
+        #expect(try SQLite().render(SQLite.Pragma.ForeignKeys.set(true).query).sql == "PRAGMA foreign_keys = 1")
+        #expect(try SQLite().render(SQLite.Pragma.ForeignKeys.set(false).query).sql == "PRAGMA foreign_keys = 0")
+        #expect(try SQLite().render(SQLite.Pragma.DeferForeignKeys.set(true).query).sql == "PRAGMA defer_foreign_keys = 1")
+        #expect(try SQLite().render(SQLite.Pragma.DeferForeignKeys.set(false).query).sql == "PRAGMA defer_foreign_keys = 0")
     }
 
-    @Test func `typed writes render values without bindings`() {
-        #expect(SQLite().render(SQLite.Pragma.JournalMode.set(.wal).query).sql == "PRAGMA journal_mode = wal")
-        #expect(SQLite().render(SQLite.Pragma.UserVersion.set(42).query).sql == "PRAGMA user_version = 42")
+    @Test func `typed writes render values without bindings`() throws {
+        #expect(try SQLite().render(SQLite.Pragma.JournalMode.set(.wal).query).sql == "PRAGMA journal_mode = wal")
+        #expect(try SQLite().render(SQLite.Pragma.UserVersion.set(42).query).sql == "PRAGMA user_version = 42")
     }
 
-    @Test func `table valued pragmas render typed selections`() {
+    @Test func `table valued pragmas render typed selections`() throws {
         #expect(
-            SQLite().render(SQLite.Pragma.Database.List.select(\.file).query).sql
+            try SQLite().render(SQLite.Pragma.Database.List.select(\.file).query).sql
                 .contains("FROM pragma_database_list()")
         )
         #expect(
-            SQLite().render(SQLite.Pragma.ForeignKey.Check.select(\.parent).query).sql
+            try SQLite().render(SQLite.Pragma.ForeignKey.Check.select(\.parent).query).sql
                 .contains("FROM pragma_foreign_key_check()")
         )
         #expect(
-            SQLite().render(SQLite.Pragma.ForeignKey.List<Record>.select(\.onDelete).query).sql
+            try SQLite().render(SQLite.Pragma.ForeignKey.List<Record>.select(\.onDelete).query).sql
                 .contains("FROM pragma_foreign_key_list('record')")
         )
         #expect(
-            SQLite().render(SQLite.Pragma.Index.List<Record>.select(\.name).query).sql
+            try SQLite().render(SQLite.Pragma.Index.List<Record>.select(\.name).query).sql
                 .contains("FROM pragma_index_list('record')")
         )
         #expect(
-            SQLite().render(SQLite.Pragma.Table.Info<Record>.select(\.name).query).sql
+            try SQLite().render(SQLite.Pragma.Table.Info<Record>.select(\.name).query).sql
                 .contains("FROM pragma_table_info('record')")
         )
     }

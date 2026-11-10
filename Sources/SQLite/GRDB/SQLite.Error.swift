@@ -10,7 +10,7 @@ public import SQLite_SQL
         /// so a caller tells a constraint violation from a busy database by ``code``, not by the driver's own error type.
         public struct Error: Swift.Error, Hashable, Sendable, CustomStringConvertible {
             /// The primary result code: the least significant 8 bits of ``extendedCode``.
-            public var code: Code { Code(rawValue: extendedCode.rawValue & 0xFF) }
+            public var code: Code { Code(primary: extendedCode) }
 
             /// The extended result code, such as `SQLITE_CONSTRAINT_FOREIGNKEY`.
             public let extendedCode: Code
@@ -175,6 +175,17 @@ public import SQLite_SQL
         public init?(_ diagnostic: ISO_9075.Diagnostic) {
             guard let native = diagnostic.native, let code = Int32(exactly: native) else { return nil }
             self.init(rawValue: code)
+        }
+
+        /// The extended result code SQLite reported for `error`, when it is a diagnostic SQLite reported.
+        public init?(_ error: ISO_9075.Error) {
+            guard case .diagnostic(let diagnostic) = error else { return nil }
+            self.init(diagnostic)
+        }
+
+        /// The primary result code of `code`: its least significant 8 bits.
+        public init(primary code: Self) {
+            self.init(rawValue: code.rawValue & 0xFF)
         }
     }
 

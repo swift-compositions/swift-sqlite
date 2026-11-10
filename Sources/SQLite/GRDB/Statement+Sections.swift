@@ -1,6 +1,7 @@
 public import SQLite_SQL
 #if GRDB
     package import GRDB
+    public import ISO_9075_Call_Level_Interface
     public import SQL
 
     extension SelectStatement where QueryValue == (), Joins == () {
@@ -69,15 +70,15 @@ public import SQLite_SQL
         public func fetchAll<Key: QueryRepresentable>(
             _ connection: SQLite.Connection,
             @SectionBuilder<Key> sectionBy sectioning: (From.TableColumns) -> Sectioning<Key>
-        ) throws(SQLite.Error) -> ResultsSectionCollection<From.QueryOutput, Key.QueryOutput>
+        ) throws(ISO_9075.Error) -> ResultsSectionCollection<From.QueryOutput, Key.QueryOutput>
         where Key.QueryOutput: Hashable {
-            try executing { try fetchAll(connection.database, sectionBy: sectioning) }
+            try performing { try fetchAll(connection.database, sectionBy: sectioning) }
         }
 
         public func fetchAll<Key: QueryRepresentable>(
             _ connection: SQLite.Connection,
             sectionBy sectionKeyPath: KeyPath<From.TableColumns, some QueryExpression<Key>>
-        ) throws(SQLite.Error) -> ResultsSectionCollection<From.QueryOutput, Key.QueryOutput>
+        ) throws(ISO_9075.Error) -> ResultsSectionCollection<From.QueryOutput, Key.QueryOutput>
         where Key.QueryOutput: Hashable {
             try fetchAll(connection, sectionBy: { $0[keyPath: sectionKeyPath] })
         }
@@ -88,23 +89,23 @@ public import SQLite_SQL
         public func fetchAll<Key: QueryRepresentable, each J: SQL::Table>(
             _ connection: SQLite.Connection,
             @SectionBuilder<Key> sectionBy sectioning: (From.TableColumns, repeat (each J).TableColumns) -> Sectioning<Key>
-        ) throws(SQLite.Error) -> ResultsSectionCollection<QueryValue.QueryOutput, Key.QueryOutput>
+        ) throws(ISO_9075.Error) -> ResultsSectionCollection<QueryValue.QueryOutput, Key.QueryOutput>
         where QueryValue: QueryRepresentable, Joins == (repeat each J), Key.QueryOutput: Hashable {
-            try executing { try fetchAll(connection.database, sectionBy: sectioning) }
+            try performing { try fetchAll(connection.database, sectionBy: sectioning) }
         }
 
         public func fetchAll<Key: QueryRepresentable>(
             _ connection: SQLite.Connection,
             @SectionBuilder<Key> sectionBy sectioning: (From.TableColumns, Joins.TableColumns) -> Sectioning<Key>
-        ) throws(SQLite.Error) -> ResultsSectionCollection<QueryValue.QueryOutput, Key.QueryOutput>
+        ) throws(ISO_9075.Error) -> ResultsSectionCollection<QueryValue.QueryOutput, Key.QueryOutput>
         where QueryValue: QueryRepresentable, Joins: SQL::Table, Key.QueryOutput: Hashable {
-            try executing { try fetchAll(connection.database, sectionBy: sectioning) }
+            try performing { try fetchAll(connection.database, sectionBy: sectioning) }
         }
 
         public func fetchAll<Key: QueryRepresentable>(
             _ connection: SQLite.Connection,
             sectionBy sectionKeyPath: KeyPath<From.TableColumns, some QueryExpression<Key>>
-        ) throws(SQLite.Error) -> ResultsSectionCollection<QueryValue.QueryOutput, Key.QueryOutput>
+        ) throws(ISO_9075.Error) -> ResultsSectionCollection<QueryValue.QueryOutput, Key.QueryOutput>
         where QueryValue: QueryRepresentable, Joins == (), Key.QueryOutput: Hashable {
             try fetchAll(connection, sectionBy: { $0[keyPath: sectionKeyPath] })
         }

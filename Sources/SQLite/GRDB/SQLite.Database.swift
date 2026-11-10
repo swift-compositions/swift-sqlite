@@ -168,70 +168,41 @@ public import SQLite_SQL
     }
 
     extension SQLite.Database {
-        public func read<T>(_ body: (SQLite.Connection) throws(SQLite.Error) -> T) throws(SQLite.Error) -> T {
-            try executing {
+        public func read<T>(_ body: (SQLite.Connection) throws(ISO_9075.Error) -> T) throws(ISO_9075.Error) -> T {
+            try performing {
                 try requireOpen()
                 return try writer.read { database in try body(SQLite.Connection(database)) }
             }
         }
 
-        public func write<T>(_ body: (SQLite.Connection) throws(SQLite.Error) -> T) throws(SQLite.Error) -> T {
-            try executing { try writer.write { database in try body(SQLite.Connection(database)) } }
+        public func write<T>(_ body: (SQLite.Connection) throws(ISO_9075.Error) -> T) throws(ISO_9075.Error) -> T {
+            try performing { try writer.write { database in try body(SQLite.Connection(database)) } }
         }
 
-        public func read<T: Sendable>(
-            _ body: @Sendable (SQLite.Connection) throws(SQLite.Error) -> T
-        ) async throws(SQLite.Error) -> T {
-            try await executing {
-                try await requireOpen()
-                return try await writer.read { database in try body(SQLite.Connection(database)) }
-            }
-        }
-
-        public func write<T: Sendable>(
-            _ body: @Sendable (SQLite.Connection) throws(SQLite.Error) -> T
-        ) async throws(SQLite.Error) -> T {
-            try await executing { try await writer.write { database in try body(SQLite.Connection(database)) } }
-        }
-    }
-
-    extension SQLite.Database {
-        @_disfavoredOverload
         public func read<Value: Sendable>(
             _ body: @Sendable (Connection) throws(ISO_9075.Error) -> Value
         ) async throws(ISO_9075.Error) -> Value {
-            try await scope {
+            try await performing {
                 try await requireOpen()
                 return try await writer.read { database in try body(Connection(database)) }
             }
         }
 
-        @_disfavoredOverload
         public func write<Value: Sendable>(
             _ body: @Sendable (Connection) throws(ISO_9075.Error) -> Value
         ) async throws(ISO_9075.Error) -> Value {
-            try await scope { try await writer.write { database in try body(Connection(database)) } }
+            try await performing { try await writer.write { database in try body(Connection(database)) } }
         }
 
         public func withRollback<Value: Sendable>(
             _ body: @Sendable (Connection) throws(ISO_9075.Error) -> Value
         ) async throws(ISO_9075.Error) -> Value {
-            try await scope {
+            try await performing {
                 try await writer.writeWithoutTransaction { database in
                     try database.beginTransaction()
                     defer { try? database.rollback() }
                     return try body(Connection(database))
                 }
-            }
-        }
-
-        private func scope<Value>(_ run: () async throws -> Value) async throws(ISO_9075.Error) -> Value {
-            do {
-                return try await run()
-            } catch let error as ISO_9075.Error {
-                throw error
-            } catch {
-                throw .transaction("\(SQLite.Error.translated(error))")
             }
         }
     }

@@ -1,26 +1,13 @@
 public import SQLite_SQL
 #if GRDB
     package import GRDB
+    public import ISO_9075_Call_Level_Interface
     public import SQL
 
     extension SQL::Statement {
-        public func execute(_ connection: SQLite.Connection) throws(SQLite.Error) where QueryValue == () {
-            try executing { try execute(connection.database) }
-        }
-
-        public func fetchAll(_ connection: SQLite.Connection) throws(SQLite.Error) -> [QueryValue.QueryOutput]
+        public func fetchCursor(_ connection: SQLite.Connection) throws(ISO_9075.Error) -> QueryCursor<QueryValue.QueryOutput>
         where QueryValue: QueryRepresentable {
-            try executing { try fetchAll(connection.database) }
-        }
-
-        public func fetchOne(_ connection: SQLite.Connection) throws(SQLite.Error) -> QueryValue.QueryOutput?
-        where QueryValue: QueryRepresentable {
-            try executing { try fetchOne(connection.database) }
-        }
-
-        public func fetchCursor(_ connection: SQLite.Connection) throws(SQLite.Error) -> QueryCursor<QueryValue.QueryOutput>
-        where QueryValue: QueryRepresentable {
-            try executing { try fetchCursor(connection.database) }
+            try performing { try fetchCursor(connection.database) }
         }
 
         package func execute(_ db: GRDB.Database) throws where QueryValue == () {
@@ -44,25 +31,11 @@ public import SQLite_SQL
     }
 
     extension SQL::Statement {
-        public func fetchAll<each Value: QueryRepresentable>(
-            _ connection: SQLite.Connection
-        ) throws(SQLite.Error) -> [(repeat (each Value).QueryOutput)]
-        where QueryValue == (repeat each Value) {
-            try executing { try fetchAll(connection.database) }
-        }
-
-        public func fetchOne<each Value: QueryRepresentable>(
-            _ connection: SQLite.Connection
-        ) throws(SQLite.Error) -> (repeat (each Value).QueryOutput)?
-        where QueryValue == (repeat each Value) {
-            try executing { try fetchOne(connection.database) }
-        }
-
         public func fetchCursor<each Value: QueryRepresentable>(
             _ connection: SQLite.Connection
-        ) throws(SQLite.Error) -> QueryCursor<(repeat (each Value).QueryOutput)>
+        ) throws(ISO_9075.Error) -> QueryCursor<(repeat (each Value).QueryOutput)>
         where QueryValue == (repeat each Value) {
-            try executing { try fetchCursor(connection.database) }
+            try performing { try fetchCursor(connection.database) }
         }
 
         package func fetchAll<each Value: QueryRepresentable>(
@@ -88,20 +61,8 @@ public import SQLite_SQL
     }
 
     extension SelectStatement where QueryValue == (), Joins == () {
-        public func fetchCount(_ connection: SQLite.Connection) throws(SQLite.Error) -> Int {
-            try executing { try fetchCount(connection.database) }
-        }
-
-        public func fetchAll(_ connection: SQLite.Connection) throws(SQLite.Error) -> [From.QueryOutput] {
-            try executing { try fetchAll(connection.database) }
-        }
-
-        public func fetchOne(_ connection: SQLite.Connection) throws(SQLite.Error) -> From.QueryOutput? {
-            try executing { try fetchOne(connection.database) }
-        }
-
-        public func fetchCursor(_ connection: SQLite.Connection) throws(SQLite.Error) -> QueryCursor<From.QueryOutput> {
-            try executing { try fetchCursor(connection.database) }
+        public func fetchCursor(_ connection: SQLite.Connection) throws(ISO_9075.Error) -> QueryCursor<From.QueryOutput> {
+            try performing { try fetchCursor(connection.database) }
         }
 
         package func fetchCount(_ db: GRDB.Database) throws -> Int {
@@ -147,25 +108,11 @@ public import SQLite_SQL
     }
 
     extension SelectStatement where QueryValue == () {
-        public func fetchAll<each J: SQL::Table>(
-            _ connection: SQLite.Connection
-        ) throws(SQLite.Error) -> [(From.QueryOutput, repeat (each J).QueryOutput)]
-        where Joins == (repeat each J) {
-            try executing { try fetchAll(connection.database) }
-        }
-
-        public func fetchOne<each J: SQL::Table>(
-            _ connection: SQLite.Connection
-        ) throws(SQLite.Error) -> (From.QueryOutput, repeat (each J).QueryOutput)?
-        where Joins == (repeat each J) {
-            try executing { try fetchOne(connection.database) }
-        }
-
         public func fetchCursor<each J: SQL::Table>(
             _ connection: SQLite.Connection
-        ) throws(SQLite.Error) -> QueryCursor<(From.QueryOutput, repeat (each J).QueryOutput)>
+        ) throws(ISO_9075.Error) -> QueryCursor<(From.QueryOutput, repeat (each J).QueryOutput)>
         where Joins == (repeat each J) {
-            try executing { try fetchCursor(connection.database) }
+            try performing { try fetchCursor(connection.database) }
         }
 
         package func fetchAll<each J: SQL::Table>(

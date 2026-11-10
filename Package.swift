@@ -139,6 +139,7 @@ let package = Package(
                 .target(name: "SQLite Test Support"),
                 .product(name: "SQL Macros", package: "swift-sql"),
                 .product(name: "SQL Migrations", package: "swift-sql"),
+                .product(name: "SQL Test Support", package: "swift-sql"),
                 .product(name: "ISO 9075 Call-Level Interface", package: "swift-iso-9075"),
                 .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["GRDB"])),
                 .product(name: "Dependencies", package: "swift-dependencies", condition: .when(traits: ["Dependencies"])),

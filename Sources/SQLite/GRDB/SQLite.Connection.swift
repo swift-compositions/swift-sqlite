@@ -51,8 +51,10 @@ public import SQLite_SQL
                     (statement, _) = try database.prepare(rendering, cached: true)
                 } catch let error as ISO_9075.Error {
                     throw error
+                } catch let error as GRDB.DatabaseError {
+                    throw ISO_9075.Error(SQLite.Error(error))
                 } catch {
-                    throw .execution("\(SQLite.Error.translated(error))")
+                    throw .execution("\(error)")
                 }
                 defer { unsafe sqlite3_reset(statement.sqliteStatement) }
                 let rows = Cursor(statement)
@@ -60,8 +62,10 @@ public import SQLite_SQL
                     while let row = try rows.next() { try body(row) }
                 } catch let error as ISO_9075.Error {
                     throw error
+                } catch let error as GRDB.DatabaseError {
+                    throw ISO_9075.Error(SQLite.Error(error))
                 } catch {
-                    throw .execution("\(SQLite.Error.translated(error))")
+                    throw .execution("\(error)")
                 }
             }
         }
@@ -126,8 +130,8 @@ public import SQLite_SQL
         }
 
         /// Makes the observation this connection reads for depend on `region`.
-        public func track(_ region: Region) throws(SQLite.Error) {
-            try executing {
+        public func track(_ region: Region) throws(ISO_9075.Error) {
+            try performing {
                 switch region {
                 case .all: try database.registerAccess(to: .fullDatabase)
                 }

@@ -3,7 +3,7 @@ public import SQLite_SQL
     internal import Byte
     package import GRDB
     internal import GRDBSQLite
-    internal import ISO_9075_Call_Level_Interface
+    public import ISO_9075_Call_Level_Interface
     internal import RFC_4122
     public import SQL
 
@@ -18,8 +18,8 @@ public import SQLite_SQL
         }
 
         /// The next row, or `nil` once every row has been read.
-        public func next() throws(SQLite.Error) -> Element? {
-            try executing { try base.next() }
+        public func next() throws(ISO_9075.Error) -> Element? {
+            try performing { try base.next() }
         }
     }
 

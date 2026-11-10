@@ -118,6 +118,8 @@ public import SQLite_SQL
             switch error {
             case .decoding, .binding: self.init(extendedCode: .mismatch, message: "\(error)")
             case .connection, .execution, .transaction: self.init(extendedCode: .error, message: "\(error)")
+            case .diagnostic(let diagnostic):
+                self.init(extendedCode: Code(diagnostic) ?? .error, message: diagnostic.message)
             }
         }
 
@@ -135,10 +137,76 @@ public import SQLite_SQL
     }
 
     extension ISO_9075.Error {
-        /// An ``SQLite/Error`` as the call-level interface's error, for a contract that names no database: an execution
-        /// error described by its result code, message and statement.
+        /// An ``SQLite/Error`` as the call-level interface's error, for a contract that names no database: a diagnostic
+        /// whose state is the result code's condition in ISO 9075 terms, whose native code is the extended result code,
+        /// and whose message is SQLite's.
         public init(_ error: SQLite.Error) {
-            self = .execution(error.description)
+            self = .diagnostic(
+                ISO_9075.Diagnostic(
+                    state: ISO_9075.Diagnostic.State(error.code),
+                    native: Int(error.extendedCode.rawValue),
+                    message: error.message ?? error.description
+                )
+            )
+        }
+    }
+
+    extension ISO_9075.Diagnostic.State {
+        /// The ISO 9075 condition an SQLite result code reports.
+        public init(_ code: SQLite.Error.Code) {
+            self =
+                switch code {
+                case .constraint: .integrityConstraintViolation
+                case .error: .syntaxErrorOrAccessRuleViolation
+                case .mismatch: .dataException
+                case .tooBig: .stringDataRightTruncation
+                case .readonly: .readOnlyTransaction
+                case .busy, .locked: .serializationFailure
+                case .interrupt: .operationCanceled
+                case .cannotOpen, .notADatabase: .unableToEstablishConnection
+                default: .generalError
+                }
+        }
+    }
+
+    extension SQLite.Error.Code {
+        /// The extended result code SQLite reported for `diagnostic`: its native code. `nil` for a diagnostic that carries
+        /// none, which SQLite did not report.
+        public init?(_ diagnostic: ISO_9075.Diagnostic) {
+            guard let native = diagnostic.native, let code = Int32(exactly: native) else { return nil }
+            self.init(rawValue: code)
+        }
+    }
+
+    extension ISO_9075.Error {
+        /// Any error a statement can meet, as the call-level interface's error: SQLite's own as a diagnostic carrying
+        /// its result code, a cancelled task as an interrupt, and anything else as an execution error.
+        package static func typed(_ error: any Swift.Error) -> ISO_9075.Error {
+            switch error {
+            case let error as ISO_9075.Error: error
+            case let error as SQLite.Error: ISO_9075.Error(error)
+            case let error as GRDB.DatabaseError: ISO_9075.Error(SQLite.Error(error))
+            case is CancellationError: ISO_9075.Error(SQLite.Error(extendedCode: .interrupt, message: "cancelled"))
+            default: .execution("\(error)")
+            }
+        }
+    }
+
+    /// Runs `body`, throwing what fails as the call-level interface's error.
+    package func performing<T>(_ body: () throws -> T) throws(ISO_9075.Error) -> T {
+        do {
+            return try body()
+        } catch {
+            throw ISO_9075.Error.typed(error)
+        }
+    }
+
+    /// Runs `body`, throwing what fails as the call-level interface's error.
+    package func performing<T>(_ body: () async throws -> T) async throws(ISO_9075.Error) -> T {
+        do {
+            return try await body()
+        } catch {
+            throw ISO_9075.Error.typed(error)
         }
     }
 

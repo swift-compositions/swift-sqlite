@@ -1,22 +1,11 @@
 public import SQLite_SQL
 #if GRDB
     package import GRDB
+    public import ISO_9075_Call_Level_Interface
     public import SQL
 
     extension SQL::Table {
-        public static func fetchAll(_ connection: SQLite.Connection) throws(SQLite.Error) -> [QueryOutput] {
-            try all.fetchAll(connection)
-        }
-
-        public static func fetchOne(_ connection: SQLite.Connection) throws(SQLite.Error) -> QueryOutput? {
-            try all.fetchOne(connection)
-        }
-
-        public static func fetchCount(_ connection: SQLite.Connection) throws(SQLite.Error) -> Int {
-            try all.fetchCount(connection)
-        }
-
-        public static func fetchCursor(_ connection: SQLite.Connection) throws(SQLite.Error) -> QueryCursor<QueryOutput> {
+        public static func fetchCursor(_ connection: SQLite.Connection) throws(ISO_9075.Error) -> QueryCursor<QueryOutput> {
             try all.fetchCursor(connection)
         }
 

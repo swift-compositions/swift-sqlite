@@ -70,9 +70,9 @@
             #expect(dentist == Item(id: "c", title: "Dentist"))
         }
 
-        @Test func `a failing statement throws the institute's error`() async throws {
+        @Test func `a failing statement throws the call-level interface's diagnostic, with SQLite's result code`() async throws {
             let database = try await Item.database()
-            await #expect(throws: SQLite.Error.self) {
+            await #expect(throws: ISO_9075.Error.self) {
                 try await database.write { connection in
                     try Item.insert { Item(id: "a", title: "Duplicate") }.execute(connection)
                 }
@@ -82,22 +82,30 @@
                     try Item.insert { Item(id: "a", title: "Duplicate") }.execute(connection)
                 }
                 Issue.record("A duplicate primary key was inserted")
-            } catch let error as SQLite.Error {
-                #expect(error.code == .constraint)
-                #expect(error.extendedCode == .primaryKeyConstraint)
+            } catch let error as ISO_9075.Error {
+                guard case .diagnostic(let diagnostic) = error else {
+                    Issue.record("expected a diagnostic, got \(error)")
+                    return
+                }
+                #expect(diagnostic.state == .integrityConstraintViolation)
+                #expect(SQLite.Error.Code(diagnostic) == .primaryKeyConstraint)
             }
         }
 
-        @Test func `a typed write throws the institute's error with its result code`() async throws {
+        @Test func `a typed write throws the call-level interface's diagnostic, its state and its result code`() async throws {
             let database = try await Item.database()
-            do throws(SQLite.Error) {
-                try await database.write { connection throws(SQLite.Error) in
+            do throws(ISO_9075.Error) {
+                try await database.write { connection throws(ISO_9075.Error) in
                     try Item.insert { Item(id: "a", title: "Duplicate") }.execute(connection)
                 }
                 Issue.record("A duplicate primary key was inserted")
             } catch {
-                #expect(error.code == .constraint)
-                #expect(error.extendedCode == .primaryKeyConstraint)
+                guard case .diagnostic(let diagnostic) = error else {
+                    Issue.record("expected a diagnostic, got \(error)")
+                    return
+                }
+                #expect(diagnostic.state == .integrityConstraintViolation)
+                #expect(SQLite.Error.Code(diagnostic) == .primaryKeyConstraint)
             }
             let count = try await database.read { connection in try Item.fetchCount(connection) }
             #expect(count == 2)

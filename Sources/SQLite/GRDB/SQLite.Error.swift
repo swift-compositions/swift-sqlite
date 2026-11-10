@@ -221,6 +221,21 @@ public import SQLite_SQL
         }
     }
 
+    /// Runs `body`, which runs a caller's closure through ``Raised/raising(_:)``: what that closure threw comes out as
+    /// the body's failure, and anything else as the database's.
+    package func separating<T, Thrown: Swift.Error>(
+        _ thrown: Thrown.Type,
+        _ body: () async throws -> T
+    ) async throws(ISO_9075.Failure<Thrown>) -> T {
+        do {
+            return try await body()
+        } catch let raised as Raised<Thrown> {
+            throw .body(raised.thrown)
+        } catch {
+            throw .database(ISO_9075.Error.typed(error))
+        }
+    }
+
     /// Runs `body`, throwing what fails as ``SQLite/Error``.
     package func executing<T>(_ body: () throws -> T) throws(SQLite.Error) -> T {
         do {
@@ -236,6 +251,19 @@ public import SQLite_SQL
             return try await body()
         } catch {
             throw SQLite.Error.typed(error)
+        }
+    }
+
+    /// What a caller's closure threw, carried unchanged through GRDB, which rolls back on it, to ``separating(_:)``.
+    package struct Raised<Thrown: Swift.Error>: Swift.Error {
+        package let thrown: Thrown
+
+        package static func raising<T>(_ body: () throws(Thrown) -> T) throws(Raised) -> T {
+            do {
+                return try body()
+            } catch {
+                throw Raised(thrown: error)
+            }
         }
     }
 #endif

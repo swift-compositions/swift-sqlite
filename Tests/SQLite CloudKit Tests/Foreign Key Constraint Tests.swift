@@ -1,4 +1,5 @@
 #if CloudKit && canImport(CloudKit)
+    import Cardinal
     import Synchronization
     import GRDB
     import CloudKit
@@ -873,8 +874,8 @@
                 await remindersListModification.notify()
 
                 try await userDatabase.read { db in
-                    try #expect(RemindersList.fetchCount(db) == 1)
-                    try #expect(Reminder.fetchCount(db) == 500)
+                    try #expect(RemindersList.fetch.count(db) == 1)
+                    try #expect(Reminder.fetch.count(db) == 500)
                 }
             }
         }

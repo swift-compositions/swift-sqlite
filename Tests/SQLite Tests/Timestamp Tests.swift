@@ -28,12 +28,12 @@
             let instant = try Time.Instant(secondsSinceUnixEpoch: 1_771_416_482, nanosecondFraction: 61_000_000)
             let inserted = try #require(
                 try queue.write { database in
-                    try Record.insert { Record.Draft(instant: instant) }.returning(\.self).fetchOne(database)
+                    try Record.insert { Record.Draft(instant: instant) }.returning(\.self).fetch.one(database)
                 }
             )
             let updated = try #require(
                 try queue.write { database in
-                    try Record.update(inserted).returning(\.self).fetchOne(database)
+                    try Record.update(inserted).returning(\.self).fetch.one(database)
                 }
             )
             #expect(inserted.instant == instant)

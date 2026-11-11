@@ -51,7 +51,7 @@ private struct FactsListView: View {
             var facts: [Fact] = []
         }
         func fetch(_ db: Database) throws -> Value {
-            try Value(facts: Fact.order { $0.id.desc() }.fetchAll(db))
+            try Value(facts: Fact.order { $0.id.desc() }.fetch.all(db))
         }
     }
 }

@@ -28,18 +28,18 @@ struct SyncUpFormTests {
         model.saveButtonTapped()
 
         let syncUp = try await database.read { db in
-            try #require(try SyncUp.order { $0.id.desc() }.fetchOne(db))
+            try #require(try SyncUp.order { $0.id.desc() }.fetch.one(db))
         }
         #expect(syncUp.title == "Morning Sync")
         let attendees = try await database.read { db in
-            try Attendee.where { $0.syncUpID.eq(syncUp.id) }.fetchAll(db)
+            try Attendee.where { $0.syncUpID.eq(syncUp.id) }.fetch.all(db)
         }
         #expect(attendees.map(\.name) == ["Blob", "Blob Jr."])
     }
 
     @Test func updateExisting() async throws {
         let existingSyncUp = try await database.read { db in
-            try #require(try SyncUp.fetchOne(db))
+            try #require(try SyncUp.fetch.one(db))
         }
         let draft = SyncUp.Draft(existingSyncUp)
         let model = SyncUpFormModel(syncUp: draft)
@@ -50,11 +50,11 @@ struct SyncUpFormTests {
         model.saveButtonTapped()
 
         let syncUp = try await database.read { db in
-            try #require(try SyncUp.where { $0.id.eq(existingSyncUp.id) }.fetchOne(db))
+            try #require(try SyncUp.where { $0.id.eq(existingSyncUp.id) }.fetch.one(db))
         }
         #expect(syncUp.title == "Evening Sync")
         let attendees = try await database.read { db in
-            try Attendee.where { $0.syncUpID.eq(existingSyncUp.id) }.fetchAll(db)
+            try Attendee.where { $0.syncUpID.eq(existingSyncUp.id) }.fetch.all(db)
         }
         #expect(attendees.map(\.name) == ["Blob", "Blobby McBlob"])
     }

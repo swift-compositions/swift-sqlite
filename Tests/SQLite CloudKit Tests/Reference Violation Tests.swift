@@ -1,4 +1,5 @@
 #if CloudKit && canImport(CloudKit)
+    import Cardinal
     import GRDB
     import CloudKit
     import InlineSnapshotTesting
@@ -37,8 +38,8 @@
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
                 try await userDatabase.read { db in
-                    try #expect(Reminder.find(1).fetchCount(db) == 0)
-                    try #expect(RemindersList.find(2).fetchCount(db) == 0)
+                    try #expect(Reminder.find(1).fetch.count(db) == 0)
+                    try #expect(RemindersList.find(2).fetch.count(db) == 0)
                 }
                 assertInlineSnapshot(of: container, as: .customDump) {
                     """
@@ -65,9 +66,9 @@
                 }
 
                 try await userDatabase.read { db in
-                    try #expect(Reminder.count().fetchOne(db) == 0)
+                    try #expect(Reminder.count().fetch.one(db) == 0)
                     try #expect(
-                        RemindersList.all.fetchAll(db) == [
+                        RemindersList.all.fetch.all(db) == [
                             RemindersList(id: 1, title: "Personal")
                         ]
                     )
@@ -139,10 +140,10 @@
 
                 try await userDatabase.read { db in
                     try #expect(
-                        Reminder.all.fetchAll(db) == [Reminder(id: 1, title: "Get milk", remindersListID: 1)]
+                        Reminder.all.fetch.all(db) == [Reminder(id: 1, title: "Get milk", remindersListID: 1)]
                     )
                     try #expect(
-                        RemindersList.all.fetchAll(db) == [RemindersList(id: 1, title: "Personal")]
+                        RemindersList.all.fetch.all(db) == [RemindersList(id: 1, title: "Personal")]
                     )
                 }
             }
@@ -212,10 +213,10 @@
 
                 try await userDatabase.read { db in
                     try #expect(
-                        Reminder.all.fetchAll(db) == [Reminder(id: 1, title: "Get milk", remindersListID: 1)]
+                        Reminder.all.fetch.all(db) == [Reminder(id: 1, title: "Get milk", remindersListID: 1)]
                     )
                     try #expect(
-                        RemindersList.all.fetchAll(db) == [RemindersList(id: 1, title: "Personal")]
+                        RemindersList.all.fetch.all(db) == [RemindersList(id: 1, title: "Personal")]
                     )
                 }
             }
@@ -357,12 +358,12 @@
                     }
                     try await userDatabase.read { db in
                         try #expect(
-                            ChildWithOnDeleteSetDefault.all.fetchAll(db) == [
+                            ChildWithOnDeleteSetDefault.all.fetch.all(db) == [
                                 ChildWithOnDeleteSetDefault(id: 1, parentID: 0)
                             ]
                         )
                         try #expect(
-                            Parent.all.fetchAll(db) == [Parent(id: 0), Parent(id: 1)]
+                            Parent.all.fetch.all(db) == [Parent(id: 0), Parent(id: 1)]
                         )
                     }
                 }

@@ -106,7 +106,7 @@
                             try SyncMetadata
                                 .where { $0.recordName.eq(recordName) }
                                 .select(\._lastKnownServerRecordAllFields)
-                                .fetchOne(db)
+                                .fetch.one(db)
                         } ?? nil
                     guard let lastKnownServerRecord
                     else {
@@ -131,7 +131,7 @@
                             try SyncMetadata
                                 .find(lastKnownServerRecord.recordID)
                                 .select(\.share)
-                                .fetchOne(db) ?? nil
+                                .fetch.one(db) ?? nil
                         }
                         guard let shareRecordID = share?.recordID
                         else {
@@ -202,7 +202,7 @@
                     try SyncMetadata
                         .where { $0.recordName.eq(recordName) }
                         .select(\.share)
-                        .fetchOne(db)
+                        .fetch.one(db)
                         ?? nil
                 }
                 guard let share

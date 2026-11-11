@@ -32,11 +32,11 @@
                 try await syncEngine.processPendingDatabaseChanges(scope: .private)
 
                 try await userDatabase.read { db in
-                    try #expect(Reminder.all.fetchAll(db) == [])
-                    try #expect(RemindersList.all.fetchAll(db) == [])
-                    try #expect(RemindersListPrivate.all.fetchAll(db) == [])
+                    try #expect(Reminder.all.fetch.all(db) == [])
+                    try #expect(RemindersList.all.fetch.all(db) == [])
+                    try #expect(RemindersListPrivate.all.fetch.all(db) == [])
                     try #expect(
-                        UnsyncedModel.all.fetchAll(db) == [UnsyncedModel(id: 1), UnsyncedModel(id: 2)]
+                        UnsyncedModel.all.fetch.all(db) == [UnsyncedModel(id: 1), UnsyncedModel(id: 2)]
                     )
                 }
             }
@@ -67,10 +67,10 @@
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
                 try await userDatabase.read { db in
-                    try #expect(Reminder.count().fetchOne(db) == 2)
-                    try #expect(RemindersList.count().fetchOne(db) == 2)
-                    try #expect(RemindersListPrivate.count().fetchOne(db) == 2)
-                    try #expect(UnsyncedModel.count().fetchOne(db) == 2)
+                    try #expect(Reminder.count().fetch.one(db) == 2)
+                    try #expect(RemindersList.count().fetch.one(db) == 2)
+                    try #expect(RemindersListPrivate.count().fetch.one(db) == 2)
+                    try #expect(UnsyncedModel.count().fetch.one(db) == 2)
                 }
 
                 assertInlineSnapshot(of: container, as: .customDump) {

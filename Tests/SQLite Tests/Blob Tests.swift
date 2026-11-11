@@ -34,7 +34,7 @@
                     try Attachment.insert { Attachment(payload: payload) }.execute(database)
                 }
                 fetched = try queue.read { database in
-                    try Attachment.all.select(\.payload).fetchAll(database)
+                    try Attachment.all.select(\.payload).fetch.all(database)
                 }
             }
             #expect(fetched == [payload])

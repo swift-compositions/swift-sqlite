@@ -30,7 +30,7 @@
                 await callback.notify()
 
                 let title = try await userDatabase.database.read { db in
-                    try RemindersList.find(1).select(\.title).fetchOne(db)
+                    try RemindersList.find(1).select(\.title).fetch.one(db)
                 }
                 #expect(title == "Second")
             }
@@ -58,7 +58,7 @@
                 await callback.notify()
 
                 let title = try await userDatabase.database.read { db in
-                    try RemindersList.find(1).select(\.title).fetchOne(db)
+                    try RemindersList.find(1).select(\.title).fetch.one(db)
                 }
                 #expect(title == "Original")
             }

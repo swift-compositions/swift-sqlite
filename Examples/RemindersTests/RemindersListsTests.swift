@@ -111,7 +111,7 @@ extension BaseTestSuite {
 
             let personalRemindersList = try #require(
                 try await database.read { db in
-                    try RemindersList.find(UUID(0)).fetchOne(db)
+                    try RemindersList.find(UUID(0)).fetch.one(db)
                 }
             )
             let _ = try await syncEngine.share(record: personalRemindersList, configure: { _ in })

@@ -14,7 +14,7 @@
         final class `CloudKit synchronization`: CloudKitTestBase, @unchecked Sendable {
             @Test func `set up records the record types`() throws {
                 let zones = try syncEngine.metadatabase.read { db in
-                    try RecordType.all.fetchAll(db)
+                    try RecordType.all.fetch.all(db)
                 }
                 assertInlineSnapshot(of: zones, as: .customDump) {
                     #"""
@@ -458,7 +458,7 @@
                     as: String.self
                 )
                 assertInlineSnapshot(
-                    of: try { try userDatabase.write { try query.fetchAll($0) } }(),
+                    of: try { try userDatabase.write { try query.fetch.all($0) } }(),
                     as: .customDump
                 ) {
                     """
@@ -476,7 +476,7 @@
                 try syncEngine.tearDownSyncEngine()
 
                 assertInlineSnapshot(
-                    of: try { try userDatabase.read { try query.fetchAll($0) } }(),
+                    of: try { try userDatabase.read { try query.fetch.all($0) } }(),
                     as: .customDump
                 ) {
                     """
@@ -659,7 +659,7 @@
                 }
 
                 #expect(
-                    try await userDatabase.read { db in try RemindersList.find(1).fetchOne(db)?.title } == "Work"
+                    try await userDatabase.read { db in try RemindersList.find(1).fetch.one(db)?.title } == "Work"
                 )
                 await #expect(throws: (any Swift.Error).self) {
                     try await userDatabase.userWrite { db in
@@ -939,7 +939,7 @@
                 }
 
                 try await userDatabase.read { db in
-                    let modelA = try #require(try ModelA.find(1).fetchOne(db))
+                    let modelA = try #require(try ModelA.find(1).fetch.one(db))
                     #expect(modelA.isEven == true)
                 }
             }

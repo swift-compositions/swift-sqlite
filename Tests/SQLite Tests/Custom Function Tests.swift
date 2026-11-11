@@ -86,12 +86,12 @@
                 database.add(function: $epoch)
             }
             let queue = try SQLite.Database(configuration: configuration)
-            let instant = try queue.read { database in try Select($epoch()).fetchOne(database) }
+            let instant = try queue.read { database in try Select($epoch()).fetch.one(database) }
             #expect(instant == Time.Instant(secondsSinceUnixEpoch: 0))
 
             try queue.write { database in database.remove(function: $epoch) }
             #expect(throws: (any Swift.Error).self) {
-                try queue.read { database in _ = try Select($epoch()).fetchOne(database) }
+                try queue.read { database in _ = try Select($epoch()).fetch.one(database) }
             }
         }
 
@@ -101,14 +101,14 @@
                 database.add(function: $exclaim)
             }
             let queue = try SQLite.Database(configuration: configuration)
-            let text = try queue.read { database in try Select($exclaim("Blob")).fetchOne(database) }
+            let text = try queue.read { database in try Select($exclaim("Blob")).fetch.one(database) }
             #expect(text == "Blob!")
         }
 
         @Test func `an aggregate function folds every row`() throws {
             let queue = try records()
             let sum = try queue.read { database in
-                try Record.select { $total($0.id) }.fetchOne(database)
+                try Record.select { $total($0.id) }.fetch.one(database)
             }
             #expect(sum == 6)
         }
@@ -117,8 +117,8 @@
             let queue = try numbers(count: 10_000)
             let (sum, labels) = try queue.read { database in
                 (
-                    try Number.select { $total($0.value) }.fetchOne(database),
-                    try Number.select { $concatenation($0.label, order: $0.value) }.fetchOne(database)
+                    try Number.select { $total($0.value) }.fetch.one(database),
+                    try Number.select { $concatenation($0.label, order: $0.value) }.fetch.one(database)
                 )
             }
             #expect(sum == 50_005_000)

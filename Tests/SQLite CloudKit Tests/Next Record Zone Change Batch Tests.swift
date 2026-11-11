@@ -277,7 +277,7 @@
                         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
                         try await userDatabase.read { db in
-                            try #expect(RemindersList.fetchAll(db) == [RemindersList(id: 1, title: "Personal 3")])
+                            try #expect(RemindersList.fetch.all(db) == [RemindersList(id: 1, title: "Personal 3")])
                         }
                         assertInlineSnapshot(of: syncEngine.container, as: .customDump(timestamps: true, recordChangeTags: true)) {
                             """

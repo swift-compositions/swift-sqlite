@@ -138,7 +138,7 @@ struct ReminderFormView: View {
                         .join(ReminderTag.all) { $0.primaryKey.eq($1.tagID) }
                         .where { $1.reminderID.eq(reminderID) }
                         .select { tag, _ in tag }
-                        .fetchAll(db)
+                        .fetch.all(db)
                 }
             } catch {
                 selectedTags = []
@@ -172,7 +172,7 @@ struct ReminderFormView: View {
             try database.write { db in
                 let upsertedReminderID = try Reminder.upsert { reminder }
                     .returning(\.id)
-                    .fetchOne(db)
+                    .fetch.one(db)
                 guard let reminderID = upsertedReminderID
                 else {
                     reportIssue("Upserting the reminder returned no ID.")
@@ -222,10 +222,10 @@ struct ReminderFormPreview: PreviewProvider {
             return try prepareDependencies {
                 $0.defaultDatabase = try Reminders.appDatabase()
                 return try $0.defaultDatabase.write { db in
-                    guard let remindersList = try RemindersList.fetchOne(db)
+                    guard let remindersList = try RemindersList.fetch.one(db)
                     else { fatalError("The preview database has no reminders list.") }
                     guard
-                        let reminder = try Reminder.where({ $0.remindersListID.eq(remindersList.id) }).fetchOne(db)
+                        let reminder = try Reminder.where({ $0.remindersListID.eq(remindersList.id) }).fetch.one(db)
                     else { fatalError("The preview database has no reminder in the list.") }
                     return (remindersList, reminder)
                 }

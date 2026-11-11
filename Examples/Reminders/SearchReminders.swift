@@ -138,7 +138,7 @@ class SearchRemindersModel {
                     baseQuery
                     .where { $1.isCompleted }
                     .count()
-                    .fetchOne(db) ?? 0,
+                    .fetch.one(db) ?? 0,
                 rows:
                     baseQuery
                     .where {
@@ -160,7 +160,7 @@ class SearchRemindersModel {
                             title: $0.title.highlight("**", "**")
                         )
                     }
-                    .fetchAll(db)
+                    .fetch.all(db)
             )
         }
     }

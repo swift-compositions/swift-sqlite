@@ -51,7 +51,7 @@
             database.add(collation: collation)
         }
         return try queue.read { database in
-            try Word.order { $0.text.collate(collation) }.fetchAll(database).map(\.text)
+            try Word.order { $0.text.collate(collation) }.fetch.all(database).map(\.text)
         }
     }
 

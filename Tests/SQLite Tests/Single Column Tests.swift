@@ -32,7 +32,7 @@
 
         @Test func `fetched and converted in one chain keeps its value`() throws {
             let maximum = try queue.read { database in
-                let maximum = try Reading.select { $0.id.max() }.fetchOne(database).flatMap { $0 }.map(Int64.init)
+                let maximum = try Reading.select { $0.id.max() }.fetch.one(database).flatMap { $0 }.map(Int64.init)
                 return maximum
             }
             #expect(maximum == 7)
@@ -42,7 +42,7 @@
             let maximum = try queue.read { database in
                 let maximum = try Reading.join(Source.all) { $0.id.eq($1.reading) }
                     .where { _, source in source.origin.eq("a") }
-                    .select { reading, _ in reading.id.max() }.fetchOne(database).flatMap { $0 }.map(Int64.init)
+                    .select { reading, _ in reading.id.max() }.fetch.one(database).flatMap { $0 }.map(Int64.init)
                 return maximum
             }
             #expect(maximum == 7)
@@ -51,7 +51,7 @@
         @Test func `a single returned column is its value`() throws {
             let id = try queue.write { database in
                 func insert(_ value: Int) throws -> Int {
-                    try Reading.insert { Reading.Draft(value: value) }.returning(\.id).fetchOne(database)!
+                    try Reading.insert { Reading.Draft(value: value) }.returning(\.id).fetch.one(database)!
                 }
                 return try insert(4)
             }
@@ -59,7 +59,7 @@
         }
 
         @Test func `fetched first keeps its value`() throws {
-            let maximum = try queue.read { database in try Reading.select { $0.id.max() }.fetchOne(database) }
+            let maximum = try queue.read { database in try Reading.select { $0.id.max() }.fetch.one(database) }
             #expect(maximum == 7)
         }
     }

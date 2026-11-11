@@ -123,13 +123,13 @@ struct TagsView: View {
                 .order { ($2.count().desc(), $0.title) }
                 .select { tag, _, _ in tag }
                 .limit(3)
-                .fetchAll(db)
+                .fetch.all(db)
 
             let rest =
                 try Tag
                 .where { !$0.primaryKey.in(top.map(\.primaryKey)) }
                 .order(by: \.title)
-                .fetchAll(db)
+                .fetch.all(db)
 
             return Value(rest: rest, top: top)
         }

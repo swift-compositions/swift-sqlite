@@ -24,13 +24,13 @@
 
     struct Titles: FetchKeyRequest {
         func fetch(_ connection: SQLite.Connection) throws -> [String] {
-            try #sql(#"SELECT "title" FROM "reminder" ORDER BY "title""#, as: String.self).fetchAll(connection)
+            try #sql(#"SELECT "title" FROM "reminder" ORDER BY "title""#, as: String.self).fetch.all(connection)
         }
     }
 
     struct Failing: FetchKeyRequest {
         func fetch(_ connection: SQLite.Connection) throws -> [String] {
-            try #sql(#"SELECT "title" FROM "missing""#, as: String.self).fetchAll(connection)
+            try #sql(#"SELECT "title" FROM "missing""#, as: String.self).fetch.all(connection)
         }
     }
 

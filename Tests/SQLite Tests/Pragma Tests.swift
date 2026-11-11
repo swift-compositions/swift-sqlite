@@ -74,17 +74,17 @@ extension `SQLite pragmas`.Unit {
 
             try database.writeWithoutTransaction { db in
                 try SQLite.Pragma.ForeignKeys.set(true).execute(db)
-                #expect(try SQLite.Pragma.ForeignKeys.get.fetchOne(db) == true)
+                #expect(try SQLite.Pragma.ForeignKeys.get.fetch.one(db) == true)
 
                 try SQLite.Pragma.DeferForeignKeys.set(true).execute(db)
-                #expect(try SQLite.Pragma.DeferForeignKeys.get.fetchOne(db) == true)
+                #expect(try SQLite.Pragma.DeferForeignKeys.get.fetch.one(db) == true)
 
-                let mode = try SQLite.Pragma.JournalMode.set(.memory).fetchOne(db)
+                let mode = try SQLite.Pragma.JournalMode.set(.memory).fetch.one(db)
                 #expect(mode == .memory)
-                #expect(try SQLite.Pragma.JournalMode.get.fetchOne(db) == .memory)
+                #expect(try SQLite.Pragma.JournalMode.get.fetch.one(db) == .memory)
 
                 try SQLite.Pragma.UserVersion.set(42).execute(db)
-                #expect(try SQLite.Pragma.UserVersion.get.fetchOne(db) == 42)
+                #expect(try SQLite.Pragma.UserVersion.get.fetch.one(db) == 42)
             }
         }
 
@@ -92,8 +92,8 @@ extension `SQLite pragmas`.Unit {
             let database = try DatabaseQueue()
 
             try database.read { db in
-                let quick = try SQLite.Pragma.QuickCheck.get.fetchAll(db)
-                let integrity = try SQLite.Pragma.IntegrityCheck.get.fetchAll(db)
+                let quick = try SQLite.Pragma.QuickCheck.get.fetch.all(db)
+                let integrity = try SQLite.Pragma.IntegrityCheck.get.fetch.all(db)
                 #expect(quick == ["ok"])
                 #expect(integrity == ["ok"])
             }

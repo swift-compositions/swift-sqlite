@@ -155,7 +155,7 @@
 
                 try await userDatabase.read { db in
                     let remindersListAsset = try #require(
-                        try RemindersListAsset.find(1).fetchOne(db)
+                        try RemindersListAsset.find(1).fetch.one(db)
                     )
                     #expect(remindersListAsset.coverImage == [Byte](utf8: "image"))
                 }
@@ -191,7 +191,7 @@
 
                 try await userDatabase.read { db in
                     let remindersListAsset = try #require(
-                        try RemindersListAsset.find(1).fetchOne(db)
+                        try RemindersListAsset.find(1).fetch.one(db)
                     )
                     #expect(remindersListAsset.coverImage == [Byte](utf8: "new-image"))
                 }
@@ -253,7 +253,7 @@
 
                 try await userDatabase.read { db in
                     let remindersListAsset = try #require(
-                        try RemindersListAsset.find(1).fetchOne(db)
+                        try RemindersListAsset.find(1).fetch.one(db)
                     )
                     #expect(remindersListAsset.coverImage == [Byte](utf8: "new-image"))
                 }

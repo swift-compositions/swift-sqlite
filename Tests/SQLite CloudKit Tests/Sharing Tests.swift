@@ -1,4 +1,5 @@
 #if CloudKit && canImport(CloudKit)
+    import Cardinal
     import GRDB
     import CloudKit
     import Foundation
@@ -1372,7 +1373,7 @@
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
                 try await userDatabase.userWrite { db in
-                    try #expect(RemindersList.all.fetchCount(db) == 0)
+                    try #expect(RemindersList.all.fetch.count(db) == 0)
                 }
 
                 assertInlineSnapshot(of: container, as: .customDump) {

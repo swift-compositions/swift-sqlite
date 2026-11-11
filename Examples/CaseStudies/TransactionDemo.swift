@@ -64,8 +64,8 @@ struct TransactionDemo: SwiftUICaseStudy {
         }
         func fetch(_ db: Database) throws -> Value {
             try Value(
-                facts: Fact.order { $0.id.desc() }.fetchAll(db),
-                count: Fact.fetchCount(db)
+                facts: Fact.order { $0.id.desc() }.fetch.all(db),
+                count: Fact.fetch.count(db)
             )
         }
     }

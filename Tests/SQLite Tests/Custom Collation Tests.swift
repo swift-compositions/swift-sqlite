@@ -31,14 +31,14 @@
             let queue = try items(["a", "c", "b"])
             try queue.write { database in database.add(collation: $reversed) }
             let titles = try queue.read { database in
-                try Item.order { $0.title.collate($reversed) }.fetchAll(database).map(\.title)
+                try Item.order { $0.title.collate($reversed) }.fetch.all(database).map(\.title)
             }
             #expect(titles == ["c", "b", "a"])
 
             try queue.write { database in database.remove(collation: $reversed) }
             #expect(throws: (any Swift.Error).self) {
                 try queue.read { database in
-                    _ = try Item.order { $0.title.collate($reversed) }.fetchAll(database)
+                    _ = try Item.order { $0.title.collate($reversed) }.fetch.all(database)
                 }
             }
         }
@@ -48,7 +48,7 @@
             let queue = try items(titles)
             try queue.write { database in database.add(collation: .canonical) }
             let ordered = try queue.read { database in
-                try Item.order { $0.title.collate(.canonical) }.fetchAll(database).map(\.title)
+                try Item.order { $0.title.collate(.canonical) }.fetch.all(database).map(\.title)
             }
             #expect(ordered == titles.sorted())
         }
@@ -57,7 +57,7 @@
             let queue = try items(["caf\u{00E9}", "cafe\u{0301}", "cafe"])
             try queue.write { database in database.add(collation: .canonical) }
             let matches = try queue.read { database in
-                try Item.where { $0.title.collate(.canonical).eq("caf\u{00E9}") }.fetchAll(database)
+                try Item.where { $0.title.collate(.canonical).eq("caf\u{00E9}") }.fetch.all(database)
             }
             #expect(matches.count == 2)
         }

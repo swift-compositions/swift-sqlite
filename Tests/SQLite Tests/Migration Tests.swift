@@ -36,7 +36,7 @@
                 let grdbDate = try Date.fetchOne(db, sql: "SELECT * FROM model")
                 try #expect(abs(#require(grdbDate).timeIntervalSince1970 - timestamp) < 0.001)
 
-                let instant = try #require(try Model.all.fetchOne(db)).date
+                let instant = try #require(try Model.all.fetch.one(db)).date
                 #expect(
                     abs(
                         Double(instant.secondsSinceUnixEpoch)

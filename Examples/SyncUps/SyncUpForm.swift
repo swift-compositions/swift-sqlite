@@ -40,7 +40,7 @@ final class SyncUpFormModel: Identifiable {
             self.attendees = try database.read { db in
                 try Attendee.all
                     .where { $0.syncUpID.eq(syncUpID) }
-                    .fetchAll(db)
+                    .fetch.all(db)
                     .map { (attendee: Attendee) in AttendeeDraft(id: uuid(), name: attendee.name) }
             }
         }
@@ -76,7 +76,7 @@ final class SyncUpFormModel: Identifiable {
         }
         withErrorReporting {
             try database.write { db in
-                let upsertedSyncUpID = try SyncUp.upsert { syncUp }.returning(\.id).fetchOne(db)
+                let upsertedSyncUpID = try SyncUp.upsert { syncUp }.returning(\.id).fetch.one(db)
                 guard let syncUpID = upsertedSyncUpID
                 else {
                     reportIssue("Upserting the sync-up returned no ID.")

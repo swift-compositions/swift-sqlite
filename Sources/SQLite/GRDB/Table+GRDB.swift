@@ -9,18 +9,6 @@ public import SQLite_SQL
             try all.fetchCursor(connection)
         }
 
-        package static func fetchAll(_ db: GRDB.Database) throws -> [QueryOutput] {
-            try all.fetchAll(db)
-        }
-
-        package static func fetchOne(_ db: GRDB.Database) throws -> QueryOutput? {
-            try all.fetchOne(db)
-        }
-
-        package static func fetchCount(_ db: GRDB.Database) throws -> Int {
-            try all.fetchCount(db)
-        }
-
         package static func fetchCursor(_ db: GRDB.Database) throws -> QueryCursor<QueryOutput> {
             try all.fetchCursor(db)
         }

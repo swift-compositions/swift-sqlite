@@ -13,7 +13,7 @@
         final class `Trigger generation`: CloudKitTestBase, @unchecked Sendable {
             @Test func `installs, drops and reinstalls the synchronization triggers`() async throws {
                 let triggersAfterSetUp = try await userDatabase.userWrite { db in
-                    try #sql("SELECT sql FROM sqlite_temp_master ORDER BY sql", as: String?.self).fetchAll(db)
+                    try #sql("SELECT sql FROM sqlite_temp_master ORDER BY sql", as: String?.self).fetch.all(db)
                 }
                 assertInlineSnapshot(of: triggersAfterSetUp, as: .customDump) {
                     #"""
@@ -1439,7 +1439,7 @@
 
                 try syncEngine.tearDownSyncEngine()
                 let triggersAfterTearDown = try await userDatabase.userWrite { db in
-                    try #sql("SELECT sql FROM sqlite_temp_master", as: String?.self).fetchAll(db)
+                    try #sql("SELECT sql FROM sqlite_temp_master", as: String?.self).fetch.all(db)
                 }
                 assertInlineSnapshot(of: triggersAfterTearDown, as: .customDump) {
                     """
@@ -1450,7 +1450,7 @@
                 try syncEngine.setUpSyncEngine()
                 try await syncEngine.start()
                 let triggersAfterReSetUp = try await userDatabase.userWrite { db in
-                    try #sql("SELECT sql FROM sqlite_temp_master ORDER BY sql", as: String?.self).fetchAll(db)
+                    try #sql("SELECT sql FROM sqlite_temp_master ORDER BY sql", as: String?.self).fetch.all(db)
                 }
                 #expect(triggersAfterReSetUp == triggersAfterSetUp)
             }

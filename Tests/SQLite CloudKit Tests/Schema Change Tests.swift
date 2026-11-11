@@ -79,10 +79,10 @@
                     defer { _ = relaunchedSyncEngine }
 
                     let remindersLists = try await userDatabase.read { db in
-                        try RemindersListWithPosition.order(by: \.id).fetchAll(db)
+                        try RemindersListWithPosition.order(by: \.id).fetch.all(db)
                     }
                     let reminders = try await userDatabase.read { db in
-                        try ReminderWithPosition.order(by: \.id).fetchAll(db)
+                        try ReminderWithPosition.order(by: \.id).fetch.all(db)
                     }
 
                     #expect(
@@ -116,8 +116,8 @@
                 try await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord]).notify()
 
                 try await userDatabase.userWrite { db in
-                    try #expect(RemindersList.fetchCount(db) == 1)
-                    try #expect(RemindersList.find(1).fetchOne(db) == RemindersList(id: 1, title: "Personal"))
+                    try #expect(RemindersList.fetch.count(db) == 1)
+                    try #expect(RemindersList.find(1).fetch.one(db) == RemindersList(id: 1, title: "Personal"))
                     try RemindersList.find(1).update { $0.title = "My Stuff" }.execute(db)
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
@@ -217,7 +217,7 @@
 
                 try await userDatabase.read { db in
                     try #expect(
-                        RemindersListWithPosition.fetchAll(db) == [
+                        RemindersListWithPosition.fetch.all(db) == [
                             RemindersListWithPosition(id: 1, title: "Personal", position: 42)
                         ]
                     )
@@ -255,7 +255,7 @@
 
                 try await userDatabase.read { db in
                     try #expect(
-                        RemindersListWithColor.fetchAll(db) == [
+                        RemindersListWithColor.fetch.all(db) == [
                             RemindersListWithColor(id: 1, title: "Personal", color: 42)
                         ]
                     )
@@ -296,7 +296,7 @@
 
                     try await userDatabase.read { db in
                         try #expect(
-                            RemindersListWithColor.fetchAll(db) == [
+                            RemindersListWithColor.fetch.all(db) == [
                                 RemindersListWithColor(id: 1, title: "My stuff", color: 42)
                             ]
                         )
@@ -362,7 +362,7 @@
 
                     try await userDatabase.read { db in
                         try #expect(
-                            RemindersListWithColor.fetchAll(db) == [
+                            RemindersListWithColor.fetch.all(db) == [
                                 RemindersListWithColor(id: 1, title: "My stuff", color: nil)
                             ]
                         )
@@ -408,7 +408,7 @@
                 try await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord]).notify()
 
                 try await userDatabase.read { db in
-                    try #expect(RemindersList.find(1).fetchOne(db) == RemindersList(id: 1, title: "My Stuff"))
+                    try #expect(RemindersList.find(1).fetch.one(db) == RemindersList(id: 1, title: "My Stuff"))
                 }
 
                 assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
@@ -508,7 +508,7 @@
 
                 try await userDatabase.read { db in
                     try #expect(
-                        RemindersListWithPosition.find(1).fetchOne(db)
+                        RemindersListWithPosition.find(1).fetch.one(db)
                             == RemindersListWithPosition(id: 1, title: "Personal", position: 0)
                     )
                 }
@@ -667,7 +667,7 @@
                     defer { _ = relaunchedSyncEngine }
 
                     let remindersLists = try await userDatabase.read { db in
-                        try RemindersListWithData.order(by: \.id).fetchAll(db)
+                        try RemindersListWithData.order(by: \.id).fetch.all(db)
                     }
 
                     #expect(
@@ -744,7 +744,7 @@
                     defer { _ = relaunchedSyncEngine }
 
                     let remindersLists = try await userDatabase.read { db in
-                        try RemindersListWithData.order(by: \.id).fetchAll(db)
+                        try RemindersListWithData.order(by: \.id).fetch.all(db)
                     }
 
                     #expect(
@@ -796,7 +796,7 @@
 
                     try await userDatabase.read { db in
                         try #expect(
-                            Image.order(by: \.id).fetchAll(db) == [
+                            Image.order(by: \.id).fetch.all(db) == [
                                 Image(id: 1, image: [Byte](utf8: "image"), caption: "A good image")
                             ]
                         )

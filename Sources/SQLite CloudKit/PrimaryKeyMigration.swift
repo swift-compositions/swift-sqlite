@@ -44,7 +44,7 @@
             {
                 let salt = String(
                     try uuidFunction.flatMap { uuid -> RFC_4122.UUID? in
-                        try #sql("SELECT \(quote: uuid.name)()", as: RFC_4122.UUID.self).fetchOne(db)
+                        try #sql("SELECT \(quote: uuid.name)()", as: RFC_4122.UUID.self).fetch.one(db)
                     }
                         ?? randomUUID()
                 )
@@ -64,7 +64,7 @@
                             && $0.type.in([#bind(.index), #bind(.trigger)])
                             && $0.sql.isNot(nil)
                     }
-                    .fetchAll(db)
+                    .fetch.all(db)
                     .compactMap(\.self)
                 for table in repeat each tables {
                     try table.migratePrimaryKeyToUUID(
@@ -79,7 +79,7 @@
                     try #sql(ISO_9075.Fragment(sql)).execute(db)
                 }
 
-                let foreignKeyChecks = try SQLite.Pragma.ForeignKey.Check.all.fetchAll(db)
+                let foreignKeyChecks = try SQLite.Pragma.ForeignKey.Check.all.fetch.all(db)
                 if !foreignKeyChecks.isEmpty {
                     throw ForeignKeyCheckError(checks: foreignKeyChecks)
                 }
@@ -122,7 +122,7 @@
                     try SQLiteSchema
                     .select(\.sql)
                     .where { $0.type.eq(#bind(.table)) && $0.tableName.eq(tableName) }
-                    .fetchOne(db)
+                    .fetch.one(db)
                     ?? nil
 
                 guard let schema
@@ -130,7 +130,7 @@
                     throw MigrationError(reason: .tableNotFound(tableName))
                 }
 
-                let tableInfo = try SQLite.Pragma.Table.Info<Self>.all.fetchAll(db)
+                let tableInfo = try SQLite.Pragma.Table.Info<Self>.all.fetch.all(db)
                 let primaryKeys = tableInfo.filter(\.isPrimaryKey)
                 guard
                     (primaryKeys.count == 1 && primaryKeys[0].isInt)
@@ -143,7 +143,7 @@
                     throw MigrationError(reason: .invalidPrimaryKey)
                 }
 
-                let foreignKeys = try SQLite.Pragma.ForeignKey.List<Self>.all.fetchAll(db)
+                let foreignKeys = try SQLite.Pragma.ForeignKey.List<Self>.all.fetch.all(db)
                 guard foreignKeys.allSatisfy({ migratedTableNames.contains($0.table) })
                 else {
                     throw MigrationError(reason: .invalidForeignKey)

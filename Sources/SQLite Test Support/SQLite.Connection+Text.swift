@@ -24,7 +24,7 @@
             sql: String,
             arguments: [any QueryBindable] = []
         ) throws -> [QueryOutput] {
-            try SQLQueryExpression<Self>(ISO_9075.Fragment(text: sql, arguments: arguments)).fetchAll(connection)
+            try SQLQueryExpression<Self>(ISO_9075.Fragment(text: sql, arguments: arguments)).fetch.all(connection)
         }
 
         /// The first column of the first row `sql` returns, as `Self`, or none when it returns no row.
@@ -33,7 +33,7 @@
             sql: String,
             arguments: [any QueryBindable] = []
         ) throws -> QueryOutput? {
-            try SQLQueryExpression<Self>(ISO_9075.Fragment(text: sql, arguments: arguments)).fetchOne(connection)
+            try SQLQueryExpression<Self>(ISO_9075.Fragment(text: sql, arguments: arguments)).fetch.one(connection)
         }
     }
 

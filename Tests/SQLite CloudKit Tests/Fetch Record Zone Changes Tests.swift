@@ -1,4 +1,5 @@
 #if CloudKit && canImport(CloudKit)
+    import Cardinal
     import CloudKit
     import GRDB
     import InlineSnapshotTesting
@@ -31,7 +32,7 @@
                         try SyncMetadata
                             .order(by: \.recordName)
                             .select(\._lastKnownServerRecordAllFields)
-                            .fetchAll(db)
+                            .fetch.all(db)
                     }
                     assertInlineSnapshot(of: lastKnownServerRecords, as: .customDump) {
                         """
@@ -72,7 +73,7 @@
                             try SyncMetadata
                                 .order(by: \.recordName)
                                 .select(\._lastKnownServerRecordAllFields)
-                                .fetchAll(db)
+                                .fetch.all(db)
                         }
                         assertInlineSnapshot(of: lastKnownServerRecords, as: .customDump) {
                             """
@@ -380,8 +381,8 @@
                 .notify()
 
                 try await userDatabase.read { db in
-                    try #expect(Reminder.all.fetchCount(db) == 0)
-                    try #expect(RemindersList.all.fetchCount(db) == 0)
+                    try #expect(Reminder.all.fetch.count(db) == 0)
+                    try #expect(RemindersList.all.fetch.count(db) == 0)
                 }
             }
 
@@ -391,7 +392,7 @@
                 try await syncEngine.modifyRecords(scope: .private, saving: [tagRecord]).notify()
 
                 try await userDatabase.read { db in
-                    try #expect(Tag.all.fetchAll(db) == [Tag(title: "weekend")])
+                    try #expect(Tag.all.fetch.all(db) == [Tag(title: "weekend")])
                 }
             }
 

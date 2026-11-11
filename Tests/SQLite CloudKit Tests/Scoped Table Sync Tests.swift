@@ -56,7 +56,7 @@
                 try await syncEngine.processPendingDatabaseChanges(scope: .private)
 
                 try await userDatabase.read { db in
-                    try #expect(ScopedModel.unscoped.fetchAll(db) == [])
+                    try #expect(ScopedModel.unscoped.fetch.all(db) == [])
                 }
             }
 
@@ -80,7 +80,7 @@
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
                 try await userDatabase.read { db in
-                    try #expect(ScopedModel.unscoped.fetchAll(db).count == 1)
+                    try #expect(ScopedModel.unscoped.fetch.all(db).count == 1)
                 }
             }
 
@@ -100,7 +100,7 @@
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
                 try await userDatabase.read { db in
-                    try #expect(ScopedModel.unscoped.fetchAll(db) == [])
+                    try #expect(ScopedModel.unscoped.fetch.all(db) == [])
                 }
             }
 
@@ -130,7 +130,7 @@
                 )
 
                 try await userDatabase.read { db in
-                    let rows = try ScopedModel.unscoped.fetchAll(db)
+                    let rows = try ScopedModel.unscoped.fetch.all(db)
                     #expect(rows.count == 1)
                     #expect(rows.first?.isDeleted == true)
                 }

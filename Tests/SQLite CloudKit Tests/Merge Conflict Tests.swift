@@ -683,7 +683,7 @@
                     }
 
                     try await userDatabase.read { db in
-                        let reminder = try #require(try Reminder.find(1).fetchOne(db))
+                        let reminder = try #require(try Reminder.find(1).fetch.one(db))
                         #expect(
                             reminder
                                 == Reminder(

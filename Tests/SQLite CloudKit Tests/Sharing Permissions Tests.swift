@@ -1,4 +1,5 @@
 #if CloudKit && canImport(CloudKit)
+    import Cardinal
     import CloudKit
     import GRDB
     import InlineSnapshotTesting
@@ -52,7 +53,7 @@
                         }
                     }
                     #expect(error?.message == SyncEngine.writePermissionError)
-                    try #expect(Reminder.all.fetchCount(db) == 0)
+                    try #expect(Reminder.all.fetch.count(db) == 0)
                 }
                 assertInlineSnapshot(of: container, as: .customDump) {
                     """
@@ -145,7 +146,7 @@
                         try Reminder.find(1).delete().execute(db)
                     }
                     #expect(error?.message == SyncEngine.writePermissionError)
-                    try #expect(Reminder.count().fetchOne(db) == 1)
+                    try #expect(Reminder.count().fetch.one(db) == 1)
                 }
                 assertInlineSnapshot(of: container, as: .customDump) {
                     """
@@ -247,7 +248,7 @@
                         try Reminder.update { $0.isCompleted = true }.execute(db)
                     }
                     #expect(error?.message == SyncEngine.writePermissionError)
-                    try #expect(Reminder.where(\.isCompleted).fetchCount(db) == 0)
+                    try #expect(Reminder.where(\.isCompleted).fetch.count(db) == 0)
                 }
                 assertInlineSnapshot(of: container, as: .customDump) {
                     """
@@ -339,7 +340,7 @@
                 try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
                 try await self.userDatabase.read { db in
-                    try #expect(Reminder.all.fetchCount(db) == 0)
+                    try #expect(Reminder.all.fetch.count(db) == 0)
                 }
                 assertInlineSnapshot(of: container, as: .customDump) {
                     """
@@ -420,7 +421,7 @@
                 try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
                 try await self.userDatabase.read { db in
-                    try #expect(RemindersList.find(1).fetchOne(db) == RemindersList(id: 1, title: "Personal"))
+                    try #expect(RemindersList.find(1).fetch.one(db) == RemindersList(id: 1, title: "Personal"))
                 }
                 assertInlineSnapshot(of: container, as: .customDump) {
                     """

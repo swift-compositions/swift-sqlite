@@ -1,6 +1,7 @@
 #if Observation
     // A consumer of swift-sqlite, as an app or a domain package is one: it imports the Institute's modules only, never the
     // driver. That this target compiles is the evidence that the whole workflow below needs no driver type.
+    import Cardinal
     import ISO_9075_Call_Level_Interface
     import SQL
     import SQL_Macros
@@ -60,8 +61,8 @@
             }
             let (done, count, dentist) = try await database.read { connection in
                 (
-                    try Item.where(\.isDone).order(by: \.id).select(\.id).fetchAll(connection),
-                    try Item.fetchCount(connection),
+                    try Item.where(\.isDone).order(by: \.id).select(\.id).fetch.all(connection),
+                    try Item.fetch.count(connection),
                     try Item.find(connection, key: "c")
                 )
             }
@@ -107,7 +108,7 @@
                 #expect(diagnostic.state == .integrityConstraintViolation)
                 #expect(SQLite.Error.Code(diagnostic) == .primaryKeyConstraint)
             }
-            let count = try await database.read { connection in try Item.fetchCount(connection) }
+            let count = try await database.read { connection in try Item.fetch.count(connection) }
             #expect(count == 2)
         }
 

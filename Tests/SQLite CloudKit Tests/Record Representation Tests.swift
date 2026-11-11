@@ -17,7 +17,7 @@
         @Test func `the system fields keep the change tag`() throws {
             let stored = _SystemFieldsRepresentation(queryOutput: Self.record()).queryBinding
             let decoded = try SQLite.Database().read { connection in
-                try SQLQueryExpression<_SystemFieldsRepresentation<CKRecord>>("SELECT \(stored)").fetchOne(connection)
+                try SQLQueryExpression<_SystemFieldsRepresentation<CKRecord>>("SELECT \(stored)").fetch.one(connection)
             }
             #expect(decoded?._recordChangeTag == 7)
         }
@@ -25,7 +25,7 @@
         @Test func `all fields keep the change tag`() throws {
             let stored = _AllFieldsRepresentation(queryOutput: Self.record()).queryBinding
             let decoded = try SQLite.Database().read { connection in
-                try SQLQueryExpression<_AllFieldsRepresentation<CKRecord>>("SELECT \(stored)").fetchOne(connection)
+                try SQLQueryExpression<_AllFieldsRepresentation<CKRecord>>("SELECT \(stored)").fetch.one(connection)
             }
             #expect(decoded?._recordChangeTag == 7)
         }

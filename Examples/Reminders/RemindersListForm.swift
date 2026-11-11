@@ -82,7 +82,7 @@ struct RemindersListForm: View {
                                     try RemindersList
                                     .upsert { remindersList }
                                     .returning(\.id)
-                                    .fetchOne(db)
+                                    .fetch.one(db)
                                 guard let remindersListID
                                 else {
                                     reportIssue("No 'remindersListID'")
@@ -127,7 +127,7 @@ struct RemindersListForm: View {
                     try RemindersListAsset
                         .where { $0.remindersListID.eq(remindersListID) }
                         .select(\.coverImage)
-                        .fetchOne(db) ?? nil
+                        .fetch.one(db) ?? nil
                 }
             } catch is CancellationError {
             } catch {

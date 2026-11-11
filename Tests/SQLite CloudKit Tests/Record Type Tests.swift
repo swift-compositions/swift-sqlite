@@ -1,4 +1,5 @@
 #if CloudKit && canImport(CloudKit)
+    import Cardinal
     import GRDB
     import CloudKit
     import Foundation
@@ -14,7 +15,7 @@
         final class `Record types`: CloudKitTestBase, @unchecked Sendable {
             @Test func `setting up records the schema of every synchronized table`() async throws {
                 let recordTypes = try await syncEngine.metadatabase.read { db in
-                    try RecordType.all.fetchAll(db)
+                    try RecordType.all.fetch.all(db)
                 }
                 assertInlineSnapshot(of: recordTypes, as: .customDump) {
                     #"""
@@ -409,23 +410,23 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
                 try await syncEngine.metadatabase.read { db in
-                    try #expect(SyncMetadata.all.fetchCount(db) > 0)
-                    try #expect(RecordType.all.fetchCount(db) > 0)
-                    try #expect(StateSerialization.all.fetchCount(db) == 0)
+                    try #expect(SyncMetadata.all.fetch.count(db) > 0)
+                    try #expect(RecordType.all.fetch.count(db) > 0)
+                    try #expect(StateSerialization.all.fetch.count(db) == 0)
                 }
 
                 try syncEngine.tearDownSyncEngine()
                 try await syncEngine.metadatabase.read { db in
-                    try #expect(SyncMetadata.all.fetchCount(db) == 0)
-                    try #expect(RecordType.all.fetchCount(db) == 0)
-                    try #expect(StateSerialization.all.fetchCount(db) == 0)
+                    try #expect(SyncMetadata.all.fetch.count(db) == 0)
+                    try #expect(RecordType.all.fetch.count(db) == 0)
+                    try #expect(StateSerialization.all.fetch.count(db) == 0)
                 }
                 try syncEngine.setUpSyncEngine()
             }
 
             @Test func `setting up again yields the same record types`() async throws {
                 let recordTypes = try await syncEngine.metadatabase.read { db in
-                    try RecordType.all.fetchAll(db)
+                    try RecordType.all.fetch.all(db)
                 }
                 syncEngine.stop()
                 try syncEngine.tearDownSyncEngine()
@@ -433,14 +434,14 @@
                 try await syncEngine.start()
                 try await syncEngine.processPendingDatabaseChanges(scope: .private)
                 let recordTypesAfterReSetup = try await syncEngine.metadatabase.read { db in
-                    try RecordType.all.fetchAll(db)
+                    try RecordType.all.fetch.all(db)
                 }
                 #expect(recordTypes == recordTypesAfterReSetup)
             }
 
             @Test func `a migration updates only the migrated record type`() async throws {
                 let recordTypes = try await syncEngine.metadatabase.read { db in
-                    try RecordType.order(by: \.tableName).fetchAll(db)
+                    try RecordType.order(by: \.tableName).fetch.all(db)
                 }
                 syncEngine.stop()
                 try syncEngine.tearDownSyncEngine()
@@ -457,7 +458,7 @@
                 try await syncEngine.processPendingDatabaseChanges(scope: .private)
 
                 let recordTypesAfterMigration = try await syncEngine.metadatabase.read { db in
-                    try RecordType.order(by: \.tableName).fetchAll(db)
+                    try RecordType.order(by: \.tableName).fetch.all(db)
                 }
                 let remindersTableIndex = try #require(
                     recordTypesAfterMigration.firstIndex { $0.tableName == Reminder.tableName }
@@ -544,7 +545,7 @@
 
             @Test func `a table added by a migration syncs once it is passed to the sync engine`() async throws {
                 let recordTypes = try await syncEngine.metadatabase.read { db in
-                    try RecordType.order(by: \.tableName).fetchAll(db)
+                    try RecordType.order(by: \.tableName).fetch.all(db)
                 }
                 syncEngine.stop()
                 try syncEngine.tearDownSyncEngine()
@@ -571,7 +572,7 @@
                         privateTables: syncEngine.privateTables
                     )
                     let recordTypesAfterMigration = try await syncEngine.metadatabase.read { db in
-                        try RecordType.order(by: \.tableName).fetchAll(db)
+                        try RecordType.order(by: \.tableName).fetch.all(db)
                     }
                     #expect(recordTypesAfterMigration == recordTypes)
                     relaunchedSyncEngine.stop()

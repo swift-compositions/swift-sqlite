@@ -191,7 +191,7 @@
                                         try StateSerialization
                                             .find(#bind(.private))
                                             .select(\.data)
-                                            .fetchOne(db)
+                                            .fetch.one(db)
                                     },
                                     delegate: syncEngine
                                 )
@@ -203,7 +203,7 @@
                                         try StateSerialization
                                             .find(#bind(.shared))
                                             .select(\.data)
-                                            .fetchOne(db)
+                                            .fetch.one(db)
                                     },
                                     delegate: syncEngine
                                 )
@@ -274,7 +274,7 @@
                                                 isNotNull: $1.isNotNull
                                             )
                                         }
-                                        .fetchAll(db)
+                                        .fetch.all(db)
                                 )
                             }
                             return try open(table)
@@ -350,7 +350,7 @@
                     try SQLite.Pragma.Database.List
                     .where { $0.name.eq(String.sqliteCloudKitSchemaName) }
                     .select(\.file)
-                    .fetchOne(db)
+                    .fetch.one(db)
                 if let attachedMetadatabasePath {
                     let metadatabaseName =
                         metadatabase.path.isEmpty
@@ -470,7 +470,7 @@
                 }
 
                 let previousRecordTypes = try metadatabase.read { db in
-                    try RecordType.all.fetchAll(db)
+                    try RecordType.all.fetch.all(db)
                 }
                 let currentRecordTypes = try userDatabase.read { db in
                     let namesAndSchemas =
@@ -479,7 +479,7 @@
                             $0.type.eq(#bind(.table))
                                 && $0.tableName.in(tables.map { $0.base.tableName })
                         }
-                        .fetchAll(db)
+                        .fetch.all(db)
                     return try namesAndSchemas.compactMap { schema -> RecordType? in
                         guard let sql = schema.sql, let table = tablesByName[schema.name]
                         else { return nil }
@@ -498,7 +498,7 @@
                                                 type: $0.type
                                             )
                                         }
-                                        .fetchAll(db)
+                                        .fetch.all(db)
                                 )
                             )
                         }
@@ -630,7 +630,7 @@
                 let pendingRecordZoneChanges = try await metadatabase.read { db in
                     try PendingRecordZoneChange
                         .select(\.pendingRecordZoneChange)
-                        .fetchAll(db)
+                        .fetch.all(db)
                 }
                 let changesByIsPrivate = Dictionary(grouping: pendingRecordZoneChanges) {
                     switch $0 {
@@ -699,7 +699,7 @@
                             try SyncMetadata
                                 .where { $0.recordType.eq(tableName) }
                                 .select(\._lastKnownServerRecordAllFields)
-                                .fetchAll(db)
+                                .fetch.all(db)
                         }
                         for case .some(let lastKnownServerRecord) in lastKnownServerRecords {
                             let query = try await updateQuery(
@@ -1109,7 +1109,7 @@
                             try SyncMetadata
                                 .find(recordID)
                                 .select { ($0, $0._lastKnownServerRecordAllFields) }
-                                .fetchOne(db)
+                                .fetch.one(db)
                         }
                     } catch {
                         surface(Error(error))
@@ -1162,7 +1162,7 @@
                                     .where {
                                         #sql("\($0.primaryKey) = \(bind: metadata.recordPrimaryKey)")
                                     }
-                                    .fetchOne(db)
+                                    .fetch.one(db)
                             }
                         } catch {
                             surface(Error(error))
@@ -1242,7 +1242,7 @@
                                     .findAll(deletedRecordIDs)
                                     .where(\.isShared)
                                     .select(\.share)
-                                    .fetchAll(db)
+                                    .fetch.all(db)
 
                                 let recordsWithRoot =
                                     try With {
@@ -1276,7 +1276,7 @@
                                         RecordWithRoot
                                             .select { ($0.lastKnownServerRecord, $0.rootLastKnownServerRecord) }
                                     }
-                                    .fetchAll(db)
+                                    .fetch.all(db)
 
                                 return (sharesToDelete, recordsWithRoot)
                             }
@@ -1409,7 +1409,7 @@
                             try SyncMetadata
                             .where { $0.zoneName.eq(zoneID.zoneName) && $0.ownerName.eq(zoneID.ownerName) }
                             .select { ($0.recordType, $0.recordPrimaryKey) }
-                            .fetchAll(db),
+                            .fetch.all(db),
                         by: \.0
                     )
                     .mapValues {
@@ -1434,7 +1434,7 @@
                         try SyncMetadata
                             .where(\.hasLastKnownServerRecord)
                             .select(\.lastKnownServerRecord)
-                            .fetchAll(db)
+                            .fetch.all(db)
                             .compactMap { $0?.recordID.zoneID == zoneID ? $0?.recordType : nil }
                     )
                     var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = []
@@ -1444,7 +1444,7 @@
                         func open<T>(_: some SynchronizableTable<T>) {
                             do {
                                 pendingRecordZoneChanges.append(
-                                    contentsOf: try T.unscoped.select(\._recordName).fetchAll(db).map {
+                                    contentsOf: try T.unscoped.select(\._recordName).fetch.all(db).map {
                                         .saveRecord(CKRecord.ID(recordName: $0, zoneID: zoneID))
                                     }
                                 )
@@ -1527,7 +1527,7 @@
                     var unsyncedRecordIDs = try await userDatabase.write { db in
                         Set(
                             try UnsyncedRecordID.all
-                                .fetchAll(db)
+                                .fetch.all(db)
                                 .map(CKRecord.ID.init(unsyncedRecordID:))
                         )
                     }
@@ -1731,7 +1731,7 @@
                                         )
                                     case .setDefault:
                                         guard
-                                            let recordType = try RecordType.find(T.tableName).fetchOne(db),
+                                            let recordType = try RecordType.find(T.tableName).fetch.one(db),
                                             let columnInfo = recordType.tableInfo.first(where: {
                                                 $0.name == foreignKey.from
                                             })
@@ -1882,7 +1882,7 @@
                     try SyncMetadata
                         .where(\.isShared)
                         .select { ($0.share, $0.recordName, $0.zoneName, $0.ownerName) }
-                        .fetchAll(db)
+                        .fetch.all(db)
                         .first(where: { share, _, _, _ in share?.recordID == shareRecordID }) ?? nil
                 }
                 guard let (_, recordName, zoneName, ownerName) = shareAndRecordNameAndZone
@@ -1960,7 +1960,7 @@
                     .execute(db)
 
                     guard
-                        let metadata = try SyncMetadata.find(serverRecord.recordID).fetchOne(db),
+                        let metadata = try SyncMetadata.find(serverRecord.recordID).fetch.one(db),
                         let table = tablesByName[serverRecord.recordType]
                     else {
                         return
@@ -1972,7 +1972,7 @@
                         var columnNames: [String] = T.TableColumns.writableColumns.map(\.name)
                         if !force,
                             let allFields = metadata._lastKnownServerRecordAllFields,
-                            let row = try T.unscoped.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
+                            let row = try T.unscoped.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetch.one(db)
                         {
                             do {
                                 try serverRecord.update(
@@ -2030,7 +2030,7 @@
             private func refreshLastKnownServerRecord(_ record: CKRecord) async {
                 do {
                     try await userDatabase.write { db in
-                        let metadata = try SyncMetadata.find(record.recordID).fetchOne(db)
+                        let metadata = try SyncMetadata.find(record.recordID).fetch.one(db)
                         func updateLastKnownServerRecord() throws {
                             try SyncMetadata
                                 .find(record.recordID)
@@ -2199,7 +2199,7 @@
                     try SQLite.Pragma.Database.List
                         .where { $0.name.eq(String.sqliteCloudKitSchemaName) }
                         .select(\.file)
-                        .fetchOne(db)
+                        .fetch.one(db)
                 }
                 guard attachedPath == nil else { return url }
                 let ordinal = inMemoryMetadatabaseOrdinal.add(1, ordering: .relaxed).newValue
@@ -2278,7 +2278,7 @@
                     throw SyncEngine.SchemaError.noCloudKitContainer
                 }
 
-                let databasePath = try SQLite.Pragma.Database.List.select(\.file).fetchOne(self)
+                let databasePath = try SQLite.Pragma.Database.List.select(\.file).fetch.one(self)
                 guard let databasePath else {
                     struct PathError: Error {}
                     throw SyncEngine.SchemaError(
@@ -2383,7 +2383,7 @@
                             let columnsWithUniqueConstraints = try SQLite.Pragma.Index.List<T>
                                 .where { $0.isUnique && $0.origin.neq("pk") }
                                 .select(\.name)
-                                .fetchAll(db)
+                                .fetch.all(db)
                             if !columnsWithUniqueConstraints.isEmpty {
                                 throw SyncEngine.SchemaError(
                                     reason: .uniquenessConstraint,
@@ -2444,7 +2444,7 @@
                         try SQLite.Pragma.ForeignKey.List<T>
                             .order(by: \.table)
                             .select(\.table)
-                            .fetchAll(db)
+                            .fetch.all(db)
                     }
                     let toTables = try open(table)
                     for toTable in toTables {

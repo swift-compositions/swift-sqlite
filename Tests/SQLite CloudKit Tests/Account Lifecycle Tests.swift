@@ -26,14 +26,14 @@
                 await signOut()
 
                 try await userDatabase.read { db in
-                    try #expect(RemindersList.count().fetchOne(db) == 0)
-                    try #expect(Reminder.count().fetchOne(db) == 0)
-                    try #expect(RemindersListPrivate.count().fetchOne(db) == 0)
-                    try #expect(UnsyncedModel.count().fetchOne(db) == 1)
+                    try #expect(RemindersList.count().fetch.one(db) == 0)
+                    try #expect(Reminder.count().fetch.one(db) == 0)
+                    try #expect(RemindersListPrivate.count().fetch.one(db) == 0)
+                    try #expect(UnsyncedModel.count().fetch.one(db) == 1)
                 }
 
                 try await syncEngine.metadatabase.read { db in
-                    try #expect(SyncMetadata.count().fetchOne(db) == 0)
+                    try #expect(SyncMetadata.count().fetch.one(db) == 0)
                 }
             }
 
@@ -526,13 +526,13 @@
                 }
 
                 try await userDatabase.read { db in
-                    try #expect(RemindersList.count().fetchOne(db) == 1)
-                    try #expect(Reminder.count().fetchOne(db) == 1)
-                    try #expect(RemindersListPrivate.count().fetchOne(db) == 1)
-                    try #expect(UnsyncedModel.count().fetchOne(db) == 1)
+                    try #expect(RemindersList.count().fetch.one(db) == 1)
+                    try #expect(Reminder.count().fetch.one(db) == 1)
+                    try #expect(RemindersListPrivate.count().fetch.one(db) == 1)
+                    try #expect(UnsyncedModel.count().fetch.one(db) == 1)
                 }
                 try await syncEngine.metadatabase.read { db in
-                    try #expect(SyncMetadata.count().fetchOne(db) == 3)
+                    try #expect(SyncMetadata.count().fetch.one(db) == 3)
                 }
                 assertInlineSnapshot(of: container, as: .customDump) {
                     """

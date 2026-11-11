@@ -383,9 +383,9 @@ struct RemindersDetailPreview: PreviewProvider {
             return try prepareDependencies {
                 $0.defaultDatabase = try Reminders.appDatabase()
                 return try $0.defaultDatabase.read { db in
-                    guard let remindersList = try RemindersList.fetchOne(db)
+                    guard let remindersList = try RemindersList.fetch.one(db)
                     else { fatalError("The preview database has no reminders list.") }
-                    guard let tag = try Tag.fetchOne(db)
+                    guard let tag = try Tag.fetch.one(db)
                     else { fatalError("The preview database has no tag.") }
                     return (remindersList, tag)
                 }

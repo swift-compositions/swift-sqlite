@@ -21,7 +21,7 @@
         assertStatement(
             includeSQL: includeSQL,
             query,
-            execute: { query in try database.read { try query.fetchAll($0) } },
+            execute: { query in try database.read { try query.fetch.all($0) } },
             sql: sql,
             results: results,
             location: (fileID: fileID, filePath: filePath, function: function, line: line, column: column)
@@ -70,7 +70,7 @@
         assertStatement(
             includeSQL: includeSQL,
             statement,
-            execute: { statement in try database.write { try statement.fetchAll($0) } },
+            execute: { statement in try database.write { try statement.fetch.all($0) } },
             sql: sql,
             results: results,
             location: (fileID: fileID, filePath: filePath, function: function, line: line, column: column)

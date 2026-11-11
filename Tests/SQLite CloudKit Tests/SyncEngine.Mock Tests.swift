@@ -38,7 +38,7 @@
                 }
 
                 func ids() throws -> [String] {
-                    try database.read { try Note.order(by: \.id).select(\.id).fetchAll($0) }
+                    try database.read { try Note.order(by: \.id).select(\.id).fetch.all($0) }
                 }
             }
 

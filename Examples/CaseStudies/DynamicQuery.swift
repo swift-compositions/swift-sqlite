@@ -92,9 +92,9 @@ struct DynamicQueryDemo: SwiftUICaseStudy {
                 .where { $0.body.like("%\(query)%") }
                 .order { $0.id.desc() }
             return try Value(
-                facts: search.fetchAll(db),
-                searchCount: search.fetchCount(db),
-                totalCount: Fact.fetchCount(db)
+                facts: search.fetch.all(db),
+                searchCount: search.fetch.count(db),
+                totalCount: Fact.fetch.count(db)
             )
         }
     }

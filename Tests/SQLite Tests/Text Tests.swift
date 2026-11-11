@@ -32,21 +32,21 @@
 
         @Test func `decodes past the NUL`() throws {
             let value = try queue.read { database in
-                try #sql("SELECT 'a' || char(0) || 'b'", as: String.self).fetchOne(database)
+                try #sql("SELECT 'a' || char(0) || 'b'", as: String.self).fetch.one(database)
             }
             #expect(value == textWithNul)
         }
 
         @Test func `binds and fetches past the NUL`() throws {
             let echoed = try queue.read { database in
-                try #sql("SELECT \(bind: textWithNul)", as: String.self).fetchOne(database)
+                try #sql("SELECT \(bind: textWithNul)", as: String.self).fetch.one(database)
             }
             #expect(echoed == textWithNul)
             let inserted = try #require(
                 try queue.write { database in
                     try Record.insert { Record.Draft(value: textWithNul) }
                         .returning(\.self)
-                        .fetchOne(database)
+                        .fetch.one(database)
                 }
             )
             #expect(inserted.value == textWithNul)

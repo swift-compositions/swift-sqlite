@@ -111,7 +111,7 @@
                 """
             }
             #expect(
-                try database.read { db in try Record.all.select(\.date).fetchAll(db) }
+                try database.read { db in try Record.all.select(\.date).fetch.all(db) }
                     == Array(repeating: Time.Instant(secondsSinceUnixEpoch: 45), count: 3)
             )
         }
@@ -151,7 +151,7 @@
                 └────────────────────────────────────────────────┘
                 """
             }
-            #expect(try database.read { db in try Record.fetchCount(db) } == 4)
+            #expect(try database.read { db in try Record.fetch.count(db) } == 4)
         }
 
         @Test func `writes with the SQL when asked`() {

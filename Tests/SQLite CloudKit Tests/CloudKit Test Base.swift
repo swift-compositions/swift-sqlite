@@ -167,7 +167,7 @@
 
             do {
                 try syncEngine.metadatabase.read { db in
-                    try #expect(UnsyncedRecordID.count().fetchOne(db) == 0)
+                    try #expect(UnsyncedRecordID.count().fetch.one(db) == 0)
                 }
             } catch {
                 Issue.record(error)

@@ -283,7 +283,7 @@ private func previewSyncUp() -> SyncUp {
             try $0.bootstrapDatabase()
             try? $0.defaultDatabase.seedSampleData()
             return try $0.defaultDatabase.read { db in
-                guard let syncUp = try SyncUp.fetchOne(db)
+                guard let syncUp = try SyncUp.fetch.one(db)
                 else { fatalError("The preview database has no sync-up.") }
                 return syncUp
             }

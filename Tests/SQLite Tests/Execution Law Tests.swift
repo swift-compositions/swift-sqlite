@@ -4,19 +4,25 @@
     import SQL_Test_Support
     import Testing
 
-    @Suite struct `Execution laws` {
+    extension SQLite.Database {
+        @Suite struct Test {
+            @Suite struct Integration {}
+        }
+    }
+
+    extension SQLite.Database.Test.Integration {
         @Test func `swift-sql's statements run on SQLite in memory as the laws expect`() async throws {
-            #expect(try await ExecutionLaws.violations(of: SQLite.Database()) == [])
+            #expect(try await Laws.violations(of: SQLite.Database()) == [])
         }
 
         @Test func `the laws find a connection that drops the last row of every fetch`() async throws {
-            let violations = try await ExecutionLaws.violations(of: Dropping(base: SQLite.Database()))
+            let violations = try await Laws.violations(of: Dropping(base: SQLite.Database()))
             #expect(violations.map(\.law).contains("a table fetches every row it holds"))
             #expect(violations.map(\.law).contains("a join fetches each pair of rows"))
         }
 
         @Test func `the laws find a database whose write commits when its body throws`() async throws {
-            let violations = try await ExecutionLaws.violations(of: Committing(base: SQLite.Database()))
+            let violations = try await Laws.violations(of: Committing(base: SQLite.Database()))
             #expect(violations.map(\.law).contains("a write whose body throws its own error rolls back every statement it ran"))
             #expect(violations.map(\.law).contains("a write whose second statement fails rolls back the first"))
         }

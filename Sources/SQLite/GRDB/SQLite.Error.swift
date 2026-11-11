@@ -144,7 +144,7 @@ public import SQLite_SQL
             self = .diagnostic(
                 ISO_9075.Diagnostic(
                     state: ISO_9075.Diagnostic.State(error.code),
-                    native: Int(error.extendedCode.rawValue),
+                    native: error.extendedCode.rawValue,
                     message: error.message ?? error.description
                 )
             )
@@ -173,7 +173,7 @@ public import SQLite_SQL
         /// The extended result code SQLite reported for `diagnostic`: its native code. `nil` for a diagnostic that carries
         /// none, which SQLite did not report.
         public init?(_ diagnostic: ISO_9075.Diagnostic) {
-            guard let native = diagnostic.native, let code = Int32(exactly: native) else { return nil }
+            guard let code = diagnostic.native else { return nil }
             self.init(rawValue: code)
         }
 
@@ -251,19 +251,6 @@ public import SQLite_SQL
             return try await body()
         } catch {
             throw SQLite.Error.typed(error)
-        }
-    }
-
-    /// What a caller's closure threw, carried unchanged through GRDB, which rolls back on it, to ``separating(_:)``.
-    package struct Raised<Thrown: Swift.Error>: Swift.Error {
-        package let thrown: Thrown
-
-        package static func raising<T>(_ body: () throws(Thrown) -> T) throws(Raised) -> T {
-            do {
-                return try body()
-            } catch {
-                throw Raised(thrown: error)
-            }
         }
     }
 #endif

@@ -68,10 +68,6 @@ import SQLite_SQL
             }
         }
 
-        mutating func decode(_ columnType: Int.Type) throws(QueryDecodingError) -> Int? {
-            try decode(Int64.self).map(Int.init)
-        }
-
         mutating func decode(_ columnType: Int64.Type) throws(QueryDecodingError) -> Int64? {
             unsafe try column(expecting: SQLITE_INTEGER, as: Int64.self) { unsafe sqlite3_column_int64($0, $1) }
         }

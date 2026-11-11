@@ -3,7 +3,19 @@
     import SQLite
     import Testing
 
-    @Suite struct `A result code's state` {
+    extension ISO_9075.Diagnostic.State {
+        @Suite struct Test {
+            @Suite struct Unit {}
+        }
+    }
+
+    extension SQLite.Error.Code {
+        @Suite struct Test {
+            @Suite struct Unit {}
+        }
+    }
+
+    extension ISO_9075.Diagnostic.State.Test.Unit {
         @Test func `a constraint violation is an integrity constraint violation`() {
             #expect(ISO_9075.Diagnostic.State(.constraint) == .integrityConstraintViolation)
         }
@@ -53,7 +65,7 @@
         }
     }
 
-    @Suite struct `A diagnostic's result code` {
+    extension SQLite.Error.Code.Test.Unit {
         @Test func `a diagnostic SQLite reported gives back its extended and primary code`() {
             let error = ISO_9075.Error(SQLite.Error(extendedCode: .uniqueConstraint, message: "UNIQUE constraint failed"))
             #expect(SQLite.Error.Code(error) == .uniqueConstraint)

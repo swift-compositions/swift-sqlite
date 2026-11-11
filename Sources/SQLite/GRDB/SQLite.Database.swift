@@ -209,7 +209,7 @@ public import SQLite_SQL
         public func read<Value: Sendable, Thrown: Swift.Error>(
             _ body: @Sendable (Connection) throws(Thrown) -> Value
         ) async throws(ISO_9075.Failure<Thrown>) -> Value {
-            try await separating(Thrown.self) { () async throws in
+            try await separating(Thrown.self) {
                 try await requireOpen()
                 return try await writer.read { database in try Raised.raising { () throws(Thrown) in try body(Connection(database)) } }
             }
@@ -219,7 +219,7 @@ public import SQLite_SQL
         public func write<Value: Sendable, Thrown: Swift.Error>(
             _ body: @Sendable (Connection) throws(Thrown) -> Value
         ) async throws(ISO_9075.Failure<Thrown>) -> Value {
-            try await separating(Thrown.self) { () async throws in
+            try await separating(Thrown.self) {
                 try await writer.write { database in try Raised.raising { () throws(Thrown) in try body(Connection(database)) } }
             }
         }
@@ -228,7 +228,7 @@ public import SQLite_SQL
         public func withRollback<Value: Sendable, Thrown: Swift.Error>(
             _ body: @Sendable (Connection) throws(Thrown) -> Value
         ) async throws(ISO_9075.Failure<Thrown>) -> Value {
-            try await separating(Thrown.self) { () async throws in
+            try await separating(Thrown.self) {
                 try await writer.writeWithoutTransaction { database in
                     try database.beginTransaction()
                     defer { try? database.rollback() }

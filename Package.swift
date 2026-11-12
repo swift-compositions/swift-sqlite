@@ -27,7 +27,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.2"),
-        .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.6.0"),
+        .package(url: "https://github.com/coenttb/GRDB.swift.git", branch: "master"),
         .package(url: "https://github.com/pointfreeco/swift-custom-dump.git", from: "1.7.3"),
         .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.6.3"),
         .package(url: "https://github.com/pointfreeco/swift-snapshot-testing.git", from: "1.18.4"),

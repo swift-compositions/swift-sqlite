@@ -2,7 +2,7 @@
 
 Use this package when your app keeps its data in an SQLite file and you want to read, write and observe it with typed statements, without importing the driver underneath. Start from `SQLite.Database`; for values that follow the database into SwiftUI or other observers, use `FetchAll`, `FetchOne` or `FetchStore`. To keep the rows of that database in sync with iCloud through CloudKit, add the `SQLite CloudKit` product and start from `SyncEngine`. For PostgreSQL, use swift-postgresql instead.
 
-With the `GRDB` trait, SQLite comes from GRDB as forked at coenttb/GRDB.swift: the system SQLite on Apple platforms, and elsewhere the SQLite amalgamation that fork compiles in, at a version the fork pins. No system library is needed, so the package builds with Swift's static Linux SDK (`--swift-sdk x86_64-swift-linux-musl`), which takes the swift.org toolchain of the same version, not Xcode's. The test targets don't build there, because swift-snapshot-testing needs XCTest.
+With the `GRDB` trait, SQLite comes from GRDB as forked at swift-compositions/GRDB.swift: the system SQLite on Apple platforms, and elsewhere the SQLite amalgamation that fork compiles in, at a version the fork pins. No system library is needed, so the package builds with Swift's static Linux SDK (`--swift-sdk x86_64-swift-linux-musl`), which takes the swift.org toolchain of the same version, not Xcode's. The test targets don't build there, because swift-snapshot-testing needs XCTest.
 
 ## Laws
 

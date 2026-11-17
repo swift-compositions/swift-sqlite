@@ -1,11 +1,11 @@
 #if CloudKit && canImport(CloudKit)
-    import GRDB
     import CloudKit
-    import InlineSnapshotTesting
+    import GRDB
     import SQL
     import SQLite
     import SQLite_CloudKit
     import Testing
+    import Tests_Inline_Snapshot
 
     extension CloudKitTestBase {
         @MainActor
@@ -38,7 +38,9 @@
                     forceAtomicByZone: true
                 )
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -67,7 +69,9 @@
                     forceAtomicByZone: true
                 )
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -132,7 +136,9 @@
                     forceAtomicByZone: true
                 )
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -169,7 +175,9 @@
                     forceAtomicByZone: true
                 )
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(

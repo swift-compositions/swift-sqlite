@@ -1,13 +1,13 @@
 #if CloudKit && canImport(CloudKit)
-    import GRDB
     import CloudKit
-    import InlineSnapshotTesting
+    import GRDB
     import SQL
     import SQLite
     import SQLite_CloudKit
     import SQLite_Test_Support
     import Synchronization
     import Testing
+    import Tests_Inline_Snapshot
 
     extension CloudKitTestBase {
         @MainActor
@@ -26,7 +26,9 @@
 
                 await signOut()
 
-                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
+                await snapshot(as: .rows(in: userDatabase.sqliteDatabase, drawing: State.draw)) {
+                    RemindersList.all
+                } matches: {
                     """
                     ┌─────────────────────┐
                     │ RemindersList(      │
@@ -36,14 +38,13 @@
                     └─────────────────────┘
                     """
                 }
-                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
+                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    SyncMetadata.all
+                } matches: {
                     """
                     ┌────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                      │
-                    │   id: SyncMetadata.ID(                                             │
-                    │     recordPrimaryKey: "1",                                         │
-                    │     recordType: "remindersLists"                                   │
-                    │   ),                                                               │
+                    │   id: ID(recordPrimaryKey: "1", recordType: "remindersLists"),     │
                     │   zoneName: "zone",                                                │
                     │   ownerName: "__defaultOwner__",                                   │
                     │   recordName: "1:remindersLists",                                  │
@@ -72,7 +73,9 @@
                     └────────────────────────────────────────────────────────────────────┘
                     """
                 }
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -100,7 +103,9 @@
                     try RemindersList.find(1).update { $0.title = "My stuff" }.execute(db)
                 }
 
-                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
+                await snapshot(as: .rows(in: userDatabase.sqliteDatabase, drawing: State.draw)) {
+                    RemindersList.all
+                } matches: {
                     """
                     ┌─────────────────────┐
                     │ RemindersList(      │
@@ -110,14 +115,13 @@
                     └─────────────────────┘
                     """
                 }
-                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
+                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    SyncMetadata.all
+                } matches: {
                     """
                     ┌────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                      │
-                    │   id: SyncMetadata.ID(                                             │
-                    │     recordPrimaryKey: "1",                                         │
-                    │     recordType: "remindersLists"                                   │
-                    │   ),                                                               │
+                    │   id: ID(recordPrimaryKey: "1", recordType: "remindersLists"),     │
                     │   zoneName: "zone",                                                │
                     │   ownerName: "__defaultOwner__",                                   │
                     │   recordName: "1:remindersLists",                                  │
@@ -146,7 +150,9 @@
                     └────────────────────────────────────────────────────────────────────┘
                     """
                 }
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -191,17 +197,23 @@
 
                 await signOut()
 
-                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
+                await snapshot(as: .rows(in: userDatabase.sqliteDatabase, drawing: State.draw)) {
+                    RemindersList.all
+                } matches: {
                     """
                     (No results)
                     """
                 }
-                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
+                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    SyncMetadata.all
+                } matches: {
                     """
                     (No results)
                     """
                 }
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(

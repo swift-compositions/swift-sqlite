@@ -1,9 +1,9 @@
 #if CloudKit && canImport(CloudKit) && DEBUG && canImport(DeveloperToolsSupport)
-    import InlineSnapshotTesting
     import SQL
     import SQLite
     import SQLite_CloudKit
     import Testing
+    import Tests_Inline_Snapshot
 
     extension CloudKitTestBase {
         @MainActor
@@ -19,7 +19,9 @@
                     }
                 }
                 await testClock.cycle(by: .seconds(1))
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -56,7 +58,9 @@
                 await testClock.cycle(by: .seconds(1))
                 try await $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.sqliteDatabase)
                 #expect(remindersLists.count == 1)
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -89,7 +93,9 @@
                 await testClock.cycle(by: .seconds(1))
                 try await $remindersLists.load(RemindersList.all.selectStar() as Select<RemindersList, RemindersList, ()>, database: userDatabase.sqliteDatabase)
                 #expect(remindersLists.count == 0)
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(

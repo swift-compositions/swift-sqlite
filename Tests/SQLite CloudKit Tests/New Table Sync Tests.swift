@@ -1,12 +1,12 @@
 #if CloudKit && canImport(CloudKit)
-    import GRDB
     import CloudKit
-    import InlineSnapshotTesting
+    import GRDB
     import SQL
     import SQLite
     import SQLite_CloudKit
     import SQLite_Test_Support
     import Testing
+    import Tests_Inline_Snapshot
 
     extension CloudKitTestBase {
         @MainActor
@@ -24,7 +24,9 @@
 
             @Test func `sends records created before the sync engine started`() async throws {
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -33,7 +35,9 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             id: 1,
                             isCompleted: 0,
@@ -58,10 +62,9 @@
                     """
                 }
 
-                assertQuery(
-                    SyncMetadata.order(by: \.recordName).select(\.recordName),
-                    database: SQLite.Database(syncEngine.metadatabase)
-                ) {
+                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    SyncMetadata.order(by: \.recordName).select(\.recordName)
+                } matches: {
                     """
                     ┌────────────────────┐
                     │ "1:reminders"      │

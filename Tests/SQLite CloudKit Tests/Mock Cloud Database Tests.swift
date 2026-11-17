@@ -1,13 +1,13 @@
 #if CloudKit && canImport(CloudKit)
-    import GRDB
     import CloudKit
     import Foundation
-    import InlineSnapshotTesting
+    import GRDB
     import SQL
     import SQLite
     import SQLite_CloudKit
     import Synchronization
     import Testing
+    import Tests_Inline_Snapshot
 
     extension CloudKitTestBase {
         @MainActor
@@ -78,7 +78,9 @@
                 )
                 #expect(saveRecordResults.allSatisfy({ (try? $1.get()) != nil }))
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -93,7 +95,9 @@
                           [1]: CKRecord(
                             recordID: CKRecord.ID(B/_defaultZone/__defaultOwner__),
                             recordType: "B",
-                            parent: CKReference(recordID: CKRecord.ID(A/_defaultZone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(A/_defaultZone/__defaultOwner__)
+                            ),
                             share: nil
                           )
                         ]
@@ -123,7 +127,9 @@
 
                 try await syncEngine.modifyRecords(scope: .private, saving: [child]).notify()
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -157,7 +163,9 @@
                 }
                 #expect(error == CKError(.zoneNotFound))
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -184,7 +192,9 @@
                 )
                 #expect(deleteResults.allSatisfy({ (try? $1.get()) != nil }))
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -208,7 +218,9 @@
                 )
                 #expect(deleteResults.allSatisfy({ (try? $1.get()) != nil }))
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -238,7 +250,9 @@
                 }
                 #expect(error == CKError(.zoneNotFound))
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -268,7 +282,9 @@
                 }
                 #expect(error == CKError(.referenceViolation))
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -283,7 +299,9 @@
                           [1]: CKRecord(
                             recordID: CKRecord.ID(B/_defaultZone/__defaultOwner__),
                             recordType: "B",
-                            parent: CKReference(recordID: CKRecord.ID(A/_defaultZone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(A/_defaultZone/__defaultOwner__)
+                            ),
                             share: nil
                           )
                         ]
@@ -458,7 +476,9 @@
                 )
                 _ = try syncEngine.private.database.modifyRecords(saving: [share, recordA, recordB])
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -468,12 +488,16 @@
                             recordID: CKRecord.ID(A1/zone/__defaultOwner__),
                             recordType: "A",
                             parent: nil,
-                            share: CKReference(recordID: CKRecord.ID(share/zone/__defaultOwner__))
+                            share: CKReference(
+                              recordID: CKRecord.ID(share/zone/__defaultOwner__)
+                            )
                           ),
                           [1]: CKRecord(
                             recordID: CKRecord.ID(B1/zone/__defaultOwner__),
                             recordType: "B",
-                            parent: CKReference(recordID: CKRecord.ID(A1/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(A1/zone/__defaultOwner__)
+                            ),
                             share: nil
                           ),
                           [2]: CKRecord(
@@ -494,7 +518,9 @@
 
                 _ = try syncEngine.private.database.modifyRecords(deleting: [share.recordID])
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -504,12 +530,16 @@
                             recordID: CKRecord.ID(A1/zone/__defaultOwner__),
                             recordType: "A",
                             parent: nil,
-                            share: CKReference(recordID: CKRecord.ID(share/zone/__defaultOwner__))
+                            share: CKReference(
+                              recordID: CKRecord.ID(share/zone/__defaultOwner__)
+                            )
                           ),
                           [1]: CKRecord(
                             recordID: CKRecord.ID(B1/zone/__defaultOwner__),
                             recordType: "B",
-                            parent: CKReference(recordID: CKRecord.ID(A1/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(A1/zone/__defaultOwner__)
+                            ),
                             share: nil
                           )
                         ]
@@ -544,7 +574,9 @@
                 )
                 _ = try syncEngine.shared.database.modifyRecords(saving: [share, recordA, recordB])
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -558,12 +590,16 @@
                             recordID: CKRecord.ID(A1/external.zone/external.owner),
                             recordType: "A",
                             parent: nil,
-                            share: CKReference(recordID: CKRecord.ID(share/external.zone/external.owner))
+                            share: CKReference(
+                              recordID: CKRecord.ID(share/external.zone/external.owner)
+                            )
                           ),
                           [1]: CKRecord(
                             recordID: CKRecord.ID(B1/external.zone/external.owner),
                             recordType: "B",
-                            parent: CKReference(recordID: CKRecord.ID(A1/external.zone/external.owner)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(A1/external.zone/external.owner)
+                            ),
                             share: nil
                           ),
                           [2]: CKRecord(
@@ -580,7 +616,9 @@
 
                 _ = try syncEngine.shared.database.modifyRecords(deleting: [share.recordID])
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -594,12 +632,16 @@
                             recordID: CKRecord.ID(A1/external.zone/external.owner),
                             recordType: "A",
                             parent: nil,
-                            share: CKReference(recordID: CKRecord.ID(share/external.zone/external.owner))
+                            share: CKReference(
+                              recordID: CKRecord.ID(share/external.zone/external.owner)
+                            )
                           ),
                           [1]: CKRecord(
                             recordID: CKRecord.ID(B1/external.zone/external.owner),
                             recordType: "B",
-                            parent: CKReference(recordID: CKRecord.ID(A1/external.zone/external.owner)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(A1/external.zone/external.owner)
+                            ),
                             share: nil
                           )
                         ]

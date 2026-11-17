@@ -1,32 +1,95 @@
 #if CloudKit && canImport(CloudKit)
-    import GRDB
     public import CloudKit
-    public import CustomDump
     import Foundation
-    import InlineSnapshotTesting
+    import GRDB
     import SQLite
     import SQLite_CloudKit
     import Synchronization
+    import Test
 
     private enum Printing {
         @TaskLocal static var timestamps = false
         @TaskLocal static var recordChangeTags = false
     }
 
-    extension Snapshotting where Format == String {
-        static var customDump: Self {
-            customDump(timestamps: false)
+    /// A value that draws itself in a state snapshot through the children of a mirror.
+    package protocol StateMirroring {
+        var stateMirror: Mirror { get }
+    }
+
+    /// A value that draws itself in a state snapshot as one line.
+    package protocol StateDescribing {
+        var stateDescription: String { get }
+    }
+
+    extension Test::Test.Snapshot.Strategy where Format == String {
+        /// The value drawn as the CloudKit tests' state: one line per property, nested by two spaces.
+        static var state: Self {
+            state(timestamps: false)
         }
 
-        static func customDump(timestamps: Bool, recordChangeTags: Bool = false) -> Self {
-            SimplySnapshotting.lines.pullback { value in
+        static func state(timestamps: Bool, recordChangeTags: Bool = false) -> Self {
+            Test::Test.Snapshot.Strategy<String, String>.lines.pullback { value in
                 Printing.$timestamps.withValue(timestamps) {
                     Printing.$recordChangeTags.withValue(recordChangeTags) {
-                        var output = ""
-                        CustomDump.customDump(value, to: &output)
-                        return output
+                        State.render(value, indent: "")
                     }
                 }
+            }
+        }
+    }
+
+    enum State {
+        /// Draws a value for a rows snapshot when it draws itself in a state snapshot.
+        static func draw(_ value: Any) -> String? {
+            let mirror = Mirror(reflecting: value)
+            if mirror.displayStyle == .optional {
+                return mirror.children.first.flatMap { draw($0.value) }
+            }
+            guard value is any StateMirroring || value is any StateDescribing || mirror.displayStyle == .enum else {
+                return nil
+            }
+            return render(value, indent: "")
+        }
+
+        static func render(_ value: Any, indent: String) -> String {
+            if let value = value as? any StateDescribing { return value.stateDescription }
+            if let string = value as? String { return String(reflecting: string) }
+            if let data = value as? Data { return "Data(\(data.count) bytes)" }
+            let mirror = (value as? any StateMirroring)?.stateMirror ?? Mirror(reflecting: value)
+            let inner = indent + "  "
+            switch mirror.displayStyle {
+            case .optional:
+                return mirror.children.first.map { render($0.value, indent: indent) } ?? "nil"
+            case .collection, .set:
+                let elements = mirror.children.enumerated().map { offset, child in
+                    "\(inner)[\(offset)]: \(render(child.value, indent: inner))"
+                }
+                return elements.isEmpty ? "[]" : "[\n" + elements.joined(separator: ",\n") + "\n\(indent)]"
+            case .dictionary:
+                let entries = mirror.children.map { child -> (String, String) in
+                    let pair = Array(Mirror(reflecting: child.value).children)
+                    return (render(pair[0].value, indent: inner), render(pair[1].value, indent: inner))
+                }
+                .sorted { $0.0 < $1.0 }
+                .map { "\(inner)\($0): \($1)" }
+                return entries.isEmpty ? "[:]" : "[\n" + entries.joined(separator: ",\n") + "\n\(indent)]"
+            case .enum:
+                guard let payload = mirror.children.first else { return ".\(value)" }
+                return ".\(payload.label ?? "")(\(render(payload.value, indent: indent)))"
+            case .struct, .class, .tuple:
+                if !(value is any StateMirroring), let value = value as? any CustomStringConvertible {
+                    return value.description
+                }
+                let name = mirror.displayStyle == .tuple ? "" : "\(mirror.subjectType)"
+                let fields = mirror.children.map { child in
+                    "\(inner)\(child.label ?? "_"): \(render(child.value, indent: inner))"
+                }
+                return fields.isEmpty ? "\(name)()" : "\(name)(\n" + fields.joined(separator: ",\n") + "\n\(indent))"
+            case nil:
+                return String(describing: value)
+            @unknown default:
+                return String(describing: value)
             }
         }
     }
@@ -47,8 +110,8 @@
         }
     }
 
-    extension CKDatabase.Scope: @retroactive CustomDumpStringConvertible {
-        public var customDumpDescription: String {
+    extension CKDatabase.Scope: StateDescribing {
+        public var stateDescription: String {
             switch self {
             case .public: ".public"
             case .private: ".private"
@@ -58,8 +121,8 @@
         }
     }
 
-    extension CKRecord: @retroactive CustomDumpReflectable {
-        public var customDumpMirror: Mirror {
+    extension CKRecord: StateMirroring {
+        public var stateMirror: Mirror {
             let timeKey = CKRecord.userModificationTimeKey
             let keys = encryptedValues.allKeys()
                 .filter { key in Printing.timestamps || !key.hasPrefix(timeKey) }
@@ -100,8 +163,8 @@
         }
     }
 
-    extension CKAsset: @retroactive CustomDumpReflectable {
-        public var customDumpMirror: Mirror {
+    extension CKAsset: StateMirroring {
+        public var stateMirror: Mirror {
             Mirror(
                 self,
                 children: [
@@ -119,14 +182,14 @@
         }
     }
 
-    extension CKRecord.Reference: @retroactive CustomDumpReflectable {
-        public var customDumpMirror: Mirror {
+    extension CKRecord.Reference: StateMirroring {
+        public var stateMirror: Mirror {
             Mirror(self, children: [("recordID", recordID as Any)], displayStyle: .struct)
         }
     }
 
-    extension CKSyncEngine.RecordZoneChangeBatch: @retroactive CustomDumpReflectable {
-        public var customDumpMirror: Mirror {
+    extension CKSyncEngine.RecordZoneChangeBatch: StateMirroring {
+        public var stateMirror: Mirror {
             Mirror(
                 self,
                 children: [
@@ -145,20 +208,20 @@
         }
     }
 
-    extension CKRecord.ID: @retroactive CustomDumpStringConvertible {
-        public var customDumpDescription: String {
+    extension CKRecord.ID: StateDescribing {
+        public var stateDescription: String {
             "CKRecord.ID(\(recordName)/\(zoneID.zoneName)/\(zoneID.ownerName))"
         }
     }
 
-    extension CKRecordZone.ID: @retroactive CustomDumpStringConvertible {
-        public var customDumpDescription: String {
+    extension CKRecordZone.ID: StateDescribing {
+        public var stateDescription: String {
             "CKRecordZone.ID(\(zoneName)/\(ownerName))"
         }
     }
 
-    extension MockSyncEngineState: CustomDumpReflectable {
-        package var customDumpMirror: Mirror {
+    extension MockSyncEngineState: StateMirroring {
+        package var stateMirror: Mirror {
             Mirror(
                 self,
                 children: [
@@ -206,8 +269,8 @@
         }
     }
 
-    extension MockCloudContainer: CustomDumpReflectable {
-        package var customDumpMirror: Mirror {
+    extension MockCloudContainer: StateMirroring {
+        package var stateMirror: Mirror {
             Mirror(
                 self,
                 children: [
@@ -219,8 +282,8 @@
         }
     }
 
-    extension MockCloudDatabase: CustomDumpReflectable {
-        package var customDumpMirror: Mirror {
+    extension MockCloudDatabase: StateMirroring {
+        package var stateMirror: Mirror {
             Mirror(
                 self,
                 children: [
@@ -239,8 +302,8 @@
         }
     }
 
-    extension RecordType: CustomDumpReflectable {
-        package var customDumpMirror: Mirror {
+    extension RecordType: StateMirroring {
+        package var stateMirror: Mirror {
             Mirror(
                 self,
                 children: [

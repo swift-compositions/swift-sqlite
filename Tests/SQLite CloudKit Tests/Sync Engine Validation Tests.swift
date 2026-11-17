@@ -2,13 +2,13 @@
     import CloudKit
     import Foundation
     import GRDB
-    import InlineSnapshotTesting
     import RFC_4122
     import SQL
     import SQL_Macros
     import SQLite
     import SQLite_CloudKit
     import Testing
+    import Tests_Inline_Snapshot
 
     @MainActor
     @Suite(.timeLimit(.minutes(5))) struct `Sync engine schema validation` {
@@ -51,14 +51,18 @@
                     )
                 }
             )
-            assertInlineSnapshot(of: error.localizedDescription, as: .customDump) {
+            await snapshot(as: .state) {
+                error.localizedDescription
+            } matches: {
                 """
                 "Could not synchronize data with iCloud."
                 """
             }
-            assertInlineSnapshot(of: error, as: .customDump) {
+            await snapshot(as: .state) {
+                error
+            } matches: {
                 #"""
-                SyncEngine.SchemaError(
+                SchemaError(
                   reason: .invalidTableName("invalid:table"),
                   debugDescription: "Table name contains invalid character \':\'"
                 )
@@ -101,27 +105,29 @@
                     )
                 }
             )
-            assertInlineSnapshot(of: error.localizedDescription, as: .customDump) {
+            await snapshot(as: .state) {
+                error.localizedDescription
+            } matches: {
                 """
                 "Could not synchronize data with iCloud."
                 """
             }
-            assertInlineSnapshot(of: error, as: .customDump) {
-                """
-                SyncEngine.SchemaError(
-                  reason: .invalidForeignKeyAction(
-                    ForeignKey(
-                      table: "parents",
-                      from: "parentID",
-                      to: "id",
-                      onUpdate: .noAction,
-                      onDelete: .noAction,
-                      isNotNull: false
-                    )
-                  ),
-                  debugDescription: #"Foreign key "childs"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'."#
+            await snapshot(as: .state) {
+                error
+            } matches: {
+                #"""
+                SchemaError(
+                  reason: .invalidForeignKeyAction(ForeignKey(
+                    table: "parents",
+                    from: "parentID",
+                    to: "id",
+                    onUpdate: .noAction,
+                    onDelete: .noAction,
+                    isNotNull: false
+                  )),
+                  debugDescription: "Foreign key \"childs\".\"parentID\" action not supported. Must be \'CASCADE\', \'SET DEFAULT\' or \'SET NULL\'."
                 )
-                """
+                """#
             }
         }
 
@@ -160,27 +166,29 @@
                     )
                 }
             )
-            assertInlineSnapshot(of: error.localizedDescription, as: .customDump) {
+            await snapshot(as: .state) {
+                error.localizedDescription
+            } matches: {
                 """
                 "Could not synchronize data with iCloud."
                 """
             }
-            assertInlineSnapshot(of: error, as: .customDump) {
-                """
-                SyncEngine.SchemaError(
-                  reason: .invalidForeignKeyAction(
-                    ForeignKey(
-                      table: "parents",
-                      from: "parentID",
-                      to: "id",
-                      onUpdate: .noAction,
-                      onDelete: .restrict,
-                      isNotNull: false
-                    )
-                  ),
-                  debugDescription: #"Foreign key "childs"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'."#
+            await snapshot(as: .state) {
+                error
+            } matches: {
+                #"""
+                SchemaError(
+                  reason: .invalidForeignKeyAction(ForeignKey(
+                    table: "parents",
+                    from: "parentID",
+                    to: "id",
+                    onUpdate: .noAction,
+                    onDelete: .restrict,
+                    isNotNull: false
+                  )),
+                  debugDescription: "Foreign key \"childs\".\"parentID\" action not supported. Must be \'CASCADE\', \'SET DEFAULT\' or \'SET NULL\'."
                 )
-                """
+                """#
             }
         }
 
@@ -218,27 +226,29 @@
                     )
                 }
             )
-            assertInlineSnapshot(of: error.localizedDescription, as: .customDump) {
+            await snapshot(as: .state) {
+                error.localizedDescription
+            } matches: {
                 """
                 "Could not synchronize data with iCloud."
                 """
             }
-            assertInlineSnapshot(of: error, as: .customDump) {
-                """
-                SyncEngine.SchemaError(
-                  reason: .invalidForeignKey(
-                    ForeignKey(
-                      table: "parents",
-                      from: "parentID",
-                      to: "id",
-                      onUpdate: .noAction,
-                      onDelete: .cascade,
-                      isNotNull: false
-                    )
-                  ),
-                  debugDescription: #"Foreign key "childs"."parentID" references table "parents" that is not synchronized. Update 'SyncEngine.init' to synchronize "parents". "#
+            await snapshot(as: .state) {
+                error
+            } matches: {
+                #"""
+                SchemaError(
+                  reason: .invalidForeignKey(ForeignKey(
+                    table: "parents",
+                    from: "parentID",
+                    to: "id",
+                    onUpdate: .noAction,
+                    onDelete: .cascade,
+                    isNotNull: false
+                  )),
+                  debugDescription: "Foreign key \"childs\".\"parentID\" references table \"parents\" that is not synchronized. Update \'SyncEngine.init\' to synchronize \"parents\". "
                 )
-                """
+                """#
             }
         }
 
@@ -317,14 +327,18 @@
                     )
                 }
             )
-            assertInlineSnapshot(of: error.localizedDescription, as: .customDump) {
+            await snapshot(as: .state) {
+                error.localizedDescription
+            } matches: {
                 """
                 "Could not synchronize data with iCloud."
                 """
             }
-            assertInlineSnapshot(of: error, as: .customDump) {
+            await snapshot(as: .state) {
+                error
+            } matches: {
                 """
-                SyncEngine.SchemaError(
+                SchemaError(
                   reason: .uniquenessConstraint,
                   debugDescription: "Uniqueness constraints are not supported for synchronized tables."
                 )
@@ -358,14 +372,18 @@
                     )
                 }
             )
-            assertInlineSnapshot(of: error.localizedDescription, as: .customDump) {
+            await snapshot(as: .state) {
+                error.localizedDescription
+            } matches: {
                 """
                 "Could not synchronize data with iCloud."
                 """
             }
-            assertInlineSnapshot(of: error, as: .customDump) {
+            await snapshot(as: .state) {
+                error
+            } matches: {
                 """
-                SyncEngine.SchemaError(
+                SchemaError(
                   reason: .cycleDetected,
                   debugDescription: "Cycles are not currently permitted in schemas, e.g. a table that references itself."
                 )

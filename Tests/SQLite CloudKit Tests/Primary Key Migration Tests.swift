@@ -2,7 +2,6 @@
     import CloudKit
     import Foundation
     import GRDB
-    import InlineSnapshotTesting
     import RFC_4122
     import SQL
     import SQL_Macros
@@ -10,6 +9,7 @@
     import SQLite_CloudKit
     import SQLite_Test_Support
     import Testing
+    import Tests_Inline_Snapshot
 
     @Suite(.timeLimit(.minutes(5))) struct `Primary key migration` {
         @Table("parents") struct Parent: Identifiable {
@@ -89,104 +89,96 @@
 
             try migrate()
 
-            assertQuery(SQLiteSchema.userObjects, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                SQLiteSchema.userObjects
+            } matches: {
                 #"""
-                ┌────────────────────────────────────────────────────────────────────────────┐
-                │ SQLiteSchema(                                                              │
-                │   type: .table,                                                            │
-                │   name: "children",                                                        │
-                │   tableName: "children",                                                   │
-                │   sql: """                                                                 │
-                │   CREATE TABLE "children" (                                                │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-                │     "title" TEXT NOT NULL,                                                 │
-                │     "parentID" TEXT NOT NULL REFERENCES "parents"("id") ON DELETE CASCADE  │
-                │   ) STRICT                                                                 │
-                │   """                                                                      │
-                │ )                                                                          │
-                ├────────────────────────────────────────────────────────────────────────────┤
-                │ SQLiteSchema(                                                              │
-                │   type: .table,                                                            │
-                │   name: "parents",                                                         │
-                │   tableName: "parents",                                                    │
-                │   sql: """                                                                 │
-                │   CREATE TABLE "parents" (                                                 │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-                │     "title" TEXT NOT NULL                                                  │
-                │   ) STRICT                                                                 │
-                │   """                                                                      │
-                │ )                                                                          │
-                ├────────────────────────────────────────────────────────────────────────────┤
-                │ SQLiteSchema(                                                              │
-                │   type: .table,                                                            │
-                │   name: "tags",                                                            │
-                │   tableName: "tags",                                                       │
-                │   sql: """                                                                 │
-                │   CREATE TABLE "tags" (                                                    │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-                │     "title" TEXT NOT NULL                                                  │
-                │   ) STRICT                                                                 │
-                │   """                                                                      │
-                │ )                                                                          │
-                └────────────────────────────────────────────────────────────────────────────┘
+                ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+                │ SQLiteSchema(                                                                                                                                                                                                                           │
+                │   type: .table,                                                                                                                                                                                                                         │
+                │   name: "children",                                                                                                                                                                                                                     │
+                │   tableName: "children",                                                                                                                                                                                                                │
+                │   sql: "CREATE TABLE \"children\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  \"title\" TEXT NOT NULL,\n  \"parentID\" TEXT NOT NULL REFERENCES \"parents\"(\"id\") ON DELETE CASCADE\n) STRICT" │
+                │ )                                                                                                                                                                                                                                       │
+                ├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+                │ SQLiteSchema(                                                                                                                                                                                                                           │
+                │   type: .table,                                                                                                                                                                                                                         │
+                │   name: "parents",                                                                                                                                                                                                                      │
+                │   tableName: "parents",                                                                                                                                                                                                                 │
+                │   sql: "CREATE TABLE \"parents\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  \"title\" TEXT NOT NULL\n) STRICT"                                                                                  │
+                │ )                                                                                                                                                                                                                                       │
+                ├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+                │ SQLiteSchema(                                                                                                                                                                                                                           │
+                │   type: .table,                                                                                                                                                                                                                         │
+                │   name: "tags",                                                                                                                                                                                                                         │
+                │   tableName: "tags",                                                                                                                                                                                                                    │
+                │   sql: "CREATE TABLE \"tags\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  \"title\" TEXT NOT NULL\n) STRICT"                                                                                     │
+                │ )                                                                                                                                                                                                                                       │
+                └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
-            assertQuery(Parent.all, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Parent.all
+            } matches: {
                 """
-                ┌────────────────────────────────────────────────────────────┐
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │   id: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7), │
-                │   title: "foo"                                             │
-                │ )                                                          │
-                ├────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │   id: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6), │
-                │   title: "bar"                                             │
-                │ )                                                          │
-                ├────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │   id: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6), │
-                │   title: "baz"                                             │
-                │ )                                                          │
-                └────────────────────────────────────────────────────────────┘
-                """
-            }
-            assertQuery(Child.all, database: database) {
-                """
-                ┌─────────────────────────────────────────────────────────────────┐
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Child(            │
-                │   id: RFC_4122.UUID(d66c67a9-39cd-8786-75a9-1c47f5c0e47f),      │
-                │   title: "foo",                                                 │
-                │   parentID: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7) │
-                │ )                                                               │
-                ├─────────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Child(            │
-                │   id: RFC_4122.UUID(98219b0b-627e-b12b-8e8f-08ed4a7959bf),      │
-                │   title: "bar",                                                 │
-                │   parentID: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6) │
-                │ )                                                               │
-                ├─────────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Child(            │
-                │   id: RFC_4122.UUID(7eae27fe-b38d-3806-6aa4-6f953c251bea),      │
-                │   title: "baz",                                                 │
-                │   parentID: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6) │
-                │ )                                                               │
-                └─────────────────────────────────────────────────────────────────┘
+                ┌─────────────────────────────────────────────┐
+                │ Parent(                                     │
+                │   id: 8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7, │
+                │   title: "foo"                              │
+                │ )                                           │
+                ├─────────────────────────────────────────────┤
+                │ Parent(                                     │
+                │   id: c9e96bbb-4af3-0821-78da-a7dfb992d9e6, │
+                │   title: "bar"                              │
+                │ )                                           │
+                ├─────────────────────────────────────────────┤
+                │ Parent(                                     │
+                │   id: b0a18942-23c0-1c82-0c94-71836acd1bb6, │
+                │   title: "baz"                              │
+                │ )                                           │
+                └─────────────────────────────────────────────┘
                 """
             }
-            assertQuery(Tag.all, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Child.all
+            } matches: {
                 """
-                ┌────────────────────────────────────────────────────────────┐
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Tag(         │
-                │   id: RFC_4122.UUID(00000000-0000-0000-0000-000000000001), │
-                │   title: "personal"                                        │
-                │ )                                                          │
-                ├────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Tag(         │
-                │   id: RFC_4122.UUID(00000000-0000-0000-0000-000000000002), │
-                │   title: "business"                                        │
-                │ )                                                          │
-                └────────────────────────────────────────────────────────────┘
+                ┌──────────────────────────────────────────────────┐
+                │ Child(                                           │
+                │   id: d66c67a9-39cd-8786-75a9-1c47f5c0e47f,      │
+                │   title: "foo",                                  │
+                │   parentID: 8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7 │
+                │ )                                                │
+                ├──────────────────────────────────────────────────┤
+                │ Child(                                           │
+                │   id: 98219b0b-627e-b12b-8e8f-08ed4a7959bf,      │
+                │   title: "bar",                                  │
+                │   parentID: c9e96bbb-4af3-0821-78da-a7dfb992d9e6 │
+                │ )                                                │
+                ├──────────────────────────────────────────────────┤
+                │ Child(                                           │
+                │   id: 7eae27fe-b38d-3806-6aa4-6f953c251bea,      │
+                │   title: "baz",                                  │
+                │   parentID: b0a18942-23c0-1c82-0c94-71836acd1bb6 │
+                │ )                                                │
+                └──────────────────────────────────────────────────┘
+                """
+            }
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Tag.all
+            } matches: {
+                """
+                ┌─────────────────────────────────────────────┐
+                │ Tag(                                        │
+                │   id: 00000000-0000-0000-0000-000000000001, │
+                │   title: "personal"                         │
+                │ )                                           │
+                ├─────────────────────────────────────────────┤
+                │ Tag(                                        │
+                │   id: 00000000-0000-0000-0000-000000000002, │
+                │   title: "business"                         │
+                │ )                                           │
+                └─────────────────────────────────────────────┘
                 """
             }
         }
@@ -212,19 +204,21 @@
 
             try migrate(tables: Parent.self)
 
-            assertQuery(Parent.select { ($0.rowid, $0) }, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Parent.select { ($0.rowid, $0) }
+            } matches: {
                 """
-                ┌──────┬────────────────────────────────────────────────────────────┐
-                │ 1    │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │      │   id: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7), │
-                │      │   title: "blob"                                            │
-                │      │ )                                                          │
-                ├──────┼────────────────────────────────────────────────────────────┤
-                │ 1000 │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │      │   id: RFC_4122.UUID(ec5f9355-c981-e3c7-3246-09a01e0c4897), │
-                │      │   title: "blob jr"                                         │
-                │      │ )                                                          │
-                └──────┴────────────────────────────────────────────────────────────┘
+                ┌──────┬─────────────────────────────────────────────┐
+                │ 1    │ Parent(                                     │
+                │      │   id: 8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7, │
+                │      │   title: "blob"                             │
+                │      │ )                                           │
+                ├──────┼─────────────────────────────────────────────┤
+                │ 1000 │ Parent(                                     │
+                │      │   id: ec5f9355-c981-e3c7-3246-09a01e0c4897, │
+                │      │   title: "blob jr"                          │
+                │      │ )                                           │
+                └──────┴─────────────────────────────────────────────┘
                 """
             }
         }
@@ -245,27 +239,26 @@
             let error = #expect(throws: (any Swift.Error).self) {
                 try migrate(tables: Parent.self)
             }
-            assertInlineSnapshot(of: error?.localizedDescription, as: .customDump) {
+            snapshot(as: .state) {
+                error?.localizedDescription
+            } matches: {
                 """
                 "Invalid primary key. The table must have either no primary key or a single integer primary key to migrate."
                 """
             }
 
-            assertQuery(SQLiteSchema.userObjects, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                SQLiteSchema.userObjects
+            } matches: {
                 #"""
-                ┌──────────────────────────────────────────────────────────────────────────┐
-                │ SQLiteSchema(                                                            │
-                │   type: .table,                                                          │
-                │   name: "parents",                                                       │
-                │   tableName: "parents",                                                  │
-                │   sql: """                                                               │
-                │   CREATE TABLE "parents" (                                               │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()), │
-                │     "title" TEXT NOT NULL                                                │
-                │   ) STRICT                                                               │
-                │   """                                                                    │
-                │ )                                                                        │
-                └──────────────────────────────────────────────────────────────────────────┘
+                ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+                │ SQLiteSchema(                                                                                                                                      │
+                │   type: .table,                                                                                                                                    │
+                │   name: "parents",                                                                                                                                 │
+                │   tableName: "parents",                                                                                                                            │
+                │   sql: "CREATE TABLE \"parents\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),\n  \"title\" TEXT NOT NULL\n) STRICT" │
+                │ )                                                                                                                                                  │
+                └────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
         }
@@ -310,33 +303,25 @@
                 try #sql("PRAGMA foreign_keys = ON").execute(db)
             }
 
-            assertQuery(SQLiteSchema.userObjects, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                SQLiteSchema.userObjects
+            } matches: {
                 #"""
-                ┌────────────────────────────────────────────────────────────────────────────┐
-                │ SQLiteSchema(                                                              │
-                │   type: .table,                                                            │
-                │   name: "tags",                                                            │
-                │   tableName: "tags",                                                       │
-                │   sql: """                                                                 │
-                │   CREATE TABLE "tags" (                                                    │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-                │     "title" TEXT NOT NULL,                                                 │
-                │     "name" TEXT NOT NULL                                                   │
-                │   ) STRICT                                                                 │
-                │   """                                                                      │
-                │ )                                                                          │
-                ├────────────────────────────────────────────────────────────────────────────┤
-                │ SQLiteSchema(                                                              │
-                │   type: .table,                                                            │
-                │   name: "users",                                                           │
-                │   tableName: "users",                                                      │
-                │   sql: """                                                                 │
-                │   CREATE TABLE "users" (                                                   │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-                │     "title" TEXT NOT NULL) STRICT                                          │
-                │   """                                                                      │
-                │ )                                                                          │
-                └────────────────────────────────────────────────────────────────────────────┘
+                ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+                │ SQLiteSchema(                                                                                                                                                                  │
+                │   type: .table,                                                                                                                                                                │
+                │   name: "tags",                                                                                                                                                                │
+                │   tableName: "tags",                                                                                                                                                           │
+                │   sql: "CREATE TABLE \"tags\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  \"title\" TEXT NOT NULL,\n  \"name\" TEXT NOT NULL\n) STRICT" │
+                │ )                                                                                                                                                                              │
+                ├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+                │ SQLiteSchema(                                                                                                                                                                  │
+                │   type: .table,                                                                                                                                                                │
+                │   name: "users",                                                                                                                                                               │
+                │   tableName: "users",                                                                                                                                                          │
+                │   sql: "CREATE TABLE \"users\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  \"title\" TEXT NOT NULL) STRICT"                             │
+                │ )                                                                                                                                                                              │
+                └────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
         }
@@ -374,20 +359,18 @@
                 try #sql("PRAGMA foreign_keys = ON").execute(db)
             }
 
-            assertQuery(SQLiteSchema.userObjects, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                SQLiteSchema.userObjects
+            } matches: {
                 #"""
-                ┌────────────────────────────────────────────────────────────────────────────────┐
-                │ SQLiteSchema(                                                                  │
-                │   type: .table,                                                                │
-                │   name: "users",                                                               │
-                │   tableName: "users",                                                          │
-                │   sql: """                                                                     │
-                │   CREATE TABLE "users" (                                                       │
-                │     "unique" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-                │     "title" TEXT NOT NULL) STRICT                                              │
-                │   """                                                                          │
-                │ )                                                                              │
-                └────────────────────────────────────────────────────────────────────────────────┘
+                ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+                │ SQLiteSchema(                                                                                                                                          │
+                │   type: .table,                                                                                                                                        │
+                │   name: "users",                                                                                                                                       │
+                │   tableName: "users",                                                                                                                                  │
+                │   sql: "CREATE TABLE \"users\" (\n  \"unique\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  \"title\" TEXT NOT NULL) STRICT" │
+                │ )                                                                                                                                                      │
+                └────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
         }
@@ -427,93 +410,84 @@
 
             try migrate()
 
-            assertQuery(SQLiteSchema.userObjects, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                SQLiteSchema.userObjects
+            } matches: {
                 #"""
-                ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
-                │ SQLiteSchema(                                                                                  │
-                │   type: .table,                                                                                │
-                │   name: "children",                                                                            │
-                │   tableName: "children",                                                                       │
-                │   sql: """                                                                                     │
-                │   CREATE TABLE "children" (                                                                    │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), -- No autoincrement │
-                │     "title" TEXT COLLATE NOCASE NOT NULL DEFAULT (''),                                         │
-                │     "parentID" TEXT NOT NULL REFERENCES "parents"("id") ON DELETE CASCADE,                     │
-                │     "exclaimedTitle" TEXT NOT NULL AS ("title" || '!') STORED                                  │
-                │   ) STRICT                                                                                     │
-                │   """                                                                                          │
-                │ )                                                                                              │
-                ├────────────────────────────────────────────────────────────────────────────────────────────────┤
-                │ SQLiteSchema(                                                                                  │
-                │   type: .table,                                                                                │
-                │   name: "parents",                                                                             │
-                │   tableName: "parents",                                                                        │
-                │   sql: """                                                                                     │
-                │   CREATE TABLE "parents" (                                                                     │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()),                     │
-                │     "title" TEXT NOT NULL CHECK(length("title") > 0)                                           │
-                │   ) STRICT                                                                                     │
-                │   """                                                                                          │
-                │ )                                                                                              │
-                ├────────────────────────────────────────────────────────────────────────────────────────────────┤
-                │ SQLiteSchema(                                                                                  │
-                │   type: .table,                                                                                │
-                │   name: "tags",                                                                                │
-                │   tableName: "tags",                                                                           │
-                │   sql: """                                                                                     │
-                │   CREATE TABLE "tags" (                                                                        │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()),                     │
-                │     "title" TEXT NOT NULL UNIQUE                                                               │
-                │   ) STRICT                                                                                     │
-                │   """                                                                                          │
-                │ )                                                                                              │
-                └────────────────────────────────────────────────────────────────────────────────────────────────┘
+                ┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+                │ SQLiteSchema(                                                                                                                                                                                                                                                                                                                                                 │
+                │   type: .table,                                                                                                                                                                                                                                                                                                                                               │
+                │   name: "children",                                                                                                                                                                                                                                                                                                                                           │
+                │   tableName: "children",                                                                                                                                                                                                                                                                                                                                      │
+                │   sql: "CREATE TABLE \"children\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()), -- No autoincrement\n  \"title\" TEXT COLLATE NOCASE NOT NULL DEFAULT (\'\'),\n  \"parentID\" TEXT NOT NULL REFERENCES \"parents\"(\"id\") ON DELETE CASCADE,\n  \"exclaimedTitle\" TEXT NOT NULL AS (\"title\" || \'!\') STORED\n) STRICT" │
+                │ )                                                                                                                                                                                                                                                                                                                                                             │
+                ├───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+                │ SQLiteSchema(                                                                                                                                                                                                                                                                                                                                                 │
+                │   type: .table,                                                                                                                                                                                                                                                                                                                                               │
+                │   name: "parents",                                                                                                                                                                                                                                                                                                                                            │
+                │   tableName: "parents",                                                                                                                                                                                                                                                                                                                                       │
+                │   sql: "CREATE TABLE \"parents\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  \"title\" TEXT NOT NULL CHECK(length(\"title\") > 0)\n) STRICT"                                                                                                                                                                           │
+                │ )                                                                                                                                                                                                                                                                                                                                                             │
+                ├───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+                │ SQLiteSchema(                                                                                                                                                                                                                                                                                                                                                 │
+                │   type: .table,                                                                                                                                                                                                                                                                                                                                               │
+                │   name: "tags",                                                                                                                                                                                                                                                                                                                                               │
+                │   tableName: "tags",                                                                                                                                                                                                                                                                                                                                          │
+                │   sql: "CREATE TABLE \"tags\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  \"title\" TEXT NOT NULL UNIQUE\n) STRICT"                                                                                                                                                                                                    │
+                │ )                                                                                                                                                                                                                                                                                                                                                             │
+                └───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
-            assertQuery(Parent.all, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Parent.all
+            } matches: {
                 """
-                ┌────────────────────────────────────────────────────────────┐
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │   id: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7), │
-                │   title: "foo"                                             │
-                │ )                                                          │
-                ├────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │   id: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6), │
-                │   title: "bar"                                             │
-                │ )                                                          │
-                ├────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │   id: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6), │
-                │   title: "baz"                                             │
-                │ )                                                          │
-                └────────────────────────────────────────────────────────────┘
-                """
-            }
-            assertQuery(Child.all, database: database) {
-                """
-                ┌─────────────────────────────────────────────────────────────────┐
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Child(            │
-                │   id: RFC_4122.UUID(d66c67a9-39cd-8786-75a9-1c47f5c0e47f),      │
-                │   title: "foo",                                                 │
-                │   parentID: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7) │
-                │ )                                                               │
-                ├─────────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Child(            │
-                │   id: RFC_4122.UUID(98219b0b-627e-b12b-8e8f-08ed4a7959bf),      │
-                │   title: "bar",                                                 │
-                │   parentID: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6) │
-                │ )                                                               │
-                ├─────────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Child(            │
-                │   id: RFC_4122.UUID(7eae27fe-b38d-3806-6aa4-6f953c251bea),      │
-                │   title: "baz",                                                 │
-                │   parentID: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6) │
-                │ )                                                               │
-                └─────────────────────────────────────────────────────────────────┘
+                ┌─────────────────────────────────────────────┐
+                │ Parent(                                     │
+                │   id: 8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7, │
+                │   title: "foo"                              │
+                │ )                                           │
+                ├─────────────────────────────────────────────┤
+                │ Parent(                                     │
+                │   id: c9e96bbb-4af3-0821-78da-a7dfb992d9e6, │
+                │   title: "bar"                              │
+                │ )                                           │
+                ├─────────────────────────────────────────────┤
+                │ Parent(                                     │
+                │   id: b0a18942-23c0-1c82-0c94-71836acd1bb6, │
+                │   title: "baz"                              │
+                │ )                                           │
+                └─────────────────────────────────────────────┘
                 """
             }
-            assertQuery(Tag.select(\.title), database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Child.all
+            } matches: {
+                """
+                ┌──────────────────────────────────────────────────┐
+                │ Child(                                           │
+                │   id: d66c67a9-39cd-8786-75a9-1c47f5c0e47f,      │
+                │   title: "foo",                                  │
+                │   parentID: 8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7 │
+                │ )                                                │
+                ├──────────────────────────────────────────────────┤
+                │ Child(                                           │
+                │   id: 98219b0b-627e-b12b-8e8f-08ed4a7959bf,      │
+                │   title: "bar",                                  │
+                │   parentID: c9e96bbb-4af3-0821-78da-a7dfb992d9e6 │
+                │ )                                                │
+                ├──────────────────────────────────────────────────┤
+                │ Child(                                           │
+                │   id: 7eae27fe-b38d-3806-6aa4-6f953c251bea,      │
+                │   title: "baz",                                  │
+                │   parentID: b0a18942-23c0-1c82-0c94-71836acd1bb6 │
+                │ )                                                │
+                └──────────────────────────────────────────────────┘
+                """
+            }
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Tag.select(\.title)
+            } matches: {
                 """
                 ┌────────────┐
                 │ "business" │
@@ -563,96 +537,84 @@
 
             try migrate()
 
-            assertQuery(SQLiteSchema.userObjects, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                SQLiteSchema.userObjects
+            } matches: {
                 #"""
-                ┌────────────────────────────────────────────────────────────────────────────┐
-                │ SQLiteSchema(                                                              │
-                │   type: .table,                                                            │
-                │   name: "children",                                                        │
-                │   tableName: "children",                                                   │
-                │   sql: """                                                                 │
-                │   CREATE TABLE "children" (                                                │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-                │     "title" TEXT NOT NULL,                                                 │
-                │     "parentID" TEXT NOT NULL,                                              │
-                │                                                                            │
-                │     CHECK("id" > 0 AND length("title") > 0),                               │
-                │     FOREIGN KEY ("parentID") REFERENCES "parents"("id") ON DELETE CASCADE  │
-                │   ) STRICT                                                                 │
-                │   """                                                                      │
-                │ )                                                                          │
-                ├────────────────────────────────────────────────────────────────────────────┤
-                │ SQLiteSchema(                                                              │
-                │   type: .table,                                                            │
-                │   name: "parents",                                                         │
-                │   tableName: "parents",                                                    │
-                │   sql: """                                                                 │
-                │   CREATE TABLE "parents" (                                                 │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-                │     "title" TEXT NOT NULL,                                                 │
-                │     UNIQUE("title")                                                        │
-                │   ) STRICT                                                                 │
-                │   """                                                                      │
-                │ )                                                                          │
-                ├────────────────────────────────────────────────────────────────────────────┤
-                │ SQLiteSchema(                                                              │
-                │   type: .table,                                                            │
-                │   name: "tags",                                                            │
-                │   tableName: "tags",                                                       │
-                │   sql: """                                                                 │
-                │   CREATE TABLE "tags" (                                                    │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-                │     "title" TEXT NOT NULL                                                  │
-                │   ) STRICT                                                                 │
-                │   """                                                                      │
-                │ )                                                                          │
-                └────────────────────────────────────────────────────────────────────────────┘
+                ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+                │ SQLiteSchema(                                                                                                                                                                                                                                                                                                            │
+                │   type: .table,                                                                                                                                                                                                                                                                                                          │
+                │   name: "children",                                                                                                                                                                                                                                                                                                      │
+                │   tableName: "children",                                                                                                                                                                                                                                                                                                 │
+                │   sql: "CREATE TABLE \"children\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  \"title\" TEXT NOT NULL,\n  \"parentID\" TEXT NOT NULL,\n\n  CHECK(\"id\" > 0 AND length(\"title\") > 0),\n  FOREIGN KEY (\"parentID\") REFERENCES \"parents\"(\"id\") ON DELETE CASCADE\n) STRICT" │
+                │ )                                                                                                                                                                                                                                                                                                                        │
+                ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+                │ SQLiteSchema(                                                                                                                                                                                                                                                                                                            │
+                │   type: .table,                                                                                                                                                                                                                                                                                                          │
+                │   name: "parents",                                                                                                                                                                                                                                                                                                       │
+                │   tableName: "parents",                                                                                                                                                                                                                                                                                                  │
+                │   sql: "CREATE TABLE \"parents\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  \"title\" TEXT NOT NULL,\n  UNIQUE(\"title\")\n) STRICT"                                                                                                                                             │
+                │ )                                                                                                                                                                                                                                                                                                                        │
+                ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+                │ SQLiteSchema(                                                                                                                                                                                                                                                                                                            │
+                │   type: .table,                                                                                                                                                                                                                                                                                                          │
+                │   name: "tags",                                                                                                                                                                                                                                                                                                          │
+                │   tableName: "tags",                                                                                                                                                                                                                                                                                                     │
+                │   sql: "CREATE TABLE \"tags\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  \"title\" TEXT NOT NULL\n) STRICT"                                                                                                                                                                      │
+                │ )                                                                                                                                                                                                                                                                                                                        │
+                └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
-            assertQuery(Parent.all, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Parent.all
+            } matches: {
                 """
-                ┌────────────────────────────────────────────────────────────┐
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │   id: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7), │
-                │   title: "foo"                                             │
-                │ )                                                          │
-                ├────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │   id: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6), │
-                │   title: "bar"                                             │
-                │ )                                                          │
-                ├────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │   id: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6), │
-                │   title: "baz"                                             │
-                │ )                                                          │
-                └────────────────────────────────────────────────────────────┘
-                """
-            }
-            assertQuery(Child.all, database: database) {
-                """
-                ┌─────────────────────────────────────────────────────────────────┐
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Child(            │
-                │   id: RFC_4122.UUID(d66c67a9-39cd-8786-75a9-1c47f5c0e47f),      │
-                │   title: "foo",                                                 │
-                │   parentID: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7) │
-                │ )                                                               │
-                ├─────────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Child(            │
-                │   id: RFC_4122.UUID(98219b0b-627e-b12b-8e8f-08ed4a7959bf),      │
-                │   title: "bar",                                                 │
-                │   parentID: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6) │
-                │ )                                                               │
-                ├─────────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Child(            │
-                │   id: RFC_4122.UUID(7eae27fe-b38d-3806-6aa4-6f953c251bea),      │
-                │   title: "baz",                                                 │
-                │   parentID: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6) │
-                │ )                                                               │
-                └─────────────────────────────────────────────────────────────────┘
+                ┌─────────────────────────────────────────────┐
+                │ Parent(                                     │
+                │   id: 8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7, │
+                │   title: "foo"                              │
+                │ )                                           │
+                ├─────────────────────────────────────────────┤
+                │ Parent(                                     │
+                │   id: c9e96bbb-4af3-0821-78da-a7dfb992d9e6, │
+                │   title: "bar"                              │
+                │ )                                           │
+                ├─────────────────────────────────────────────┤
+                │ Parent(                                     │
+                │   id: b0a18942-23c0-1c82-0c94-71836acd1bb6, │
+                │   title: "baz"                              │
+                │ )                                           │
+                └─────────────────────────────────────────────┘
                 """
             }
-            assertQuery(Tag.select(\.title), database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Child.all
+            } matches: {
+                """
+                ┌──────────────────────────────────────────────────┐
+                │ Child(                                           │
+                │   id: d66c67a9-39cd-8786-75a9-1c47f5c0e47f,      │
+                │   title: "foo",                                  │
+                │   parentID: 8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7 │
+                │ )                                                │
+                ├──────────────────────────────────────────────────┤
+                │ Child(                                           │
+                │   id: 98219b0b-627e-b12b-8e8f-08ed4a7959bf,      │
+                │   title: "bar",                                  │
+                │   parentID: c9e96bbb-4af3-0821-78da-a7dfb992d9e6 │
+                │ )                                                │
+                ├──────────────────────────────────────────────────┤
+                │ Child(                                           │
+                │   id: 7eae27fe-b38d-3806-6aa4-6f953c251bea,      │
+                │   title: "baz",                                  │
+                │   parentID: b0a18942-23c0-1c82-0c94-71836acd1bb6 │
+                │ )                                                │
+                └──────────────────────────────────────────────────┘
+                """
+            }
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Tag.select(\.title)
+            } matches: {
                 """
                 ┌────────────┐
                 │ "personal" │
@@ -709,100 +671,84 @@
 
             try migrate()
 
-            assertQuery(SQLiteSchema.userObjects, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                SQLiteSchema.userObjects
+            } matches: {
                 #"""
-                ┌───────────────────────────────────────────────────────────────────────────────────────┐
-                │ SQLiteSchema(                                                                         │
-                │   type: .table,                                                                       │
-                │   name: "children",                                                                   │
-                │   tableName: "children",                                                              │
-                │   sql: """                                                                            │
-                │   CREATE TABLE "children" (                                                           │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()),            │
-                │     "title" TEXT NOT NULL,                                                            │
-                │     "parentID" TEXT                                                                   │
-                │       NOT NULL                                                                        │
-                │       REFERENCES "parents"("id")                                                      │
-                │       ON DELETE CASCADE                                                               │
-                │       ON UPDATE CASCADE                                                               │
-                │   ) STRICT                                                                            │
-                │   """                                                                                 │
-                │ )                                                                                     │
-                ├───────────────────────────────────────────────────────────────────────────────────────┤
-                │ SQLiteSchema(                                                                         │
-                │   type: .table,                                                                       │
-                │   name: "parents",                                                                    │
-                │   tableName: "parents",                                                               │
-                │   sql: """                                                                            │
-                │   CREATE TABLE "parents" ( -- Comment                                                 │
-                │     -- Comment                                                                        │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), -- Comment │
-                │     -- Comment                                                                        │
-                │     "title" TEXT NOT NULL -- Comment                                                  │
-                │     -- Comment                                                                        │
-                │   ) STRICT -- Comment                                                                 │
-                │   -- Comment                                                                          │
-                │   """                                                                                 │
-                │ )                                                                                     │
-                ├───────────────────────────────────────────────────────────────────────────────────────┤
-                │ SQLiteSchema(                                                                         │
-                │   type: .table,                                                                       │
-                │   name: "tags",                                                                       │
-                │   tableName: "tags",                                                                  │
-                │   sql: """                                                                            │
-                │   CREATE TABLE "tags" (                                                               │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()),            │
-                │     "title" TEXT NOT NULL                                                             │
-                │   ) STRICT                                                                            │
-                │   """                                                                                 │
-                │ )                                                                                     │
-                └───────────────────────────────────────────────────────────────────────────────────────┘
+                ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+                │ SQLiteSchema(                                                                                                                                                                                                                                                                    │
+                │   type: .table,                                                                                                                                                                                                                                                                  │
+                │   name: "children",                                                                                                                                                                                                                                                              │
+                │   tableName: "children",                                                                                                                                                                                                                                                         │
+                │   sql: "CREATE TABLE \"children\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  \"title\" TEXT NOT NULL,\n  \"parentID\" TEXT \n    NOT NULL \n    REFERENCES \"parents\"(\"id\") \n    ON DELETE CASCADE\n    ON UPDATE CASCADE\n) STRICT" │
+                │ )                                                                                                                                                                                                                                                                                │
+                ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+                │ SQLiteSchema(                                                                                                                                                                                                                                                                    │
+                │   type: .table,                                                                                                                                                                                                                                                                  │
+                │   name: "parents",                                                                                                                                                                                                                                                               │
+                │   tableName: "parents",                                                                                                                                                                                                                                                          │
+                │   sql: "CREATE TABLE \"parents\" ( -- Comment\n  -- Comment\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()), -- Comment\n  -- Comment\n  \"title\" TEXT NOT NULL -- Comment\n  -- Comment\n) STRICT -- Comment\n-- Comment"                         │
+                │ )                                                                                                                                                                                                                                                                                │
+                ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+                │ SQLiteSchema(                                                                                                                                                                                                                                                                    │
+                │   type: .table,                                                                                                                                                                                                                                                                  │
+                │   name: "tags",                                                                                                                                                                                                                                                                  │
+                │   tableName: "tags",                                                                                                                                                                                                                                                             │
+                │   sql: "CREATE TABLE \"tags\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  \"title\" TEXT NOT NULL\n) STRICT"                                                                                                                              │
+                │ )                                                                                                                                                                                                                                                                                │
+                └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
-            assertQuery(Parent.all, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Parent.all
+            } matches: {
                 """
-                ┌────────────────────────────────────────────────────────────┐
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │   id: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7), │
-                │   title: "foo"                                             │
-                │ )                                                          │
-                ├────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │   id: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6), │
-                │   title: "bar"                                             │
-                │ )                                                          │
-                ├────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │   id: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6), │
-                │   title: "baz"                                             │
-                │ )                                                          │
-                └────────────────────────────────────────────────────────────┘
-                """
-            }
-            assertQuery(Child.all, database: database) {
-                """
-                ┌─────────────────────────────────────────────────────────────────┐
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Child(            │
-                │   id: RFC_4122.UUID(d66c67a9-39cd-8786-75a9-1c47f5c0e47f),      │
-                │   title: "foo",                                                 │
-                │   parentID: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7) │
-                │ )                                                               │
-                ├─────────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Child(            │
-                │   id: RFC_4122.UUID(98219b0b-627e-b12b-8e8f-08ed4a7959bf),      │
-                │   title: "bar",                                                 │
-                │   parentID: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6) │
-                │ )                                                               │
-                ├─────────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Child(            │
-                │   id: RFC_4122.UUID(7eae27fe-b38d-3806-6aa4-6f953c251bea),      │
-                │   title: "baz",                                                 │
-                │   parentID: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6) │
-                │ )                                                               │
-                └─────────────────────────────────────────────────────────────────┘
+                ┌─────────────────────────────────────────────┐
+                │ Parent(                                     │
+                │   id: 8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7, │
+                │   title: "foo"                              │
+                │ )                                           │
+                ├─────────────────────────────────────────────┤
+                │ Parent(                                     │
+                │   id: c9e96bbb-4af3-0821-78da-a7dfb992d9e6, │
+                │   title: "bar"                              │
+                │ )                                           │
+                ├─────────────────────────────────────────────┤
+                │ Parent(                                     │
+                │   id: b0a18942-23c0-1c82-0c94-71836acd1bb6, │
+                │   title: "baz"                              │
+                │ )                                           │
+                └─────────────────────────────────────────────┘
                 """
             }
-            assertQuery(Tag.select(\.title), database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Child.all
+            } matches: {
+                """
+                ┌──────────────────────────────────────────────────┐
+                │ Child(                                           │
+                │   id: d66c67a9-39cd-8786-75a9-1c47f5c0e47f,      │
+                │   title: "foo",                                  │
+                │   parentID: 8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7 │
+                │ )                                                │
+                ├──────────────────────────────────────────────────┤
+                │ Child(                                           │
+                │   id: 98219b0b-627e-b12b-8e8f-08ed4a7959bf,      │
+                │   title: "bar",                                  │
+                │   parentID: c9e96bbb-4af3-0821-78da-a7dfb992d9e6 │
+                │ )                                                │
+                ├──────────────────────────────────────────────────┤
+                │ Child(                                           │
+                │   id: 7eae27fe-b38d-3806-6aa4-6f953c251bea,      │
+                │   title: "baz",                                  │
+                │   parentID: b0a18942-23c0-1c82-0c94-71836acd1bb6 │
+                │ )                                                │
+                └──────────────────────────────────────────────────┘
+                """
+            }
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Tag.select(\.title)
+            } matches: {
                 """
                 ┌────────────┐
                 │ "personal" │
@@ -835,32 +781,36 @@
             let error = #expect(throws: (any Swift.Error).self) {
                 try migrate(tables: PhoneNumber.self)
             }
-            assertInlineSnapshot(of: error?.localizedDescription, as: .customDump) {
+            snapshot(as: .state) {
+                error?.localizedDescription
+            } matches: {
                 """
                 "Invalid primary key. The table must have either no primary key or a single integer primary key to migrate."
                 """
             }
-            assertQuery(SQLiteSchema.userObjects, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                SQLiteSchema.userObjects
+            } matches: {
                 #"""
-                ┌────────────────────────────────────────┐
-                │ SQLiteSchema(                          │
-                │   type: .table,                        │
-                │   name: "phoneNumbers",                │
-                │   tableName: "phoneNumbers",           │
-                │   sql: """                             │
-                │   CREATE TABLE "phoneNumbers" (        │
-                │     "number" TEXT NOT NULL PRIMARY KEY │
-                │   )                                    │
-                │   """                                  │
-                │ )                                      │
-                └────────────────────────────────────────┘
+                ┌─────────────────────────────────────────────────────────────────────────────────────┐
+                │ SQLiteSchema(                                                                       │
+                │   type: .table,                                                                     │
+                │   name: "phoneNumbers",                                                             │
+                │   tableName: "phoneNumbers",                                                        │
+                │   sql: "CREATE TABLE \"phoneNumbers\" (\n  \"number\" TEXT NOT NULL PRIMARY KEY\n)" │
+                │ )                                                                                   │
+                └─────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
-            assertQuery(PhoneNumber.all, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                PhoneNumber.all
+            } matches: {
                 """
-                ┌───────────────────────────────────────────────────────────────────────────────────┐
-                │ SQLite_CloudKit_Tests.`Primary key migration`.PhoneNumber(number: "212-555-1234") │
-                └───────────────────────────────────────────────────────────────────────────────────┘
+                ┌──────────────────────────┐
+                │ PhoneNumber(             │
+                │   number: "212-555-1234" │
+                │ )                        │
+                └──────────────────────────┘
                 """
             }
         }
@@ -883,7 +833,9 @@
             let error = #expect(throws: (any Swift.Error).self) {
                 try migrate(tables: Parent.self)
             }
-            assertInlineSnapshot(of: error?.localizedDescription, as: .customDump) {
+            snapshot(as: .state) {
+                error?.localizedDescription
+            } matches: {
                 """
                 "Invalid primary key. The table must have either no primary key or a single integer primary key to migrate."
                 """
@@ -912,24 +864,23 @@
 
             try migrate(tables: User.self)
 
-            assertQuery(SQLiteSchema.userObjects, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                SQLiteSchema.userObjects
+            } matches: {
                 #"""
-                ┌────────────────────────────────────────────────────────────────────────────────────┐
-                │ SQLiteSchema(                                                                      │
-                │   type: .table,                                                                    │
-                │   name: "users",                                                                   │
-                │   tableName: "users",                                                              │
-                │   sql: """                                                                         │
-                │   CREATE TABLE "users" (                                                           │
-                │     "identifier" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-                │     "name" TEXT NOT NULL                                                           │
-                │   )                                                                                │
-                │   """                                                                              │
-                │ )                                                                                  │
-                └────────────────────────────────────────────────────────────────────────────────────┘
+                ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+                │ SQLiteSchema(                                                                                                                                        │
+                │   type: .table,                                                                                                                                      │
+                │   name: "users",                                                                                                                                     │
+                │   tableName: "users",                                                                                                                                │
+                │   sql: "CREATE TABLE \"users\" (\n  \"identifier\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  \"name\" TEXT NOT NULL\n)" │
+                │ )                                                                                                                                                    │
+                └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
-            assertQuery(User.select(\.name), database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                User.select(\.name)
+            } matches: {
                 """
                 ┌───────────┐
                 │ "blob"    │
@@ -969,39 +920,32 @@
 
             try migrate(tables: Parent.self)
 
-            assertQuery(SQLiteSchema.userObjects, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                SQLiteSchema.userObjects
+            } matches: {
                 #"""
-                ┌────────────────────────────────────────────────────────────────────────────┐
-                │ SQLiteSchema(                                                              │
-                │   type: .table,                                                            │
-                │   name: "parents",                                                         │
-                │   tableName: "parents",                                                    │
-                │   sql: """                                                                 │
-                │   CREATE TABLE "parents" (                                                 │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-                │     "title" TEXT NOT NULL                                                  │
-                │   ) STRICT                                                                 │
-                │   """                                                                      │
-                │ )                                                                          │
-                ├────────────────────────────────────────────────────────────────────────────┤
-                │ SQLiteSchema(                                                              │
-                │   type: .index,                                                            │
-                │   name: "parents_name",                                                    │
-                │   tableName: "parents",                                                    │
-                │   sql: #"CREATE INDEX "parents_name" ON "parents"("title")"#               │
-                │ )                                                                          │
-                ├────────────────────────────────────────────────────────────────────────────┤
-                │ SQLiteSchema(                                                              │
-                │   type: .trigger,                                                          │
-                │   name: "parents_trigger",                                                 │
-                │   tableName: "parents",                                                    │
-                │   sql: """                                                                 │
-                │   CREATE TRIGGER "parents_trigger" AFTER UPDATE ON "parents" BEGIN         │
-                │     SELECT 1;                                                              │
-                │   END                                                                      │
-                │   """                                                                      │
-                │ )                                                                          │
-                └────────────────────────────────────────────────────────────────────────────┘
+                ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+                │ SQLiteSchema(                                                                                                                                          │
+                │   type: .table,                                                                                                                                        │
+                │   name: "parents",                                                                                                                                     │
+                │   tableName: "parents",                                                                                                                                │
+                │   sql: "CREATE TABLE \"parents\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  \"title\" TEXT NOT NULL\n) STRICT" │
+                │ )                                                                                                                                                      │
+                ├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+                │ SQLiteSchema(                                                                                                                                          │
+                │   type: .index,                                                                                                                                        │
+                │   name: "parents_name",                                                                                                                                │
+                │   tableName: "parents",                                                                                                                                │
+                │   sql: "CREATE INDEX \"parents_name\" ON \"parents\"(\"title\")"                                                                                       │
+                │ )                                                                                                                                                      │
+                ├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+                │ SQLiteSchema(                                                                                                                                          │
+                │   type: .trigger,                                                                                                                                      │
+                │   name: "parents_trigger",                                                                                                                             │
+                │   tableName: "parents",                                                                                                                                │
+                │   sql: "CREATE TRIGGER \"parents_trigger\" AFTER UPDATE ON \"parents\" BEGIN\n  SELECT 1;\nEND"                                                        │
+                │ )                                                                                                                                                      │
+                └────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
         }
@@ -1040,104 +984,96 @@
 
             try migrate()
 
-            assertQuery(SQLiteSchema.userObjects, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                SQLiteSchema.userObjects
+            } matches: {
                 #"""
-                ┌────────────────────────────────────────────────────────────────────────────┐
-                │ SQLiteSchema(                                                              │
-                │   type: .table,                                                            │
-                │   name: "children",                                                        │
-                │   tableName: "children",                                                   │
-                │   sql: """                                                                 │
-                │   CREATE TABLE "children" (                                                │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-                │     title text not null,                                                   │
-                │     parentID TEXT not null references parents(id) on delete cascade        │
-                │   ) strict                                                                 │
-                │   """                                                                      │
-                │ )                                                                          │
-                ├────────────────────────────────────────────────────────────────────────────┤
-                │ SQLiteSchema(                                                              │
-                │   type: .table,                                                            │
-                │   name: "parents",                                                         │
-                │   tableName: "parents",                                                    │
-                │   sql: """                                                                 │
-                │   CREATE TABLE "parents" (                                                 │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-                │     title text not null                                                    │
-                │   ) strict                                                                 │
-                │   """                                                                      │
-                │ )                                                                          │
-                ├────────────────────────────────────────────────────────────────────────────┤
-                │ SQLiteSchema(                                                              │
-                │   type: .table,                                                            │
-                │   name: "tags",                                                            │
-                │   tableName: "tags",                                                       │
-                │   sql: """                                                                 │
-                │   CREATE TABLE "tags" (                                                    │
-                │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-                │     title text not null                                                    │
-                │   ) strict                                                                 │
-                │   """                                                                      │
-                │ )                                                                          │
-                └────────────────────────────────────────────────────────────────────────────┘
+                ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+                │ SQLiteSchema(                                                                                                                                                                                                           │
+                │   type: .table,                                                                                                                                                                                                         │
+                │   name: "children",                                                                                                                                                                                                     │
+                │   tableName: "children",                                                                                                                                                                                                │
+                │   sql: "CREATE TABLE \"children\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  title text not null,\n  parentID TEXT not null references parents(id) on delete cascade\n) strict" │
+                │ )                                                                                                                                                                                                                       │
+                ├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+                │ SQLiteSchema(                                                                                                                                                                                                           │
+                │   type: .table,                                                                                                                                                                                                         │
+                │   name: "parents",                                                                                                                                                                                                      │
+                │   tableName: "parents",                                                                                                                                                                                                 │
+                │   sql: "CREATE TABLE \"parents\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  title text not null\n) strict"                                                                      │
+                │ )                                                                                                                                                                                                                       │
+                ├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+                │ SQLiteSchema(                                                                                                                                                                                                           │
+                │   type: .table,                                                                                                                                                                                                         │
+                │   name: "tags",                                                                                                                                                                                                         │
+                │   tableName: "tags",                                                                                                                                                                                                    │
+                │   sql: "CREATE TABLE \"tags\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (\"uuid\"()),\n  title text not null\n) strict"                                                                         │
+                │ )                                                                                                                                                                                                                       │
+                └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
-            assertQuery(Parent.all, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Parent.all
+            } matches: {
                 """
-                ┌────────────────────────────────────────────────────────────┐
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │   id: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7), │
-                │   title: "foo"                                             │
-                │ )                                                          │
-                ├────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │   id: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6), │
-                │   title: "bar"                                             │
-                │ )                                                          │
-                ├────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Parent(      │
-                │   id: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6), │
-                │   title: "baz"                                             │
-                │ )                                                          │
-                └────────────────────────────────────────────────────────────┘
-                """
-            }
-            assertQuery(Child.all, database: database) {
-                """
-                ┌─────────────────────────────────────────────────────────────────┐
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Child(            │
-                │   id: RFC_4122.UUID(d66c67a9-39cd-8786-75a9-1c47f5c0e47f),      │
-                │   title: "foo",                                                 │
-                │   parentID: RFC_4122.UUID(8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7) │
-                │ )                                                               │
-                ├─────────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Child(            │
-                │   id: RFC_4122.UUID(98219b0b-627e-b12b-8e8f-08ed4a7959bf),      │
-                │   title: "bar",                                                 │
-                │   parentID: RFC_4122.UUID(c9e96bbb-4af3-0821-78da-a7dfb992d9e6) │
-                │ )                                                               │
-                ├─────────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Child(            │
-                │   id: RFC_4122.UUID(7eae27fe-b38d-3806-6aa4-6f953c251bea),      │
-                │   title: "baz",                                                 │
-                │   parentID: RFC_4122.UUID(b0a18942-23c0-1c82-0c94-71836acd1bb6) │
-                │ )                                                               │
-                └─────────────────────────────────────────────────────────────────┘
+                ┌─────────────────────────────────────────────┐
+                │ Parent(                                     │
+                │   id: 8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7, │
+                │   title: "foo"                              │
+                │ )                                           │
+                ├─────────────────────────────────────────────┤
+                │ Parent(                                     │
+                │   id: c9e96bbb-4af3-0821-78da-a7dfb992d9e6, │
+                │   title: "bar"                              │
+                │ )                                           │
+                ├─────────────────────────────────────────────┤
+                │ Parent(                                     │
+                │   id: b0a18942-23c0-1c82-0c94-71836acd1bb6, │
+                │   title: "baz"                              │
+                │ )                                           │
+                └─────────────────────────────────────────────┘
                 """
             }
-            assertQuery(Tag.all, database: database) {
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Child.all
+            } matches: {
                 """
-                ┌────────────────────────────────────────────────────────────┐
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Tag(         │
-                │   id: RFC_4122.UUID(00000000-0000-0000-0000-000000000001), │
-                │   title: "personal"                                        │
-                │ )                                                          │
-                ├────────────────────────────────────────────────────────────┤
-                │ SQLite_CloudKit_Tests.`Primary key migration`.Tag(         │
-                │   id: RFC_4122.UUID(00000000-0000-0000-0000-000000000002), │
-                │   title: "business"                                        │
-                │ )                                                          │
-                └────────────────────────────────────────────────────────────┘
+                ┌──────────────────────────────────────────────────┐
+                │ Child(                                           │
+                │   id: d66c67a9-39cd-8786-75a9-1c47f5c0e47f,      │
+                │   title: "foo",                                  │
+                │   parentID: 8c0d1699-3f8b-f58b-f1c1-caa2c0efd5c7 │
+                │ )                                                │
+                ├──────────────────────────────────────────────────┤
+                │ Child(                                           │
+                │   id: 98219b0b-627e-b12b-8e8f-08ed4a7959bf,      │
+                │   title: "bar",                                  │
+                │   parentID: c9e96bbb-4af3-0821-78da-a7dfb992d9e6 │
+                │ )                                                │
+                ├──────────────────────────────────────────────────┤
+                │ Child(                                           │
+                │   id: 7eae27fe-b38d-3806-6aa4-6f953c251bea,      │
+                │   title: "baz",                                  │
+                │   parentID: b0a18942-23c0-1c82-0c94-71836acd1bb6 │
+                │ )                                                │
+                └──────────────────────────────────────────────────┘
+                """
+            }
+            snapshot(as: .rows(in: database, drawing: State.draw)) {
+                Tag.all
+            } matches: {
+                """
+                ┌─────────────────────────────────────────────┐
+                │ Tag(                                        │
+                │   id: 00000000-0000-0000-0000-000000000001, │
+                │   title: "personal"                         │
+                │ )                                           │
+                ├─────────────────────────────────────────────┤
+                │ Tag(                                        │
+                │   id: 00000000-0000-0000-0000-000000000002, │
+                │   title: "business"                         │
+                │ )                                           │
+                └─────────────────────────────────────────────┘
                 """
             }
         }

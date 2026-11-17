@@ -1,9 +1,8 @@
 #if CloudKit && canImport(CloudKit)
-    import GRDB
     import Byte
     import CloudKit
     import Foundation
-    import InlineSnapshotTesting
+    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -11,6 +10,7 @@
     import SQLite_Test_Support
     import Synchronization
     import Testing
+    import Tests_Inline_Snapshot
 
     extension CloudKitTestBase {
         @MainActor
@@ -122,14 +122,13 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
+                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    SyncMetadata.all
+                } matches: {
                     """
                     ┌────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                      │
-                    │   id: SyncMetadata.ID(                                             │
-                    │     recordPrimaryKey: "1",                                         │
-                    │     recordType: "remindersLists"                                   │
-                    │   ),                                                               │
+                    │   id: ID(recordPrimaryKey: "1", recordType: "remindersLists"),     │
                     │   zoneName: "zone",                                                │
                     │   ownerName: "__defaultOwner__",                                   │
                     │   recordName: "1:remindersLists",                                  │
@@ -159,7 +158,9 @@
                     └────────────────────────────────────────────────────────────────────┘
                     """
                 }
-                assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+                await snapshot(as: .state) {
+                    syncEngine.container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -301,7 +302,9 @@
                             ]
                         )
                     }
-                    assertInlineSnapshot(of: relaunchedSyncEngine.container, as: .customDump) {
+                    await snapshot(as: .state) {
+                        relaunchedSyncEngine.container
+                    } matches: {
                         """
                         MockCloudContainer(
                           privateCloudDatabase: MockCloudDatabase(
@@ -367,7 +370,9 @@
                             ]
                         )
                     }
-                    assertInlineSnapshot(of: relaunchedSyncEngine.container, as: .customDump) {
+                    await snapshot(as: .state) {
+                        relaunchedSyncEngine.container
+                    } matches: {
                         """
                         MockCloudContainer(
                           privateCloudDatabase: MockCloudDatabase(
@@ -411,14 +416,13 @@
                     try #expect(RemindersList.find(1).fetch.one(db) == RemindersList(id: 1, title: "My Stuff"))
                 }
 
-                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
+                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    SyncMetadata.all
+                } matches: {
                     """
                     ┌────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                      │
-                    │   id: SyncMetadata.ID(                                             │
-                    │     recordPrimaryKey: "1",                                         │
-                    │     recordType: "remindersLists"                                   │
-                    │   ),                                                               │
+                    │   id: ID(recordPrimaryKey: "1", recordType: "remindersLists"),     │
                     │   zoneName: "zone",                                                │
                     │   ownerName: "__defaultOwner__",                                   │
                     │   recordName: "1:remindersLists",                                  │
@@ -448,7 +452,9 @@
                     └────────────────────────────────────────────────────────────────────┘
                     """
                 }
-                assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+                await snapshot(as: .state) {
+                    syncEngine.container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -513,14 +519,13 @@
                     )
                 }
 
-                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
+                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    SyncMetadata.all
+                } matches: {
                     """
                     ┌────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                      │
-                    │   id: SyncMetadata.ID(                                             │
-                    │     recordPrimaryKey: "1",                                         │
-                    │     recordType: "remindersLists"                                   │
-                    │   ),                                                               │
+                    │   id: ID(recordPrimaryKey: "1", recordType: "remindersLists"),     │
                     │   zoneName: "zone",                                                │
                     │   ownerName: "__defaultOwner__",                                   │
                     │   recordName: "1:remindersLists",                                  │
@@ -559,14 +564,13 @@
                 }
                 try await newSyncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
+                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    SyncMetadata.all
+                } matches: {
                     """
                     ┌────────────────────────────────────────────────────────────────────┐
                     │ SyncMetadata(                                                      │
-                    │   id: SyncMetadata.ID(                                             │
-                    │     recordPrimaryKey: "1",                                         │
-                    │     recordType: "remindersLists"                                   │
-                    │   ),                                                               │
+                    │   id: ID(recordPrimaryKey: "1", recordType: "remindersLists"),     │
                     │   zoneName: "zone",                                                │
                     │   ownerName: "__defaultOwner__",                                   │
                     │   recordName: "1:remindersLists",                                  │
@@ -596,7 +600,9 @@
                     └────────────────────────────────────────────────────────────────────┘
                     """
                 }
-                assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+                await snapshot(as: .state) {
+                    syncEngine.container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -802,7 +808,9 @@
                         )
                     }
 
-                    assertInlineSnapshot(of: relaunchedSyncEngine.container, as: .customDump) {
+                    await snapshot(as: .state) {
+                        relaunchedSyncEngine.container
+                    } matches: {
                         """
                         MockCloudContainer(
                           privateCloudDatabase: MockCloudDatabase(
@@ -838,7 +846,9 @@
                     )
                 )
                 try await syncEngine.modifyRecords(scope: .private, saving: [customRecord]).notify()
-                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
+                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    SyncMetadata.all
+                } matches: {
                     """
                     (No results)
                     """
@@ -854,7 +864,9 @@
                     )
                 )
                 try await syncEngine.modifyRecords(scope: .private, saving: [customRecord]).notify()
-                assertQuery(SyncMetadata.all, database: SQLite.Database(syncEngine.metadatabase)) {
+                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    SyncMetadata.all
+                } matches: {
                     """
                     (No results)
                     """

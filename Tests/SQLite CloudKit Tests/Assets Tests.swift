@@ -1,15 +1,15 @@
 #if CloudKit && canImport(CloudKit)
-    import SQL_Macros
-    import GRDB
     import Byte
     import CloudKit
     import Foundation
-    import InlineSnapshotTesting
+    import GRDB
     import SQL
+    import SQL_Macros
     import SQLite
     import SQLite_CloudKit
     import SQLite_Test_Support
     import Testing
+    import Tests_Inline_Snapshot
 
     extension CloudKitTestBase {
         @MainActor
@@ -24,7 +24,9 @@
 
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -33,12 +35,14 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:remindersListAssets/zone/__defaultOwner__),
                             recordType: "remindersListAssets",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             coverImage_hash: Data(32 bytes),
                             remindersListID: 1,
                             coverImage: CKAsset(
-                              fileURL: URL(file:///tmp/6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d),
+                              fileURL: file:///tmp/6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d,
                               dataString: "image"
                             )
                           ),
@@ -77,7 +81,9 @@
 
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -86,12 +92,14 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:remindersListAssets/zone/__defaultOwner__),
                             recordType: "remindersListAssets",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             coverImage_hash: Data(32 bytes),
                             remindersListID: 1,
                             coverImage: CKAsset(
-                              fileURL: URL(file:///tmp/97e67a5645969953f1a4cfe2ea75649864ff99789189cdd3f6db03e59f8a8ebf),
+                              fileURL: file:///tmp/97e67a5645969953f1a4cfe2ea75649864ff99789189cdd3f6db03e59f8a8ebf,
                               dataString: "new-image"
                             )
                           ),
@@ -296,7 +304,9 @@
                     .notify()
                 await remindersListModification.notify()
 
-                assertQuery(RemindersList.all, database: userDatabase.sqliteDatabase) {
+                await snapshot(as: .rows(in: userDatabase.sqliteDatabase, drawing: State.draw)) {
+                    RemindersList.all
+                } matches: {
                     """
                     ┌─────────────────────┐
                     │ RemindersList(      │
@@ -306,14 +316,16 @@
                     └─────────────────────┘
                     """
                 }
-                assertQuery(RemindersListAsset.all, database: userDatabase.sqliteDatabase) {
+                await snapshot(as: .rows(in: userDatabase.sqliteDatabase, drawing: State.draw)) {
+                    RemindersListAsset.all
+                } matches: {
                     """
-                    ┌───────────────────────────────┐
-                    │ RemindersListAsset(           │
-                    │   remindersListID: 1,         │
-                    │   coverImage: [Byte](5 bytes) │
-                    │ )                             │
-                    └───────────────────────────────┘
+                    ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+                    │ RemindersListAsset(                                                                                                                        │
+                    │   remindersListID: 1,                                                                                                                      │
+                    │   coverImage: [Byte.Byte(storage: 105), Byte.Byte(storage: 109), Byte.Byte(storage: 97), Byte.Byte(storage: 103), Byte.Byte(storage: 101)] │
+                    │ )                                                                                                                                          │
+                    └────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                     """
                 }
 

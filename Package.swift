@@ -28,9 +28,6 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.2"),
         .package(url: "https://github.com/swift-compositions/GRDB.swift.git", branch: "main"),
-        .package(url: "https://github.com/pointfreeco/swift-custom-dump.git", from: "1.7.3"),
-        .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.6.3"),
-        .package(url: "https://github.com/pointfreeco/swift-snapshot-testing.git", from: "1.18.4"),
         .package(
             url: "https://github.com/swift-compositions/swift-sql.git",
             branch: "main",
@@ -45,6 +42,8 @@ let package = Package(
         .package(url: "https://github.com/swift-atoms/swift-tagged.git", branch: "main"),
         .package(url: "https://github.com/swift-atoms/swift-time.git", branch: "main"),
         .package(url: "https://github.com/swift-compositions/swift-dependencies.git", branch: "main"),
+        .package(url: "https://github.com/swift-molecules/swift-test.git", branch: "main"),
+        .package(url: "https://github.com/swift-compositions/swift-tests.git", branch: "main"),
     ],
     targets: [
         // SQLite's dialect as statements and expressions: functions, FTS5, JSON, dates, pragmas, triggers, views and the
@@ -127,8 +126,7 @@ let package = Package(
                 .product(name: "RFC 4122", package: "swift-rfc-4122"),
                 .product(name: "Time", package: "swift-time"),
                 .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["GRDB"])),
-                .product(name: "CustomDump", package: "swift-custom-dump"),
-                .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
+                .product(name: "Test", package: "swift-test"),
             ]
         ),
         .testTarget(
@@ -143,8 +141,8 @@ let package = Package(
                 .product(name: "ISO 9075 Call-Level Interface", package: "swift-iso-9075"),
                 .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["GRDB"])),
                 .product(name: "Dependencies", package: "swift-dependencies", condition: .when(traits: ["Dependencies"])),
-                .product(name: "CustomDump", package: "swift-custom-dump"),
-                .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
+                .product(name: "Tests Inline Snapshot", package: "swift-tests"),
+                .product(name: "Tests Apple Testing Bridge", package: "swift-tests"),
             ],
             swiftSettings: [
                 .treatAllWarnings(as: .error)
@@ -158,8 +156,8 @@ let package = Package(
                 .target(name: "SQLite CloudKit"),
                 .target(name: "SQLite Test Support"),
                 .product(name: "SQL Macros", package: "swift-sql"),
-                .product(name: "CustomDump", package: "swift-custom-dump"),
-                .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
+                .product(name: "Tests Inline Snapshot", package: "swift-tests"),
+                .product(name: "Test", package: "swift-test"),
             ],
             swiftSettings: [
                 .treatAllWarnings(as: .error)
@@ -185,8 +183,9 @@ let package = Package(
             name: "SQLite Macros Implementation Tests",
             dependencies: [
                 .target(name: "SQLite Macros Implementation"),
-                .product(name: "MacroTesting", package: "swift-macro-testing"),
-                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+                .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax"),
+                .product(name: "SwiftSyntaxMacrosGenericTestSupport", package: "swift-syntax"),
             ]
         ),
     ],

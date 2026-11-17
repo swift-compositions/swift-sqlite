@@ -1,14 +1,14 @@
 #if CloudKit && canImport(CloudKit)
     import CloudKit
     import Foundation
-    import Path
     import GRDB
-    import InlineSnapshotTesting
+    import Path
     import SQL
     import SQL_Macros
     import SQLite
     import SQLite_CloudKit
     import Testing
+    import Tests_Inline_Snapshot
 
     extension CloudKitTestBase {
         @MainActor
@@ -117,7 +117,9 @@
                         context: .live
                     )
                 }
-                assertInlineSnapshot(of: error, as: .customDump) {
+                await snapshot(as: .state) {
+                    error
+                } matches: {
                     """
                     InMemoryDatabase()
                     """

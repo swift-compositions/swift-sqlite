@@ -1,11 +1,11 @@
 #if CloudKit && canImport(CloudKit)
-    import GRDB
     import CloudKit
-    import InlineSnapshotTesting
+    import GRDB
     import SQL
     import SQLite
     import SQLite_CloudKit
     import Testing
+    import Tests_Inline_Snapshot
 
     extension CloudKitTestBase {
         @MainActor
@@ -73,7 +73,9 @@
                     try #expect(UnsyncedModel.count().fetch.one(db) == 2)
                 }
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -82,7 +84,9 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             id: 1,
                             isCompleted: 0,
@@ -92,7 +96,9 @@
                           [1]: CKRecord(
                             recordID: CKRecord.ID(2:reminders/zone/__defaultOwner__),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             id: 2,
                             isCompleted: 0,

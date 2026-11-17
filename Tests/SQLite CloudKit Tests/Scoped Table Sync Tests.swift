@@ -1,11 +1,11 @@
 #if CloudKit && canImport(CloudKit)
-    import GRDB
     import CloudKit
-    import InlineSnapshotTesting
+    import GRDB
     import SQL
     import SQLite
     import SQLite_CloudKit
     import Testing
+    import Tests_Inline_Snapshot
 
     extension CloudKitTestBase {
         @MainActor
@@ -19,7 +19,9 @@
                     try ScopedModel.unscoped.find(1).update { $0.isDeleted = true }.execute(db)
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-                assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
+                await snapshot(as: .state) {
+                    container.privateCloudDatabase
+                } matches: {
                     """
                     MockCloudDatabase(
                       databaseScope: .private,

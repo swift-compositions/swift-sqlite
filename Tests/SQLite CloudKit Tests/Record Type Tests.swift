@@ -1,14 +1,14 @@
 #if CloudKit && canImport(CloudKit)
     import Cardinal
-    import GRDB
     import CloudKit
     import Foundation
-    import InlineSnapshotTesting
+    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
     import SQLite_CloudKit
     import Testing
+    import Tests_Inline_Snapshot
 
     extension CloudKitTestBase {
         @MainActor
@@ -17,17 +17,14 @@
                 let recordTypes = try await syncEngine.metadatabase.read { db in
                     try RecordType.all.fetch.all(db)
                 }
-                assertInlineSnapshot(of: recordTypes, as: .customDump) {
+                await snapshot(as: .state) {
+                    recordTypes
+                } matches: {
                     #"""
                     [
                       [0]: RecordType(
                         tableName: "remindersLists",
-                        schema: """
-                          CREATE TABLE "remindersLists" (
-                            "id" INT PRIMARY KEY NOT NULL,
-                            "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
-                          ) STRICT
-                          """,
+                        schema: "CREATE TABLE \"remindersLists\" (\n  \"id\" INT PRIMARY KEY NOT NULL,\n  \"title\" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT \'\'\n) STRICT",
                         tableInfo: [
                           [0]: TableInfo(
                             defaultValue: nil,
@@ -47,13 +44,7 @@
                       ),
                       [1]: RecordType(
                         tableName: "remindersListAssets",
-                        schema: """
-                          CREATE TABLE "remindersListAssets" (
-                            "remindersListID" INTEGER NOT NULL PRIMARY KEY
-                              REFERENCES "remindersLists"("id") ON DELETE CASCADE,
-                            "coverImage" BLOB NOT NULL
-                          ) STRICT
-                          """,
+                        schema: "CREATE TABLE \"remindersListAssets\" (\n  \"remindersListID\" INTEGER NOT NULL PRIMARY KEY\n    REFERENCES \"remindersLists\"(\"id\") ON DELETE CASCADE,\n  \"coverImage\" BLOB NOT NULL\n) STRICT",
                         tableInfo: [
                           [0]: TableInfo(
                             defaultValue: nil,
@@ -73,13 +64,7 @@
                       ),
                       [2]: RecordType(
                         tableName: "remindersListPrivates",
-                        schema: """
-                          CREATE TABLE "remindersListPrivates" (
-                            "remindersListID" INTEGER PRIMARY KEY NOT NULL REFERENCES "remindersLists"("id") 
-                              ON DELETE CASCADE,
-                            "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
-                          ) STRICT
-                          """,
+                        schema: "CREATE TABLE \"remindersListPrivates\" (\n  \"remindersListID\" INTEGER PRIMARY KEY NOT NULL REFERENCES \"remindersLists\"(\"id\") \n    ON DELETE CASCADE,\n  \"position\" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0\n) STRICT",
                         tableInfo: [
                           [0]: TableInfo(
                             defaultValue: "0",
@@ -99,18 +84,7 @@
                       ),
                       [3]: RecordType(
                         tableName: "reminders",
-                        schema: """
-                          CREATE TABLE "reminders" (
-                            "id" INT PRIMARY KEY NOT NULL,
-                            "dueDate" TEXT,
-                            "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
-                            "priority" INTEGER,
-                            "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
-                            "remindersListID" INTEGER NOT NULL,
-                            
-                            FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
-                          ) STRICT
-                          """,
+                        schema: "CREATE TABLE \"reminders\" (\n  \"id\" INT PRIMARY KEY NOT NULL,\n  \"dueDate\" TEXT,\n  \"isCompleted\" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,\n  \"priority\" INTEGER,\n  \"title\" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT \'\',\n  \"remindersListID\" INTEGER NOT NULL,\n  \n  FOREIGN KEY(\"remindersListID\") REFERENCES \"remindersLists\"(\"id\") ON DELETE CASCADE ON UPDATE CASCADE\n) STRICT",
                         tableInfo: [
                           [0]: TableInfo(
                             defaultValue: nil,
@@ -158,11 +132,7 @@
                       ),
                       [4]: RecordType(
                         tableName: "tags",
-                        schema: """
-                          CREATE TABLE "tags" (
-                            "title" TEXT PRIMARY KEY NOT NULL COLLATE NOCASE 
-                          ) STRICT
-                          """,
+                        schema: "CREATE TABLE \"tags\" (\n  \"title\" TEXT PRIMARY KEY NOT NULL COLLATE NOCASE \n) STRICT",
                         tableInfo: [
                           [0]: TableInfo(
                             defaultValue: nil,
@@ -175,13 +145,7 @@
                       ),
                       [5]: RecordType(
                         tableName: "reminderTags",
-                        schema: """
-                          CREATE TABLE "reminderTags" (
-                            "id" INT PRIMARY KEY NOT NULL,
-                            "reminderID" INTEGER NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
-                            "tagID" TEXT NOT NULL REFERENCES "tags"("title") ON DELETE CASCADE ON UPDATE CASCADE
-                          ) STRICT
-                          """,
+                        schema: "CREATE TABLE \"reminderTags\" (\n  \"id\" INT PRIMARY KEY NOT NULL,\n  \"reminderID\" INTEGER NOT NULL REFERENCES \"reminders\"(\"id\") ON DELETE CASCADE,\n  \"tagID\" TEXT NOT NULL REFERENCES \"tags\"(\"title\") ON DELETE CASCADE ON UPDATE CASCADE\n) STRICT",
                         tableInfo: [
                           [0]: TableInfo(
                             defaultValue: nil,
@@ -208,11 +172,7 @@
                       ),
                       [6]: RecordType(
                         tableName: "parents",
-                        schema: """
-                          CREATE TABLE "parents"(
-                            "id" INT PRIMARY KEY NOT NULL
-                          ) STRICT
-                          """,
+                        schema: "CREATE TABLE \"parents\"(\n  \"id\" INT PRIMARY KEY NOT NULL\n) STRICT",
                         tableInfo: [
                           [0]: TableInfo(
                             defaultValue: nil,
@@ -225,12 +185,7 @@
                       ),
                       [7]: RecordType(
                         tableName: "childWithOnDeleteSetNulls",
-                        schema: """
-                          CREATE TABLE "childWithOnDeleteSetNulls"(
-                            "id" INT PRIMARY KEY NOT NULL,
-                            "parentID" INTEGER REFERENCES "parents"("id") ON DELETE SET NULL ON UPDATE SET NULL
-                          ) STRICT
-                          """,
+                        schema: "CREATE TABLE \"childWithOnDeleteSetNulls\"(\n  \"id\" INT PRIMARY KEY NOT NULL,\n  \"parentID\" INTEGER REFERENCES \"parents\"(\"id\") ON DELETE SET NULL ON UPDATE SET NULL\n) STRICT",
                         tableInfo: [
                           [0]: TableInfo(
                             defaultValue: nil,
@@ -250,13 +205,7 @@
                       ),
                       [8]: RecordType(
                         tableName: "childWithOnDeleteSetDefaults",
-                        schema: """
-                          CREATE TABLE "childWithOnDeleteSetDefaults"(
-                            "id" INT PRIMARY KEY NOT NULL,
-                            "parentID" INTEGER NOT NULL DEFAULT 0 
-                              REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
-                          ) STRICT
-                          """,
+                        schema: "CREATE TABLE \"childWithOnDeleteSetDefaults\"(\n  \"id\" INT PRIMARY KEY NOT NULL,\n  \"parentID\" INTEGER NOT NULL DEFAULT 0 \n    REFERENCES \"parents\"(\"id\") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT\n) STRICT",
                         tableInfo: [
                           [0]: TableInfo(
                             defaultValue: nil,
@@ -276,13 +225,7 @@
                       ),
                       [9]: RecordType(
                         tableName: "modelAs",
-                        schema: """
-                          CREATE TABLE "modelAs" (
-                            "id" INT PRIMARY KEY NOT NULL,
-                            "count" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
-                            "isEven" INTEGER GENERATED ALWAYS AS ("count" % 2 == 0) VIRTUAL 
-                          )
-                          """,
+                        schema: "CREATE TABLE \"modelAs\" (\n  \"id\" INT PRIMARY KEY NOT NULL,\n  \"count\" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,\n  \"isEven\" INTEGER GENERATED ALWAYS AS (\"count\" % 2 == 0) VIRTUAL \n)",
                         tableInfo: [
                           [0]: TableInfo(
                             defaultValue: "0",
@@ -302,13 +245,7 @@
                       ),
                       [10]: RecordType(
                         tableName: "modelBs",
-                        schema: """
-                          CREATE TABLE "modelBs" (
-                            "id" INT PRIMARY KEY NOT NULL,
-                            "isOn" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
-                            "modelAID" INTEGER NOT NULL REFERENCES "modelAs"("id") ON DELETE CASCADE
-                          )
-                          """,
+                        schema: "CREATE TABLE \"modelBs\" (\n  \"id\" INT PRIMARY KEY NOT NULL,\n  \"isOn\" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,\n  \"modelAID\" INTEGER NOT NULL REFERENCES \"modelAs\"(\"id\") ON DELETE CASCADE\n)",
                         tableInfo: [
                           [0]: TableInfo(
                             defaultValue: nil,
@@ -335,13 +272,7 @@
                       ),
                       [11]: RecordType(
                         tableName: "modelCs",
-                        schema: """
-                          CREATE TABLE "modelCs" (
-                            "id" INT PRIMARY KEY NOT NULL,
-                            "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
-                            "modelBID" INTEGER NOT NULL REFERENCES "modelBs"("id") ON DELETE CASCADE
-                          )
-                          """,
+                        schema: "CREATE TABLE \"modelCs\" (\n  \"id\" INT PRIMARY KEY NOT NULL,\n  \"title\" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT \'\',\n  \"modelBID\" INTEGER NOT NULL REFERENCES \"modelBs\"(\"id\") ON DELETE CASCADE\n)",
                         tableInfo: [
                           [0]: TableInfo(
                             defaultValue: nil,
@@ -368,13 +299,7 @@
                       ),
                       [12]: RecordType(
                         tableName: "scopedModels",
-                        schema: """
-                          CREATE TABLE "scopedModels" (
-                            "id" INT PRIMARY KEY NOT NULL,
-                            "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
-                            "isDeleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
-                          ) STRICT
-                          """,
+                        schema: "CREATE TABLE \"scopedModels\" (\n  \"id\" INT PRIMARY KEY NOT NULL,\n  \"title\" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT \'\',\n  \"isDeleted\" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0\n) STRICT",
                         tableInfo: [
                           [0]: TableInfo(
                             defaultValue: nil,
@@ -471,22 +396,13 @@
                         == recordTypesAfterMigration[(remindersTableIndex + 1)...]
                 )
 
-                assertInlineSnapshot(of: recordTypesAfterMigration[remindersTableIndex], as: .customDump) {
+                await snapshot(as: .state) {
+                    recordTypesAfterMigration[remindersTableIndex]
+                } matches: {
                     #"""
                     RecordType(
                       tableName: "reminders",
-                      schema: """
-                        CREATE TABLE "reminders" (
-                          "id" INT PRIMARY KEY NOT NULL,
-                          "dueDate" TEXT,
-                          "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
-                          "priority" INTEGER,
-                          "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
-                          "remindersListID" INTEGER NOT NULL, "newFeature" INTEGER NOT NULL,
-                          
-                          FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
-                        ) STRICT
-                        """,
+                      schema: "CREATE TABLE \"reminders\" (\n  \"id\" INT PRIMARY KEY NOT NULL,\n  \"dueDate\" TEXT,\n  \"isCompleted\" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,\n  \"priority\" INTEGER,\n  \"title\" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT \'\',\n  \"remindersListID\" INTEGER NOT NULL, \"newFeature\" INTEGER NOT NULL,\n  \n  FOREIGN KEY(\"remindersListID\") REFERENCES \"remindersLists\"(\"id\") ON DELETE CASCADE ON UPDATE CASCADE\n) STRICT",
                       tableInfo: [
                         [0]: TableInfo(
                           defaultValue: nil,
@@ -577,7 +493,9 @@
                     #expect(recordTypesAfterMigration == recordTypes)
                     relaunchedSyncEngine.stop()
                     try relaunchedSyncEngine.tearDownSyncEngine()
-                    assertInlineSnapshot(of: container, as: .customDump) {
+                    await snapshot(as: .state) {
+                        container
+                    } matches: {
                         """
                         MockCloudContainer(
                           privateCloudDatabase: MockCloudDatabase(
@@ -601,7 +519,9 @@
                         privateTables: syncEngine.privateTables
                     )
                     try await relaunchedSyncEngine.processPendingRecordZoneChanges(scope: .private)
-                    assertInlineSnapshot(of: container, as: .customDump) {
+                    await snapshot(as: .state) {
+                        container
+                    } matches: {
                         """
                         MockCloudContainer(
                           privateCloudDatabase: MockCloudDatabase(

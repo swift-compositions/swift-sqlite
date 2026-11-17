@@ -1,12 +1,44 @@
-import MacroTesting
 import SQLite_Macros_Implementation
-import SnapshotTesting
+import SwiftSyntax
+import SwiftSyntaxMacroExpansion
+import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
-@Suite(.macros(["DatabaseCollation": DatabaseCollationMacro.self], record: .missing), .timeLimit(.minutes(5)))
+private func assertCollationMacro(
+    _ source: () -> String,
+    expansion: () -> String,
+    fileID: StaticString = #fileID,
+    file: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
+) {
+    assertMacroExpansion(
+        source(),
+        expandedSource: expansion(),
+        macroSpecs: ["DatabaseCollation": MacroSpec(type: DatabaseCollationMacro.self)],
+        indentationWidth: .spaces(2),
+        failureHandler: { failure in
+            Issue.record(
+                Comment(rawValue: failure.message),
+                sourceLocation: SourceLocation(
+                    fileID: failure.location.fileID,
+                    filePath: failure.location.filePath,
+                    line: failure.location.line,
+                    column: failure.location.column
+                )
+            )
+        },
+        fileID: fileID,
+        filePath: file,
+        line: line,
+        column: column
+    )
+}
+
+@Suite(.timeLimit(.minutes(5)))
 struct `DatabaseCollation macro` {
     @Test func `a String collation marks its raw buffer decoding unsafe`() {
-        assertMacro {
+        assertCollationMacro {
             """
             @DatabaseCollation
             private func localized(_ lhs: String, _ rhs: String) -> Order.Comparison {
@@ -21,7 +53,7 @@ struct `DatabaseCollation macro` {
 
             private nonisolated var $localized: __macro_local_9localizedfMu_ {
               #if DEBUG
-              #sourceLocation(file: "Test.swift", line: 1)
+              #sourceLocation(file: "test.swift", line: 1)
               #SQLiteIsolationCheck(collation: localized)
               #sourceLocation()
               #endif
@@ -51,7 +83,7 @@ struct `DatabaseCollation macro` {
     }
 
     @Test func `a raw buffer collation marks its call unsafe`() {
-        assertMacro {
+        assertCollationMacro {
             """
             @DatabaseCollation
             func bytes(_ lhs: UnsafeRawBufferPointer, _ rhs: UnsafeRawBufferPointer) -> Order.Comparison {
@@ -66,7 +98,7 @@ struct `DatabaseCollation macro` {
 
             nonisolated var $bytes: __macro_local_5bytesfMu_ {
               #if DEBUG
-              #sourceLocation(file: "Test.swift", line: 1)
+              #sourceLocation(file: "test.swift", line: 1)
               #SQLiteIsolationCheck(collation: bytes)
               #sourceLocation()
               #endif
@@ -96,7 +128,7 @@ struct `DatabaseCollation macro` {
     }
 
     @Test func `a UTF8Span collation marks its span construction unsafe`() {
-        assertMacro {
+        assertCollationMacro {
             """
             @DatabaseCollation
             func text(_ lhs: UTF8Span, _ rhs: UTF8Span) -> Order.Comparison {
@@ -116,7 +148,7 @@ struct `DatabaseCollation macro` {
 
             nonisolated var $text: __macro_local_4textfMu_ {
               #if DEBUG
-              #sourceLocation(file: "Test.swift", line: 1)
+              #sourceLocation(file: "test.swift", line: 1)
               #SQLiteIsolationCheck(collation: __macro_local_18textIsolationProbefMu_)
               #sourceLocation()
               #endif
@@ -154,7 +186,7 @@ struct `DatabaseCollation macro` {
     }
 
     @Test func `a byte span collation marks its span projection unsafe`() {
-        assertMacro {
+        assertCollationMacro {
             """
             @DatabaseCollation
             func spans(_ lhs: Span<UInt8>, _ rhs: Span<UInt8>) -> Order.Comparison {
@@ -174,7 +206,7 @@ struct `DatabaseCollation macro` {
 
             nonisolated var $spans: __macro_local_5spansfMu_ {
               #if DEBUG
-              #sourceLocation(file: "Test.swift", line: 1)
+              #sourceLocation(file: "test.swift", line: 1)
               #SQLiteIsolationCheck(collation: __macro_local_19spansIsolationProbefMu_)
               #sourceLocation()
               #endif

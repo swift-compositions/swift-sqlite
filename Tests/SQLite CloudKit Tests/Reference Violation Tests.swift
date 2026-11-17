@@ -1,14 +1,14 @@
 #if CloudKit && canImport(CloudKit)
     import Cardinal
-    import GRDB
     import CloudKit
-    import InlineSnapshotTesting
+    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
     import SQLite_CloudKit
     import SQLite_Test_Support
     import Testing
+    import Tests_Inline_Snapshot
 
     extension CloudKitTestBase {
         @MainActor
@@ -41,7 +41,9 @@
                     try #expect(Reminder.find(1).fetch.count(db) == 0)
                     try #expect(RemindersList.find(2).fetch.count(db) == 0)
                 }
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -105,7 +107,9 @@
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
                 await modifications.notify()
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -114,7 +118,9 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             id: 1,
                             remindersListID: 1,
@@ -178,7 +184,9 @@
                 await modifications.notify()
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -187,7 +195,9 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             id: 1,
                             remindersListID: 1,
@@ -245,7 +255,9 @@
                     await modifications.notify()
                     try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                    assertInlineSnapshot(of: container, as: .customDump) {
+                    await snapshot(as: .state) {
+                        container
+                    } matches: {
                         """
                         MockCloudContainer(
                           privateCloudDatabase: MockCloudDatabase(
@@ -274,7 +286,9 @@
                         )
                         """
                     }
-                    assertQuery(ChildWithOnDeleteSetNull.all, database: userDatabase.sqliteDatabase) {
+                    await snapshot(as: .rows(in: userDatabase.sqliteDatabase, drawing: State.draw)) {
+                        ChildWithOnDeleteSetNull.all
+                    } matches: {
                         """
                         ┌───────────────────────────┐
                         │ ChildWithOnDeleteSetNull( │
@@ -284,11 +298,15 @@
                         └───────────────────────────┘
                         """
                     }
-                    assertQuery(Parent.all, database: userDatabase.sqliteDatabase) {
+                    await snapshot(as: .rows(in: userDatabase.sqliteDatabase, drawing: State.draw)) {
+                        Parent.all
+                    } matches: {
                         """
-                        ┌───────────────┐
-                        │ Parent(id: 1) │
-                        └───────────────┘
+                        ┌─────────┐
+                        │ Parent( │
+                        │   id: 1 │
+                        │ )       │
+                        └─────────┘
                         """
                     }
                 }
@@ -319,7 +337,9 @@
                     await modifications.notify()
                     try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                    assertInlineSnapshot(of: container, as: .customDump) {
+                    await snapshot(as: .state) {
+                        container
+                    } matches: {
                         """
                         MockCloudContainer(
                           privateCloudDatabase: MockCloudDatabase(
@@ -328,7 +348,9 @@
                               [0]: CKRecord(
                                 recordID: CKRecord.ID(1:childWithOnDeleteSetDefaults/zone/__defaultOwner__),
                                 recordType: "childWithOnDeleteSetDefaults",
-                                parent: CKReference(recordID: CKRecord.ID(0:parents/zone/__defaultOwner__)),
+                                parent: CKReference(
+                                  recordID: CKRecord.ID(0:parents/zone/__defaultOwner__)
+                                ),
                                 share: nil,
                                 id: 1,
                                 parentID: 0

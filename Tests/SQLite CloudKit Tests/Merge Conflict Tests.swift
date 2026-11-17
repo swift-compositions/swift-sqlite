@@ -1,14 +1,14 @@
 #if CloudKit && canImport(CloudKit)
-    import GRDB
     import CloudKit
     import Foundation
-    import InlineSnapshotTesting
+    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
     import SQLite_CloudKit
     import SQLite_Test_Support
     import Testing
+    import Tests_Inline_Snapshot
     import Time
 
     extension CloudKitTestBase {
@@ -22,7 +22,9 @@
                     }
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-                assertInlineSnapshot(of: container, as: .customDump(timestamps: true)) {
+                await snapshot(as: .state(timestamps: true)) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -31,7 +33,9 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             dueDate🗓️: 0,
                             id: 1,
@@ -77,7 +81,9 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertInlineSnapshot(of: container, as: .customDump(timestamps: true)) {
+                await snapshot(as: .state(timestamps: true)) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -86,7 +92,9 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             dueDate🗓️: 0,
                             id: 1,
@@ -124,7 +132,9 @@
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
                 await modificationCallback.notify()
 
-                assertInlineSnapshot(of: container, as: .customDump(timestamps: true)) {
+                await snapshot(as: .state(timestamps: true)) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -133,7 +143,9 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             dueDate🗓️: 0,
                             id: 1,
@@ -177,7 +189,9 @@
                     }
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-                assertInlineSnapshot(of: container, as: .customDump(timestamps: true)) {
+                await snapshot(as: .state(timestamps: true)) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -186,7 +200,9 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             dueDate🗓️: 0,
                             id: 1,
@@ -232,7 +248,9 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertInlineSnapshot(of: container, as: .customDump(timestamps: true)) {
+                await snapshot(as: .state(timestamps: true)) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -241,7 +259,9 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             dueDate🗓️: 0,
                             id: 1,
@@ -279,7 +299,9 @@
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
                 await modificationCallback.notify()
 
-                assertInlineSnapshot(of: container, as: .customDump(timestamps: true)) {
+                await snapshot(as: .state(timestamps: true)) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -288,7 +310,9 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             dueDate🗓️: 0,
                             id: 1,
@@ -345,7 +369,9 @@
                 await modificationCallback.notify()
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertInlineSnapshot(of: container, as: .customDump(timestamps: true)) {
+                await snapshot(as: .state(timestamps: true)) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -354,7 +380,9 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             dueDate🗓️: 0,
                             id: 1,
@@ -413,7 +441,9 @@
                     }
                 }
 
-                assertQuery(Reminder.all, database: userDatabase.sqliteDatabase) {
+                await snapshot(as: .rows(in: userDatabase.sqliteDatabase, drawing: State.draw)) {
+                    Reminder.all
+                } matches: {
                     """
                     ┌───────────────────────┐
                     │ Reminder(             │
@@ -427,7 +457,9 @@
                     └───────────────────────┘
                     """
                 }
-                assertInlineSnapshot(of: container, as: .customDump(timestamps: true)) {
+                await snapshot(as: .state(timestamps: true)) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -436,7 +468,9 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             dueDate🗓️: 0,
                             id: 1,
@@ -493,7 +527,9 @@
                 await modificationCallback.notify()
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertInlineSnapshot(of: container, as: .customDump(timestamps: true)) {
+                await snapshot(as: .state(timestamps: true)) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -502,7 +538,9 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             dueDate🗓️: 0,
                             id: 1,
@@ -560,7 +598,9 @@
                 await modificationCallback.notify()
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertInlineSnapshot(of: container, as: .customDump(timestamps: true)) {
+                await snapshot(as: .state(timestamps: true)) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -569,7 +609,9 @@
                           [0]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                            ),
                             share: nil,
                             dueDate🗓️: 0,
                             id: 1,
@@ -636,7 +678,9 @@
                         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
                     }
 
-                    assertInlineSnapshot(of: container, as: .customDump(timestamps: true)) {
+                    await snapshot(as: .state(timestamps: true)) {
+                        container
+                    } matches: {
                         """
                         MockCloudContainer(
                           privateCloudDatabase: MockCloudDatabase(
@@ -645,9 +689,11 @@
                               [0]: CKRecord(
                                 recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                                 recordType: "reminders",
-                                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                                parent: CKReference(
+                                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)
+                                ),
                                 share: nil,
-                                dueDate: Date(1970-01-01T00:00:30.000Z),
+                                dueDate: 1970-01-01 00:00:30 +0000,
                                 dueDate🗓️: 1000000000,
                                 id: 1,
                                 id🗓️: 0,

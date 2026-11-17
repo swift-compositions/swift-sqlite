@@ -1,11 +1,12 @@
 #if CloudKit && canImport(CloudKit)
-    import GRDB
     import CloudKit
+    import GRDB
     import SQL
     import SQLite
     import SQLite_CloudKit
     import SQLite_Test_Support
     import Testing
+    import Tests_Inline_Snapshot
 
     extension CloudKitTestBase {
         @MainActor
@@ -19,20 +20,16 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                assertQuery(
+                await snapshot(as: .rows(writing: userDatabase.sqliteDatabase, drawing: State.draw)) {
                     RemindersList
-                        .leftJoin(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) },
-                    writing: userDatabase.sqliteDatabase
-                ) {
+                        .leftJoin(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+                } matches: {
                     """
                     ┌─────────────────────┬────────────────────────────────────────────────────────────────────┐
                     │ RemindersList(      │ SyncMetadata(                                                      │
-                    │   id: 1,            │   id: SyncMetadata.ID(                                             │
-                    │   title: "Personal" │     recordPrimaryKey: "1",                                         │
-                    │ )                   │     recordType: "remindersLists"                                   │
-                    │                     │   ),                                                               │
-                    │                     │   zoneName: "zone",                                                │
-                    │                     │   ownerName: "__defaultOwner__",                                   │
+                    │   id: 1,            │   id: ID(recordPrimaryKey: "1", recordType: "remindersLists"),     │
+                    │   title: "Personal" │   zoneName: "zone",                                                │
+                    │ )                   │   ownerName: "__defaultOwner__",                                   │
                     │                     │   recordName: "1:remindersLists",                                  │
                     │                     │   parentRecordID: nil,                                             │
                     │                     │   parentRecordName: nil,                                           │

@@ -1,11 +1,11 @@
 #if CloudKit && canImport(UIKit)
     import CloudKit
     import Foundation
-    import InlineSnapshotTesting
     import SQL
     import SQLite
     import SQLite_CloudKit
     import Testing
+    import Tests_Inline_Snapshot
     import UIKit
 
     extension CloudKitTestBase {
@@ -33,7 +33,9 @@
                     object: nil
                 )
                 try await waitUntilChangesAreSent()
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -102,7 +104,9 @@
                     object: nil
                 )
                 try await waitUntilChangesAreSent()
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(

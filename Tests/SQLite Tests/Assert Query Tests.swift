@@ -1,10 +1,12 @@
 #if GRDB
-    import InlineSnapshotTesting
     import SQL
     import SQL_Macros
+    import SQL_Test_Support
     import SQLite
     import SQLite_Test_Support
     import Testing
+    import Tests_Apple_Testing_Bridge
+    import Tests_Inline_Snapshot
     import Time
 
     @Table
@@ -35,7 +37,9 @@
         }
 
         @Test func `snapshots the rows of a selection`() {
-            assertQuery(Record.all.select(\.id), database: database) {
+            snapshot(as: .rows(in: database)) {
+                Record.all.select(\.id)
+            } matches: {
                 """
                 ┌───┐
                 │ 1 │
@@ -47,20 +51,24 @@
         }
 
         @Test func `snapshots a table row as a dump`() {
-            assertQuery(Record.find(1), database: database) {
+            snapshot(as: .rows(in: database)) {
+                Record.find(1)
+            } matches: {
                 """
-                ┌─────────────────────────────────────────────────┐
-                │ Record(                                         │
-                │   id: 1,                                        │
-                │   date: Time.Instant(secondsSinceUnixEpoch: 42) │
-                │ )                                               │
-                └─────────────────────────────────────────────────┘
+                ┌─────────────────────────────────────────────┐
+                │ Record(                                     │
+                │   id: 1,                                    │
+                │   date: TIMESTAMP '1970-01-01 00:00:42.000' │
+                │ )                                           │
+                └─────────────────────────────────────────────┘
                 """
             }
         }
 
         @Test func `snapshots an empty result`() {
-            assertQuery(Record.all.where { $0.id.eq(-1) }.select(\.id), database: database) {
+            snapshot(as: .rows(in: database)) {
+                Record.all.where { $0.id.eq(-1) }.select(\.id)
+            } matches: {
                 """
                 (No results)
                 """
@@ -70,7 +78,9 @@
         @Test(.snapshots(record: .never))
         func `fails when an empty result meets a non-empty snapshot`() {
             withKnownIssue {
-                assertQuery(Record.all.where { _ in false }, database: database) {
+                snapshot(as: .rows(in: database)) {
+                    Record.all.where { _ in false }
+                } matches: {
                     """
                     XYZ
                     """
@@ -79,12 +89,17 @@
         }
 
         @Test func `snapshots the SQL when asked`() {
-            assertQuery(includeSQL: true, Record.all.select(\.id), database: database) {
+            snapshot(as: .sql) {
+                Record.all.select(\.id)
+            } matches: {
                 """
                 SELECT "record"."id"
                 FROM "record"
                 """
-            } results: {
+            }
+            snapshot(as: .rows(in: database)) {
+                Record.all.select(\.id)
+            } matches: {
                 """
                 ┌───┐
                 │ 1 │
@@ -96,18 +111,17 @@
         }
 
         @Test func `writes an update and snapshots its returned columns`() throws {
-            assertQuery(
+            snapshot(as: .rows(writing: database)) {
                 Record.all
                     .update { $0.date = Time.Instant(secondsSinceUnixEpoch: 45) }
-                    .returning { ($0.id, $0.date) },
-                writing: database
-            ) {
+                    .returning { ($0.id, $0.date) }
+            } matches: {
                 """
-                ┌───┬─────────────────────────────────────────┐
-                │ 1 │ Time.Instant(secondsSinceUnixEpoch: 45) │
-                │ 2 │ Time.Instant(secondsSinceUnixEpoch: 45) │
-                │ 3 │ Time.Instant(secondsSinceUnixEpoch: 45) │
-                └───┴─────────────────────────────────────────┘
+                ┌───┬─────────────────────────────────────┐
+                │ 1 │ TIMESTAMP '1970-01-01 00:00:45.000' │
+                │ 2 │ TIMESTAMP '1970-01-01 00:00:45.000' │
+                │ 3 │ TIMESTAMP '1970-01-01 00:00:45.000' │
+                └───┴─────────────────────────────────────┘
                 """
             }
             #expect(
@@ -117,55 +131,54 @@
         }
 
         @Test func `writes an update and snapshots its returned rows`() {
-            assertQuery(
+            snapshot(as: .rows(writing: database)) {
                 Record
                     .where { $0.id.eq(1) }
                     .update { $0.date = Time.Instant(secondsSinceUnixEpoch: 45) }
-                    .returning(\.self),
-                writing: database
-            ) {
+                    .returning(\.self)
+            } matches: {
                 """
-                ┌─────────────────────────────────────────────────┐
-                │ Record(                                         │
-                │   id: 1,                                        │
-                │   date: Time.Instant(secondsSinceUnixEpoch: 45) │
-                │ )                                               │
-                └─────────────────────────────────────────────────┘
+                ┌─────────────────────────────────────────────┐
+                │ Record(                                     │
+                │   id: 1,                                    │
+                │   date: TIMESTAMP '1970-01-01 00:00:45.000' │
+                │ )                                           │
+                └─────────────────────────────────────────────┘
                 """
             }
         }
 
         @Test func `writes an insert and snapshots its returned rows`() throws {
-            assertQuery(
+            snapshot(as: .rows(writing: database)) {
                 Record
                     .insert { Record.Draft(date: Time.Instant(secondsSinceUnixEpoch: 7)) }
-                    .returning(\.self),
-                writing: database
-            ) {
+                    .returning(\.self)
+            } matches: {
                 """
-                ┌────────────────────────────────────────────────┐
-                │ Record(                                        │
-                │   id: 4,                                       │
-                │   date: Time.Instant(secondsSinceUnixEpoch: 7) │
-                │ )                                              │
-                └────────────────────────────────────────────────┘
+                ┌─────────────────────────────────────────────┐
+                │ Record(                                     │
+                │   id: 4,                                    │
+                │   date: TIMESTAMP '1970-01-01 00:00:07.000' │
+                │ )                                           │
+                └─────────────────────────────────────────────┘
                 """
             }
             #expect(try database.read { db in try Record.fetch.count(db) } == 4)
         }
 
         @Test func `writes with the SQL when asked`() {
-            assertQuery(
-                includeSQL: true,
-                Record.where { $0.id.eq(2) }.delete().returning(\.id),
-                writing: database
-            ) {
+            snapshot(as: .sql) {
+                Record.where { $0.id.eq(2) }.delete().returning(\.id)
+            } matches: {
                 """
                 DELETE FROM "record"
                 WHERE (("record"."id") = (2))
                 RETURNING "id"
                 """
-            } results: {
+            }
+            snapshot(as: .rows(writing: database)) {
+                Record.where { $0.id.eq(2) }.delete().returning(\.id)
+            } matches: {
                 """
                 ┌───┐
                 │ 2 │

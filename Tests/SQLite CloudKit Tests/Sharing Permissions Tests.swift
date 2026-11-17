@@ -2,11 +2,11 @@
     import Cardinal
     import CloudKit
     import GRDB
-    import InlineSnapshotTesting
     import SQL
     import SQLite
     import SQLite_CloudKit
     import Testing
+    import Tests_Inline_Snapshot
 
     extension CloudKitTestBase {
         @MainActor
@@ -55,7 +55,9 @@
                     #expect(error?.message == SyncEngine.writePermissionError)
                     try #expect(Reminder.all.fetch.count(db) == 0)
                 }
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -75,7 +77,9 @@
                             recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                             recordType: "remindersLists",
                             parent: nil,
-                            share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
+                            share: CKReference(
+                              recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)
+                            ),
                             id: 1,
                             title: "Personal"
                           )
@@ -148,7 +152,9 @@
                     #expect(error?.message == SyncEngine.writePermissionError)
                     try #expect(Reminder.count().fetch.one(db) == 1)
                 }
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -167,7 +173,9 @@
                           [1]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)
+                            ),
                             share: nil,
                             id: 1,
                             remindersListID: 1,
@@ -177,7 +185,9 @@
                             recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                             recordType: "remindersLists",
                             parent: nil,
-                            share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
+                            share: CKReference(
+                              recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)
+                            ),
                             id: 1,
                             title: "Personal"
                           )
@@ -250,7 +260,9 @@
                     #expect(error?.message == SyncEngine.writePermissionError)
                     try #expect(Reminder.where(\.isCompleted).fetch.count(db) == 0)
                 }
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -269,7 +281,9 @@
                           [1]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)
+                            ),
                             share: nil,
                             id: 1,
                             isCompleted: 0,
@@ -280,7 +294,9 @@
                             recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                             recordType: "remindersLists",
                             parent: nil,
-                            share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
+                            share: CKReference(
+                              recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)
+                            ),
                             id: 1,
                             title: "Personal"
                           )
@@ -342,7 +358,9 @@
                 try await self.userDatabase.read { db in
                     try #expect(Reminder.all.fetch.count(db) == 0)
                 }
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -362,7 +380,9 @@
                             recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                             recordType: "remindersLists",
                             parent: nil,
-                            share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
+                            share: CKReference(
+                              recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)
+                            ),
                             id: 1,
                             title: "Personal"
                           )
@@ -423,7 +443,9 @@
                 try await self.userDatabase.read { db in
                     try #expect(RemindersList.find(1).fetch.one(db) == RemindersList(id: 1, title: "Personal"))
                 }
-                assertInlineSnapshot(of: container, as: .customDump) {
+                await snapshot(as: .state) {
+                    container
+                } matches: {
                     """
                     MockCloudContainer(
                       privateCloudDatabase: MockCloudDatabase(
@@ -443,7 +465,9 @@
                             recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                             recordType: "remindersLists",
                             parent: nil,
-                            share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
+                            share: CKReference(
+                              recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)
+                            ),
                             id: 1,
                             title: "Personal"
                           )

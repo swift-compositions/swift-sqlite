@@ -27,7 +27,7 @@ import SQLite_SQL
             SQLite.Row(columns: columns, values: columns.indices.map { unsafe value(sqliteStatement, Int32($0)) })
         }
 
-        private func value(_ handle: SQLiteStatement, _ index: Int32) -> ISO_9075.Value {
+        private func value(_ handle: SQLiteStatement, _ index: Int32) -> ISO.`9075`.Value {
             switch unsafe sqlite3_column_type(handle, index) {
             case SQLITE_INTEGER: .int(unsafe sqlite3_column_int64(handle, index))
             case SQLITE_FLOAT: .double(unsafe sqlite3_column_double(handle, index))

@@ -42,12 +42,12 @@ extension QueryExpression where QueryValue: _SQLiteDateRepresentation {
 
     public var dayOfYear: some QueryExpression<Int> { component("%j") }
 
-    fileprivate var timeValueArguments: [ISO_9075.Fragment] {
+    fileprivate var timeValueArguments: [ISO.`9075`.Fragment] {
         (self as? any TimeValue)?.timeValueArguments
             ?? [queryFragment] + QueryValue._timeValueModifiers
     }
     private func component<T: Numeric & SQLiteType>(
-        _ format: ISO_9075.Fragment
+        _ format: ISO.`9075`.Fragment
     ) -> SQLQueryExpression<T> {
         SQLQueryExpression(
             """
@@ -72,14 +72,14 @@ extension QueryExpression where Self == _ModifiedDate<Time.Instant.JulianDayRepr
 
 @dynamicMemberLookup
 public struct DateTimeModifier: Sendable {
-    var fragments: [ISO_9075.Fragment] = []
+    var fragments: [ISO.`9075`.Fragment] = []
 
     public enum Overflow: Sendable {
         case ceiling
 
         case floor
 
-        fileprivate var fragment: ISO_9075.Fragment {
+        fileprivate var fragment: ISO.`9075`.Fragment {
             switch self {
             case .ceiling: "'ceiling'"
             case .floor: "'floor'"
@@ -158,54 +158,54 @@ public struct DateTimeModifier: Sendable {
         Self(fragments: fragments + Self.self[keyPath: keyPath].fragments)
     }
 
-    private func appending(_ fragment: ISO_9075.Fragment) -> Self {
+    private func appending(_ fragment: ISO.`9075`.Fragment) -> Self {
         Self(fragments: fragments + [fragment])
     }
 }
 
 public protocol _SQLiteDateRepresentation: QueryRepresentable where QueryOutput == Time.Instant {
-    static var _timeValueModifiers: [ISO_9075.Fragment] { get }
-    static func _dateStorage(_ arguments: [ISO_9075.Fragment]) -> ISO_9075.Fragment
+    static var _timeValueModifiers: [ISO.`9075`.Fragment] { get }
+    static func _dateStorage(_ arguments: [ISO.`9075`.Fragment]) -> ISO.`9075`.Fragment
 }
 
 private protocol TimeValue {
-    var timeValueArguments: [ISO_9075.Fragment] { get }
+    var timeValueArguments: [ISO.`9075`.Fragment] { get }
 }
 
 public struct _ModifiedDate<QueryValue: _SQLiteDateRepresentation>: QueryExpression, TimeValue {
-    fileprivate var base: [ISO_9075.Fragment] = ["'now'"]
+    fileprivate var base: [ISO.`9075`.Fragment] = ["'now'"]
     fileprivate var modifier = DateTimeModifier()
 
-    fileprivate var timeValueArguments: [ISO_9075.Fragment] {
+    fileprivate var timeValueArguments: [ISO.`9075`.Fragment] {
         base + modifier.fragments
     }
 
-    public var queryFragment: ISO_9075.Fragment {
+    public var queryFragment: ISO.`9075`.Fragment {
         QueryValue._dateStorage(timeValueArguments)
     }
 }
 
 extension Time.Instant: _SQLiteDateRepresentation {
-    public static var _timeValueModifiers: [ISO_9075.Fragment] { [] }
-    public static func _dateStorage(_ arguments: [ISO_9075.Fragment]) -> ISO_9075.Fragment {
+    public static var _timeValueModifiers: [ISO.`9075`.Fragment] { [] }
+    public static func _dateStorage(_ arguments: [ISO.`9075`.Fragment]) -> ISO.`9075`.Fragment {
         subsecDateTime(arguments)
     }
 }
 
-func subsecDateTime(_ arguments: [ISO_9075.Fragment] = []) -> ISO_9075.Fragment {
+func subsecDateTime(_ arguments: [ISO.`9075`.Fragment] = []) -> ISO.`9075`.Fragment {
     return "datetime(\((arguments + ["'subsec'"]).joined(separator: ", ")))"
 }
 
 extension Time.Instant.UnixTimeRepresentation: _SQLiteDateRepresentation {
-    public static var _timeValueModifiers: [ISO_9075.Fragment] { ["'unixepoch'"] }
-    public static func _dateStorage(_ arguments: [ISO_9075.Fragment]) -> ISO_9075.Fragment {
+    public static var _timeValueModifiers: [ISO.`9075`.Fragment] { ["'unixepoch'"] }
+    public static func _dateStorage(_ arguments: [ISO.`9075`.Fragment]) -> ISO.`9075`.Fragment {
         "unixepoch(\(arguments.joined(separator: ", ")))"
     }
 }
 
 extension Time.Instant.JulianDayRepresentation: _SQLiteDateRepresentation {
-    public static var _timeValueModifiers: [ISO_9075.Fragment] { [] }
-    public static func _dateStorage(_ arguments: [ISO_9075.Fragment]) -> ISO_9075.Fragment {
+    public static var _timeValueModifiers: [ISO.`9075`.Fragment] { [] }
+    public static func _dateStorage(_ arguments: [ISO.`9075`.Fragment]) -> ISO.`9075`.Fragment {
         "julianday(\(arguments.joined(separator: ", ")))"
     }
 }

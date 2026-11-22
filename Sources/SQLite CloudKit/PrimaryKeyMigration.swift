@@ -76,7 +76,7 @@
                     )
                 }
                 for sql in indicesAndTriggersSQL {
-                    try #sql(ISO_9075.Fragment(sql)).execute(db)
+                    try #sql(ISO.`9075`.Fragment(sql)).execute(db)
                 }
 
                 let foreignKeyChecks = try SQLite.Pragma.ForeignKey.Check.all.fetch.all(db)
@@ -160,14 +160,14 @@
                 )
 
                 var newColumns: [String] = []
-                var convertedColumns: [ISO_9075.Fragment] = []
+                var convertedColumns: [ISO.`9075`.Fragment] = []
                 if primaryKeys.first == nil {
                     convertedColumns.append("NULL")
                     newColumns.append(columns.primaryKey.name)
                 }
                 newColumns.append(contentsOf: tableInfo.map(\.name))
                 convertedColumns.append(
-                    contentsOf: tableInfo.map { tableInfo -> ISO_9075.Fragment in
+                    contentsOf: tableInfo.map { tableInfo -> ISO.`9075`.Fragment in
                         if tableInfo.name == primaryKey.name, tableInfo.isInt {
                             return $backfillUUID(id: #sql("\(quote: tableInfo.name)"), table: tableName, salt: salt)
                                 .queryFragment
@@ -181,12 +181,12 @@
                             )
                             .queryFragment
                         } else {
-                            return ISO_9075.Fragment(quote: tableInfo.name)
+                            return ISO.`9075`.Fragment(quote: tableInfo.name)
                         }
                     }
                 )
 
-                try #sql(ISO_9075.Fragment(newSchema)).execute(db)
+                try #sql(ISO.`9075`.Fragment(newSchema)).execute(db)
                 try #sql(
                     """
                     INSERT INTO \(quote: newTableName) \

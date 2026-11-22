@@ -8,7 +8,7 @@ public struct JSONBRepresentation<QueryOutput: Codable>: Codable, QueryRepresent
         self.queryOutput = queryOutput
     }
 
-    public static func queryFragment(decoding queryFragment: ISO_9075.Fragment) -> ISO_9075.Fragment {
+    public static func queryFragment(decoding queryFragment: ISO.`9075`.Fragment) -> ISO.`9075`.Fragment {
         "json(\(queryFragment))"
     }
 }
@@ -18,11 +18,11 @@ extension JSONBRepresentation: Hashable where QueryOutput: Hashable {}
 extension JSONBRepresentation: Sendable where QueryOutput: Sendable {}
 
 extension JSONBRepresentation: QueryBindable {
-    public var queryBinding: ISO_9075.Value {
+    public var queryBinding: ISO.`9075`.Value {
         JSONRepresentation(queryOutput: queryOutput).queryBinding
     }
 
-    public var queryFragment: ISO_9075.Fragment {
+    public var queryFragment: ISO.`9075`.Fragment {
         "jsonb(\(queryBinding))"
     }
 }

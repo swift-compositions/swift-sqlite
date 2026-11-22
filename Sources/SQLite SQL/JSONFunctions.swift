@@ -617,7 +617,7 @@ where QueryValue: SQL::_OptionalProtocol, QueryValue.Wrapped: _AnyJSONRepresenta
 }
 
 extension QueryExpression {
-    fileprivate var argumentFragment: ISO_9075.Fragment {
+    fileprivate var argumentFragment: ISO.`9075`.Fragment {
         $_isSelecting.withValue(false) { queryFragment }
     }
 
@@ -650,9 +650,9 @@ extension QueryExpression {
     }
 
     private func _jsonExtract<Root, Context, Member: QueryRepresentable>(
-        _ function: ISO_9075.Fragment,
+        _ function: ISO.`9075`.Fragment,
         _ path: KeyPath<JSONPath<_JSONPathRoot, Root>, JSONPath<Context, Member>>
-    ) -> ISO_9075.Fragment {
+    ) -> ISO.`9075`.Fragment {
         Member._queryFragment(
             jsonDecoding: """
                 \(function)(\
@@ -848,8 +848,8 @@ extension TableDefinition where QueryValue: SQL::_OptionalProtocol & Codable {
 
     fileprivate func _jsonGroupArray<Wrapped: Codable>(
         isDistinct: Bool,
-        order: ISO_9075.Fragment?,
-        filter: ISO_9075.Fragment?
+        order: ISO.`9075`.Fragment?,
+        filter: ISO.`9075`.Fragment?
     ) -> AggregateFunctionExpression<JSONRepresentation<[Wrapped]>>
     where QueryValue == Wrapped? {
         AggregateFunctionExpression(
@@ -900,8 +900,8 @@ extension TableDefinition where QueryValue: SQL::_OptionalProtocol & Codable {
 
     fileprivate func _jsonbGroupArray<Wrapped: Codable>(
         isDistinct: Bool,
-        order: ISO_9075.Fragment?,
-        filter: ISO_9075.Fragment?
+        order: ISO.`9075`.Fragment?,
+        filter: ISO.`9075`.Fragment?
     ) -> AggregateFunctionExpression<JSONBRepresentation<[Wrapped]>>
     where QueryValue == Wrapped? {
         AggregateFunctionExpression(
@@ -919,10 +919,10 @@ extension TableDefinition where QueryValue: Codable {
         QueryFunction("json_object", SQLQueryExpression(_jsonObjectArguments))
     }
 
-    fileprivate var _jsonObjectArguments: ISO_9075.Fragment {
+    fileprivate var _jsonObjectArguments: ISO.`9075`.Fragment {
         $_isSelecting.withValue(false) {
             Self.allColumns
-                .map { "\(text: $0.name), \($0.jsonEncoding($0.queryFragment))" as ISO_9075.Fragment }
+                .map { "\(text: $0.name), \($0.jsonEncoding($0.queryFragment))" as ISO.`9075`.Fragment }
                 .joined(separator: ", ")
         }
     }
@@ -1200,38 +1200,38 @@ public struct JSONPath<Context, QueryValue> {
 }
 
 private struct JSONFunctionExpression<QueryValue>: QueryExpression {
-    let base: ISO_9075.Fragment
-    let decode: (ISO_9075.Fragment) -> ISO_9075.Fragment
+    let base: ISO.`9075`.Fragment
+    let decode: (ISO.`9075`.Fragment) -> ISO.`9075`.Fragment
 
-    var queryFragment: ISO_9075.Fragment {
+    var queryFragment: ISO.`9075`.Fragment {
         _isSelecting ? decode(base) : base
     }
 }
 
 private protocol _JSONMutationExpression: QueryExpression
 where QueryValue: QueryRepresentable {
-    var function: ISO_9075.Fragment { get }
-    var base: ISO_9075.Fragment { get }
-    var arguments: [ISO_9075.Fragment] { get }
-    init(function: ISO_9075.Fragment, base: ISO_9075.Fragment, arguments: [ISO_9075.Fragment])
+    var function: ISO.`9075`.Fragment { get }
+    var base: ISO.`9075`.Fragment { get }
+    var arguments: [ISO.`9075`.Fragment] { get }
+    init(function: ISO.`9075`.Fragment, base: ISO.`9075`.Fragment, arguments: [ISO.`9075`.Fragment])
 }
 
 extension _JSONMutationExpression {
-    public var queryFragment: ISO_9075.Fragment {
-        let fragment: ISO_9075.Fragment =
+    public var queryFragment: ISO.`9075`.Fragment {
+        let fragment: ISO.`9075`.Fragment =
             "\(function)(\(base), \(arguments.joined(separator: ", ")))"
         return _isSelecting ? QueryValue.queryFragment(decoding: fragment) : fragment
     }
 
-    fileprivate func appending(_ argument: ISO_9075.Fragment) -> Self {
+    fileprivate func appending(_ argument: ISO.`9075`.Fragment) -> Self {
         Self(function: function, base: base, arguments: arguments + [argument])
     }
 }
 
 public struct _JSONInsertExpression<QueryValue: QueryRepresentable>: _JSONMutationExpression {
-    let function: ISO_9075.Fragment
-    let base: ISO_9075.Fragment
-    let arguments: [ISO_9075.Fragment]
+    let function: ISO.`9075`.Fragment
+    let base: ISO.`9075`.Fragment
+    let arguments: [ISO.`9075`.Fragment]
 }
 
 extension _JSONInsertExpression where QueryValue: _JSONRepresentable {
@@ -1361,9 +1361,9 @@ where QueryValue: _JSONBRepresentable & _JSONArrayRepresentation {
 }
 
 public struct _JSONArrayInsertExpression<QueryValue: QueryRepresentable>: _JSONMutationExpression {
-    let function: ISO_9075.Fragment
-    let base: ISO_9075.Fragment
-    let arguments: [ISO_9075.Fragment]
+    let function: ISO.`9075`.Fragment
+    let base: ISO.`9075`.Fragment
+    let arguments: [ISO.`9075`.Fragment]
 }
 
 extension _JSONArrayInsertExpression where QueryValue: _JSONRepresentable {
@@ -1385,9 +1385,9 @@ extension _JSONArrayInsertExpression where QueryValue: _JSONBRepresentable {
 }
 
 public struct _JSONRemoveExpression<QueryValue: QueryRepresentable>: _JSONMutationExpression {
-    let function: ISO_9075.Fragment
-    let base: ISO_9075.Fragment
-    let arguments: [ISO_9075.Fragment]
+    let function: ISO.`9075`.Fragment
+    let base: ISO.`9075`.Fragment
+    let arguments: [ISO.`9075`.Fragment]
 }
 
 extension _JSONRemoveExpression where QueryValue: _JSONRepresentable {
@@ -1425,9 +1425,9 @@ extension _JSONRemoveExpression where QueryValue: _JSONBRepresentable {
 }
 
 public struct _JSONReplaceExpression<QueryValue: QueryRepresentable>: _JSONMutationExpression {
-    let function: ISO_9075.Fragment
-    let base: ISO_9075.Fragment
-    let arguments: [ISO_9075.Fragment]
+    let function: ISO.`9075`.Fragment
+    let base: ISO.`9075`.Fragment
+    let arguments: [ISO.`9075`.Fragment]
 }
 
 extension _JSONReplaceExpression where QueryValue: _JSONRepresentable {
@@ -1487,9 +1487,9 @@ extension _JSONReplaceExpression where QueryValue: _JSONBRepresentable {
 }
 
 public struct _JSONSetExpression<QueryValue: QueryRepresentable>: _JSONMutationExpression {
-    let function: ISO_9075.Fragment
-    let base: ISO_9075.Fragment
-    let arguments: [ISO_9075.Fragment]
+    let function: ISO.`9075`.Fragment
+    let base: ISO.`9075`.Fragment
+    let arguments: [ISO.`9075`.Fragment]
 }
 
 extension _JSONSetExpression where QueryValue: _JSONRepresentable {
@@ -1634,18 +1634,18 @@ where QueryOutput: _DictionaryProtocol, QueryOutput.Key == String, QueryOutput.V
     public typealias _ValueRepresentation = JSONBRepresentation<QueryOutput.Value>
 }
 
-extension ISO_9075.Fragment {
+extension ISO.`9075`.Fragment {
     fileprivate static func jsonEncoded<V: QueryRepresentable>(
         _ value: some QueryExpression<V>
-    ) -> ISO_9075.Fragment {
+    ) -> ISO.`9075`.Fragment {
         V._queryFragment(jsonEncoding: value.argumentFragment)
     }
 
     fileprivate static func jsonSetArguments<Root, Context, Member>(
-        _ objectFunction: ISO_9075.Fragment,
+        _ objectFunction: ISO.`9075`.Fragment,
         _ path: KeyPath<JSONPath<_JSONPathRoot, Root>, JSONPath<Context, Member>>,
-        _ value: ISO_9075.Fragment
-    ) -> ISO_9075.Fragment {
+        _ value: ISO.`9075`.Fragment
+    ) -> ISO.`9075`.Fragment {
         let path = JSONPath()[keyPath: path]
         guard let caseName = path.caseName
         else {
@@ -1660,15 +1660,15 @@ extension ISO_9075.Fragment {
     fileprivate static func jsonArguments<Root, Context, Member>(
         _ path: KeyPath<JSONPath<_JSONPathRoot, Root>, JSONPath<Context, Member>>,
         appending suffix: String = ""
-    ) -> ISO_9075.Fragment {
+    ) -> ISO.`9075`.Fragment {
         "\(text: JSONPath()[keyPath: path].pathString + suffix)"
     }
 
     fileprivate static func jsonArguments<Root, Context, Member>(
         _ path: KeyPath<JSONPath<_JSONPathRoot, Root>, JSONPath<Context, Member>>,
         appending suffix: String = "",
-        _ value: ISO_9075.Fragment
-    ) -> ISO_9075.Fragment {
+        _ value: ISO.`9075`.Fragment
+    ) -> ISO.`9075`.Fragment {
         "\(jsonArguments(path, appending: suffix)), \(value)"
     }
 }

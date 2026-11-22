@@ -28,23 +28,23 @@
         }
     }
 
-    struct Committing: ISO_9075.Database {
+    struct Committing: ISO.`9075`.Database {
         let base: SQLite.Database
 
         @_disfavoredOverload
         func read<Value: Sendable, Thrown: Swift.Error>(
             _ body: @Sendable (SQLite.Connection) throws(Thrown) -> Value
-        ) async throws(ISO_9075.Failure<Thrown>) -> Value {
+        ) async throws(ISO.`9075`.Failure<Thrown>) -> Value {
             try await base.read(body)
         }
 
         @_disfavoredOverload
         func write<Value: Sendable, Thrown: Swift.Error>(
             _ body: @Sendable (SQLite.Connection) throws(Thrown) -> Value
-        ) async throws(ISO_9075.Failure<Thrown>) -> Value {
+        ) async throws(ISO.`9075`.Failure<Thrown>) -> Value {
             let outcome: Result<Value, Thrown>
-            do throws(ISO_9075.Error) {
-                outcome = try await base.write { connection throws(ISO_9075.Error) in
+            do throws(ISO.`9075`.Error) {
+                outcome = try await base.write { connection throws(ISO.`9075`.Error) in
                     Result { () throws(Thrown) in try body(connection) }
                 }
             } catch {
@@ -60,27 +60,27 @@
         @_disfavoredOverload
         func withRollback<Value: Sendable, Thrown: Swift.Error>(
             _ body: @Sendable (SQLite.Connection) throws(Thrown) -> Value
-        ) async throws(ISO_9075.Failure<Thrown>) -> Value {
+        ) async throws(ISO.`9075`.Failure<Thrown>) -> Value {
             try await base.withRollback(body)
         }
     }
 
-    struct Dropping: ISO_9075.Database {
+    struct Dropping: ISO.`9075`.Database {
         let base: SQLite.Database
 
-        struct Connection: ISO_9075.Connection {
+        struct Connection: ISO.`9075`.Connection {
             let base: SQLite.Connection
 
             var dialect: SQLite { base.dialect }
 
-            func execute(_ statement: ISO_9075.Rendering) throws(ISO_9075.Error) -> Int {
+            func execute(_ statement: ISO.`9075`.Rendering) throws(ISO.`9075`.Error) -> Int {
                 try base.execute(statement)
             }
 
             func fetchAll<Value>(
-                _ statement: ISO_9075.Rendering,
-                decode: (SQLite.Row) throws(ISO_9075.Error) -> Value
-            ) throws(ISO_9075.Error) -> [Value] {
+                _ statement: ISO.`9075`.Rendering,
+                decode: (SQLite.Row) throws(ISO.`9075`.Error) -> Value
+            ) throws(ISO.`9075`.Error) -> [Value] {
                 Array(try base.fetchAll(statement, decode: decode).dropLast())
             }
         }
@@ -88,21 +88,21 @@
         @_disfavoredOverload
         func read<Value: Sendable, Thrown: Swift.Error>(
             _ body: @Sendable (Connection) throws(Thrown) -> Value
-        ) async throws(ISO_9075.Failure<Thrown>) -> Value {
+        ) async throws(ISO.`9075`.Failure<Thrown>) -> Value {
             try await base.read { connection throws(Thrown) in try body(Connection(base: connection)) }
         }
 
         @_disfavoredOverload
         func write<Value: Sendable, Thrown: Swift.Error>(
             _ body: @Sendable (Connection) throws(Thrown) -> Value
-        ) async throws(ISO_9075.Failure<Thrown>) -> Value {
+        ) async throws(ISO.`9075`.Failure<Thrown>) -> Value {
             try await base.write { connection throws(Thrown) in try body(Connection(base: connection)) }
         }
 
         @_disfavoredOverload
         func withRollback<Value: Sendable, Thrown: Swift.Error>(
             _ body: @Sendable (Connection) throws(Thrown) -> Value
-        ) async throws(ISO_9075.Failure<Thrown>) -> Value {
+        ) async throws(ISO.`9075`.Failure<Thrown>) -> Value {
             try await base.withRollback { connection throws(Thrown) in try body(Connection(base: connection)) }
         }
     }

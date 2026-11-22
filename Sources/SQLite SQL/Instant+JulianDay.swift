@@ -10,18 +10,18 @@ extension Time.Instant {
             self.queryOutput = queryOutput
         }
 
-        public static func _queryFragment(jsonEncoding queryFragment: ISO_9075.Fragment) -> ISO_9075.Fragment {
+        public static func _queryFragment(jsonEncoding queryFragment: ISO.`9075`.Fragment) -> ISO.`9075`.Fragment {
             subsecDateTime([queryFragment, "'julianday'"])
         }
 
-        public static func _queryFragment(jsonDecoding queryFragment: ISO_9075.Fragment) -> ISO_9075.Fragment {
+        public static func _queryFragment(jsonDecoding queryFragment: ISO.`9075`.Fragment) -> ISO.`9075`.Fragment {
             "julianday(\(queryFragment))"
         }
     }
 }
 
 extension Time.Instant.JulianDayRepresentation: QueryBindable {
-    public var queryBinding: ISO_9075.Value {
+    public var queryBinding: ISO.`9075`.Value {
         .double(
             2_440_587.5
                 + (Double(queryOutput.secondsSinceUnixEpoch) + Double(queryOutput.nanosecondFraction) / 1_000_000_000)

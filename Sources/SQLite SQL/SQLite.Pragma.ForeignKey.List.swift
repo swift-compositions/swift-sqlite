@@ -6,7 +6,7 @@ extension SQLite.Pragma.ForeignKey {
     @Table
     public struct List<Base: SQL.Table> {
         public static var tableAlias: String? { "\(Base.tableName)ForeignKeys" }
-        public static var tableFragment: ISO_9075.Fragment {
+        public static var tableFragment: ISO.`9075`.Fragment {
             "pragma_foreign_key_list(\(text: Base.tableName))"
         }
 

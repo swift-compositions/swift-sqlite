@@ -11,7 +11,7 @@ public import SQLite_SQL
     }
 
     struct StatementValue<QueryValue: QueryRepresentable>: FetchKeyRequest {
-        let query: ISO_9075.Fragment
+        let query: ISO.`9075`.Fragment
 
         func fetch(_ connection: SQLite.Connection) throws -> QueryValue.QueryOutput? {
             try QueryValueCursor<QueryValue>(db: connection.database, query: query, cached: true).next()

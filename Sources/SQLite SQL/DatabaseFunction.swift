@@ -14,7 +14,7 @@ public protocol DatabaseFunction<Input, Output> {
 }
 
 public protocol ScalarDatabaseFunction<Input, Output>: DatabaseFunction {
-    func invoke(_ decoder: inout some QueryDecoder) throws -> ISO_9075.Value
+    func invoke(_ decoder: inout some QueryDecoder) throws -> ISO.`9075`.Value
 }
 
 extension ScalarDatabaseFunction {
@@ -25,7 +25,7 @@ extension ScalarDatabaseFunction {
     where Input == (repeat (each T).QueryValue) {
         $_isSelecting.withValue(false) {
             SQLQueryExpression<Output>(
-                "\(quote: name)(\([ISO_9075.Fragment](repeat each input).joined(separator: ", ")))"
+                "\(quote: name)(\([ISO.`9075`.Fragment](repeat each input).joined(separator: ", ")))"
             )
         }
     }
@@ -36,7 +36,7 @@ public protocol AggregateDatabaseFunction<Input, Output>: DatabaseFunction {
 
     func step(_ decoder: inout some QueryDecoder) throws -> Element
 
-    func invoke(_ arguments: some Swift.Sequence<Element>) throws -> ISO_9075.Value
+    func invoke(_ arguments: some Swift.Sequence<Element>) throws -> ISO.`9075`.Value
 }
 
 extension AggregateDatabaseFunction {

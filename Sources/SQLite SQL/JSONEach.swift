@@ -223,7 +223,7 @@ public struct JSONEach<
 
     public let value: Value.QueryOutput
 
-    fileprivate static func select(from tableReference: ISO_9075.Fragment) -> SelectOf<JSONEach> {
+    fileprivate static func select(from tableReference: ISO.`9075`.Fragment) -> SelectOf<JSONEach> {
         var select = all.asSelect()
         select.tableReference = tableReference
         return select
@@ -250,9 +250,9 @@ public struct JSONEach<
     public struct Selection: TableExpression {
         public typealias QueryValue = JSONEach
 
-        public let allColumns: [ISO_9075.Fragment]
+        public let allColumns: [ISO.`9075`.Fragment]
 
-        public init(allColumns: [ISO_9075.Fragment]) {
+        public init(allColumns: [ISO.`9075`.Fragment]) {
             self.allColumns = allColumns
         }
     }
@@ -287,7 +287,7 @@ public struct JSONBEach<
 
     public let value: Value.QueryOutput
 
-    fileprivate static func select(from tableReference: ISO_9075.Fragment) -> SelectOf<JSONBEach> {
+    fileprivate static func select(from tableReference: ISO.`9075`.Fragment) -> SelectOf<JSONBEach> {
         var select = all.asSelect()
         select.tableReference = tableReference
         return select
@@ -314,9 +314,9 @@ public struct JSONBEach<
     public struct Selection: TableExpression {
         public typealias QueryValue = JSONBEach
 
-        public let allColumns: [ISO_9075.Fragment]
+        public let allColumns: [ISO.`9075`.Fragment]
 
-        public init(allColumns: [ISO_9075.Fragment]) {
+        public init(allColumns: [ISO.`9075`.Fragment]) {
             self.allColumns = allColumns
         }
     }
@@ -338,26 +338,26 @@ extension JSONBEach: Sendable where Key.QueryOutput: Sendable, Value.QueryOutput
 extension JSONBEach: Equatable where Key.QueryOutput: Equatable, Value.QueryOutput: Equatable {}
 
 extension QueryExpression {
-    fileprivate var argumentFragment: ISO_9075.Fragment {
+    fileprivate var argumentFragment: ISO.`9075`.Fragment {
         $_isSelecting.withValue(false) { queryFragment }
     }
 
     fileprivate func jsonEachFragment<Root, Context, Member>(
         _ path: KeyPath<JSONPath<_JSONPathRoot, Root>, JSONPath<Context, Member>>
-    ) -> ISO_9075.Fragment {
+    ) -> ISO.`9075`.Fragment {
         eachFragment("json_each", path)
     }
 
     fileprivate func jsonbEachFragment<Root, Context, Member>(
         _ path: KeyPath<JSONPath<_JSONPathRoot, Root>, JSONPath<Context, Member>>
-    ) -> ISO_9075.Fragment {
+    ) -> ISO.`9075`.Fragment {
         eachFragment("jsonb_each", path)
     }
 
     private func eachFragment<Root, Context, Member>(
-        _ function: ISO_9075.Fragment,
+        _ function: ISO.`9075`.Fragment,
         _ path: KeyPath<JSONPath<_JSONPathRoot, Root>, JSONPath<Context, Member>>
-    ) -> ISO_9075.Fragment {
+    ) -> ISO.`9075`.Fragment {
         """
         \(function)(\
         \(argumentFragment), \

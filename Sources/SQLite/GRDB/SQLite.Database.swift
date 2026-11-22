@@ -17,7 +17,7 @@ public import SQLite_SQL
         /// Reads and writes run their closure on a connection of their own, inside a transaction, serialised with every
         /// other write. Each comes synchronous and asynchronous; the asynchronous ones that take a closure throwing
         /// `ISO_9075.Error` are the call-level interface swift-sql's `Migrator` runs on.
-        public struct Database: ISO_9075.Database {
+        public struct Database: ISO.`9075`.Database {
             public typealias Connection = SQLite.Connection
 
             package let writer: any DatabaseWriter
@@ -168,20 +168,20 @@ public import SQLite_SQL
     }
 
     extension SQLite.Database {
-        public func read<T>(_ body: (SQLite.Connection) throws(ISO_9075.Error) -> T) throws(ISO_9075.Error) -> T {
+        public func read<T>(_ body: (SQLite.Connection) throws(ISO.`9075`.Error) -> T) throws(ISO.`9075`.Error) -> T {
             try performing {
                 try requireOpen()
                 return try writer.read { database in try body(SQLite.Connection(database)) }
             }
         }
 
-        public func write<T>(_ body: (SQLite.Connection) throws(ISO_9075.Error) -> T) throws(ISO_9075.Error) -> T {
+        public func write<T>(_ body: (SQLite.Connection) throws(ISO.`9075`.Error) -> T) throws(ISO.`9075`.Error) -> T {
             try performing { try writer.write { database in try body(SQLite.Connection(database)) } }
         }
 
         public func read<Value: Sendable>(
-            _ body: @Sendable (Connection) throws(ISO_9075.Error) -> Value
-        ) async throws(ISO_9075.Error) -> Value {
+            _ body: @Sendable (Connection) throws(ISO.`9075`.Error) -> Value
+        ) async throws(ISO.`9075`.Error) -> Value {
             try await performing {
                 try await requireOpen()
                 return try await writer.read { database in try body(Connection(database)) }
@@ -189,14 +189,14 @@ public import SQLite_SQL
         }
 
         public func write<Value: Sendable>(
-            _ body: @Sendable (Connection) throws(ISO_9075.Error) -> Value
-        ) async throws(ISO_9075.Error) -> Value {
+            _ body: @Sendable (Connection) throws(ISO.`9075`.Error) -> Value
+        ) async throws(ISO.`9075`.Error) -> Value {
             try await performing { try await writer.write { database in try body(Connection(database)) } }
         }
 
         public func withRollback<Value: Sendable>(
-            _ body: @Sendable (Connection) throws(ISO_9075.Error) -> Value
-        ) async throws(ISO_9075.Error) -> Value {
+            _ body: @Sendable (Connection) throws(ISO.`9075`.Error) -> Value
+        ) async throws(ISO.`9075`.Error) -> Value {
             try await performing {
                 try await writer.writeWithoutTransaction { database in
                     try database.beginTransaction()
@@ -208,7 +208,7 @@ public import SQLite_SQL
         @_disfavoredOverload
         public func read<Value: Sendable, Thrown: Swift.Error>(
             _ body: @Sendable (Connection) throws(Thrown) -> Value
-        ) async throws(ISO_9075.Failure<Thrown>) -> Value {
+        ) async throws(ISO.`9075`.Failure<Thrown>) -> Value {
             try await separating(Thrown.self) {
                 try await requireOpen()
                 return try await writer.read { database in try Raised.raising { () throws(Thrown) in try body(Connection(database)) } }
@@ -218,7 +218,7 @@ public import SQLite_SQL
         @_disfavoredOverload
         public func write<Value: Sendable, Thrown: Swift.Error>(
             _ body: @Sendable (Connection) throws(Thrown) -> Value
-        ) async throws(ISO_9075.Failure<Thrown>) -> Value {
+        ) async throws(ISO.`9075`.Failure<Thrown>) -> Value {
             try await separating(Thrown.self) {
                 try await writer.write { database in try Raised.raising { () throws(Thrown) in try body(Connection(database)) } }
             }
@@ -227,7 +227,7 @@ public import SQLite_SQL
         @_disfavoredOverload
         public func withRollback<Value: Sendable, Thrown: Swift.Error>(
             _ body: @Sendable (Connection) throws(Thrown) -> Value
-        ) async throws(ISO_9075.Failure<Thrown>) -> Value {
+        ) async throws(ISO.`9075`.Failure<Thrown>) -> Value {
             try await separating(Thrown.self) {
                 try await writer.writeWithoutTransaction { database in
                     try database.beginTransaction()

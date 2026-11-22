@@ -13,7 +13,7 @@ extension RFC_4122.UUID {
 }
 
 extension RFC_4122.UUID.UppercasedRepresentation: QueryBindable {
-    public var queryBinding: ISO_9075.Value { .text(String(queryOutput).uppercased()) }
+    public var queryBinding: ISO.`9075`.Value { .text(String(queryOutput).uppercased()) }
 }
 
 extension RFC_4122.UUID.UppercasedRepresentation: QueryDecodable {

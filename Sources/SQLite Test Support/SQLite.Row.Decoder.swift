@@ -9,9 +9,9 @@
     extension SQLite.Row {
         /// Decodes one value of a row, as a typed fetch decodes a column.
         public struct Decoder: QueryDecoder {
-            let value: ISO_9075.Value
+            let value: ISO.`9075`.Value
 
-            public init(value: ISO_9075.Value) {
+            public init(value: ISO.`9075`.Value) {
                 self.value = value
             }
         }

@@ -58,7 +58,7 @@
             public enum Error: Swift.Error {
                 case accountUnavailable(CKAccountStatus)
                 case assetDataNotFound(column: String)
-                case binding(ISO_9075.Value.Failure)
+                case binding(ISO.`9075`.Value.Failure)
                 case cancelled
                 case cloudKit(CKError)
                 case database(SQLite.Error)
@@ -76,7 +76,7 @@
                         case let error as DatabaseError: .database(SQLite.Error(error))
                         case let error as SQLite.Error: .database(error)
                         case let error as SchemaError: .schema(error)
-                        case let error as ISO_9075.Value.Failure: .binding(error)
+                        case let error as ISO.`9075`.Value.Failure: .binding(error)
                         case is CancellationError: .cancelled
                         default: .underlying(error as NSError)
                         }
@@ -2056,7 +2056,7 @@
                 record: CKRecord,
                 columnNames: some Swift.Collection<String>,
                 changedColumnNames: some Swift.Collection<String>
-            ) async throws -> ISO_9075.Fragment {
+            ) async throws -> ISO.`9075`.Fragment {
                 let nonPrimaryKeyChangedColumns =
                     changedColumnNames
                     .filter {
@@ -2075,7 +2075,7 @@
                     record = try await container.database(for: record.recordID).record(for: record.recordID)
                 }
 
-                var query: ISO_9075.Fragment = "INSERT INTO \(T.self) ("
+                var query: ISO.`9075`.Fragment = "INSERT INTO \(T.self) ("
                 query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
                 query.append(") VALUES (")
                 query.append(
@@ -2508,7 +2508,7 @@
             record: CKRecord,
             columnNames: some Swift.Collection<String>,
             dataManager: some DataManager
-        ) -> ISO_9075.Fragment {
+        ) -> ISO.`9075`.Fragment {
             let setColumnNames = T.TableColumns.writableColumns.map(\.name)
                 .filter { record.hasSet(key: $0) }
             guard !setColumnNames.isEmpty
@@ -2517,7 +2517,7 @@
             }
             let columnNames = columnNames.filter { setColumnNames.contains($0) }
             let hasNonPrimaryKeyColumns = columnNames.contains { $0 != T.primaryKey.name }
-            var query: ISO_9075.Fragment = "INSERT INTO \(T.self) ("
+            var query: ISO.`9075`.Fragment = "INSERT INTO \(T.self) ("
             query.append(setColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
             query.append(") VALUES (")
             query.append(

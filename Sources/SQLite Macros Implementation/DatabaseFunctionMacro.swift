@@ -230,10 +230,10 @@ extension DatabaseFunctionMacro: PeerMacro {
                 \(raw: storage)
                 public func invoke(
                 _ decoder: inout some SQL::QueryDecoder
-                ) throws -> ISO_9075_Foundation::ISO_9075.Value {
+                ) throws -> ISO.`9075`.Value {
                 \(raw: invocation)
                 }
-                public var queryFragment: ISO_9075_Foundation::ISO_9075.Fragment {
+                public var queryFragment: ISO.`9075`.Fragment {
                 "\\(quote: self.name)()"
                 }
                 }
@@ -600,7 +600,7 @@ extension DatabaseFunctionMacro: PeerMacro {
             baseGuard = #"""
                 guard let base else {
                 return .invalid(
-                ISO_9075_Foundation::ISO_9075.Value.Failure(
+                ISO.`9075`.Value.Failure(
                 SQLite_SQL::_DatabaseFunctionDeallocated(
                 """
                 Failed to invoke '\#(declaration.name.trimmed)'; '\#(baseType)' was deallocated
@@ -717,13 +717,13 @@ extension DatabaseFunctionMacro: PeerMacro {
                     do {
                     \(invocationBody)
                     } catch {
-                    return .invalid(ISO_9075_Foundation::ISO_9075.Value.Failure(error))
+                    return .invalid(ISO.`9075`.Value.Failure(error))
                     }
                     """
             }
             methods.append(
                 """
-                public func invoke(\(parameter)) throws -> ISO_9075_Foundation::ISO_9075.Value {
+                public func invoke(\(parameter)) throws -> ISO.`9075`.Value {
                 \(raw: baseGuard)\(raw: invocationBody)
                 }
                 """
@@ -774,7 +774,7 @@ extension DatabaseFunctionMacro: PeerMacro {
                     do {
                     \(invocationBody)
                     } catch {
-                    return .invalid(ISO_9075_Foundation::ISO_9075.Value.Failure(error))
+                    return .invalid(ISO.`9075`.Value.Failure(error))
                     }
                     """
             }
@@ -783,7 +783,7 @@ extension DatabaseFunctionMacro: PeerMacro {
                 """
                 public func invoke(
                 _ decoder: inout some SQL::QueryDecoder
-                ) throws -> ISO_9075_Foundation::ISO_9075.Value {
+                ) throws -> ISO.`9075`.Value {
                 \(raw: (decodings + decodingUnwrappings).map { "\($0)\n" }.joined())\
                 \(raw: baseGuard)\(raw: invocationBody)
                 }

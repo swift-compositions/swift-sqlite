@@ -37,7 +37,7 @@ public import SQLite_SQL
             do throws(Cardinal.Error) {
                 return try Cardinal(rows)
             } catch {
-                throw ISO_9075.Error.decoding("a row count of \(rows) is no cardinal: \(error)")
+                throw ISO.`9075`.Error.decoding("a row count of \(rows) is no cardinal: \(error)")
             }
         }
 

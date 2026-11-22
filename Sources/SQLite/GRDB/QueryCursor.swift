@@ -18,7 +18,7 @@ public import SQLite_SQL
         }
 
         /// The next row, or `nil` once every row has been read.
-        public func next() throws(ISO_9075.Error) -> Element? {
+        public func next() throws(ISO.`9075`.Error) -> Element? {
             try performing { try base.next() }
         }
     }
@@ -28,7 +28,7 @@ public import SQLite_SQL
         package let _statement: GRDB.Statement
         var decoder: SQLiteQueryDecoder
 
-        init(db: GRDB.Database, query: ISO_9075.Fragment, cached: Bool) throws {
+        init(db: GRDB.Database, query: ISO.`9075`.Fragment, cached: Bool) throws {
             (_statement, decoder) = try db.prepare(SQLite().render(query), cached: cached)
         }
 
@@ -48,7 +48,7 @@ public import SQLite_SQL
                 return value
             } catch {
                 let index = Int(decoder.currentIndex) - 1
-                throw ISO_9075.Error.decoding(
+                throw ISO.`9075`.Error.decoding(
                     "column \(index) (\(_statement.columnNames[index])): \(error) in \(_statement.sql)"
                 )
             }
@@ -56,7 +56,7 @@ public import SQLite_SQL
     }
 
     final class QueryValueCursor<QueryValue: QueryRepresentable>: StatementCursor<QueryValue.QueryOutput> {
-        override init(db: GRDB.Database, query: ISO_9075.Fragment, cached: Bool) throws {
+        override init(db: GRDB.Database, query: ISO.`9075`.Fragment, cached: Bool) throws {
             try super.init(db: db, query: query, cached: cached)
         }
 
@@ -69,7 +69,7 @@ public import SQLite_SQL
         Element: QueryRepresentable,
         SectionName: QueryRepresentable
     >: StatementCursor<(Element.QueryOutput, SectionName.QueryOutput)> {
-        override init(db: GRDB.Database, query: ISO_9075.Fragment, cached: Bool) throws {
+        override init(db: GRDB.Database, query: ISO.`9075`.Fragment, cached: Bool) throws {
             try super.init(db: db, query: query, cached: cached)
         }
 
@@ -85,7 +85,7 @@ public import SQLite_SQL
     final class QueryPackCursor<
         each QueryValue: QueryRepresentable
     >: StatementCursor<(repeat (each QueryValue).QueryOutput)> {
-        override init(db: GRDB.Database, query: ISO_9075.Fragment, cached: Bool) throws {
+        override init(db: GRDB.Database, query: ISO.`9075`.Fragment, cached: Bool) throws {
             try super.init(db: db, query: query, cached: cached)
         }
 
@@ -97,7 +97,7 @@ public import SQLite_SQL
     }
 
     final class QueryVoidCursor: StatementCursor<Void> {
-        override init(db: GRDB.Database, query: ISO_9075.Fragment, cached: Bool) throws {
+        override init(db: GRDB.Database, query: ISO.`9075`.Fragment, cached: Bool) throws {
             try super.init(db: db, query: query, cached: cached)
         }
 
@@ -108,7 +108,7 @@ public import SQLite_SQL
 
     extension GRDB.Database {
         func prepare(
-            _ rendering: ISO_9075.Rendering,
+            _ rendering: ISO.`9075`.Rendering,
             cached: Bool
         ) throws -> (GRDB.Statement, SQLiteQueryDecoder) {
             let sql = rendering.sql.isEmpty ? "SELECT 1 WHERE 0" : rendering.sql
@@ -121,7 +121,7 @@ public import SQLite_SQL
         }
     }
 
-    extension ISO_9075.Value {
+    extension ISO.`9075`.Value {
         func bind(to statement: SQLiteStatement, at index: Int32) throws {
             let result: Int32 =
                 switch self {
@@ -130,7 +130,7 @@ public import SQLite_SQL
                 case .int(let int): unsafe sqlite3_bind_int64(statement, index, int)
                 case .double(let double): unsafe sqlite3_bind_double(statement, index, double)
                 case .text(let text), .decimal(let text): unsafe text.bind(to: statement, at: index)
-                case .timestamp(let instant): unsafe try ISO_9075.Literal.timestamp(instant).bind(to: statement, at: index)
+                case .timestamp(let instant): unsafe try ISO.`9075`.Literal.timestamp(instant).bind(to: statement, at: index)
                 case .uuid(let uuid): unsafe String(uuid).lowercased().bind(to: statement, at: index)
                 case .json(let bytes): unsafe bytes.withUnsafeBytes { unsafe String(decoding: $0, as: UTF8.self) }.bind(to: statement, at: index)
                 case .blob(let blob) where blob.isEmpty: unsafe sqlite3_bind_zeroblob(statement, index, 0)
@@ -138,8 +138,8 @@ public import SQLite_SQL
                     blob.withUnsafeBytes {
                         unsafe sqlite3_bind_blob(statement, index, $0.baseAddress, Int32($0.count), SQLITE_TRANSIENT)
                     }
-                case .array: throw ISO_9075.Error.binding(ISO_9075.Value.Failure("SQLite has no array values"))
-                case .invalid(let failure): throw ISO_9075.Error.binding(failure)
+                case .array: throw ISO.`9075`.Error.binding(ISO.`9075`.Value.Failure("SQLite has no array values"))
+                case .invalid(let failure): throw ISO.`9075`.Error.binding(failure)
                 }
             guard result == SQLITE_OK else { throw DatabaseError(resultCode: ResultCode(rawValue: result)) }
         }

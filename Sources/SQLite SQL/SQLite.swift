@@ -1,6 +1,6 @@
 public import ISO_9075_Foundation
 
-public struct SQLite: ISO_9075.Dialect {
+public struct SQLite: ISO.`9075`.Dialect {
     public init() {}
 
     public func placeholder(_ offset: Int) -> String { "?" }

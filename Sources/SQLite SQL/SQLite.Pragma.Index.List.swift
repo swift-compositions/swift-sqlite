@@ -6,7 +6,7 @@ extension SQLite.Pragma.Index {
     @Table
     public struct List<Base: SQL.Table> {
         public static var tableAlias: String? { "\(Base.tableName)Indices" }
-        public static var tableFragment: ISO_9075.Fragment {
+        public static var tableFragment: ISO.`9075`.Fragment {
             "pragma_index_list(\(text: Base.tableName))"
         }
 

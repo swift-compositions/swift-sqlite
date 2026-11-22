@@ -16,14 +16,14 @@ public import SQLite_SQL
     }
 
     extension SQLite.Observation.Iterator {
-        public mutating func next() async throws(ISO_9075.Error) -> Value? {
+        public mutating func next() async throws(ISO.`9075`.Error) -> Value? {
             try await next(isolation: #isolation)
         }
 
-        public mutating func next(isolation actor: isolated (any Actor)?) async throws(ISO_9075.Error) -> Value? {
+        public mutating func next(isolation actor: isolated (any Actor)?) async throws(ISO.`9075`.Error) -> Value? {
             do {
                 return try await values.next(isolation: actor)
-            } catch let error as ISO_9075.Error {
+            } catch let error as ISO.`9075`.Error {
                 throw error
             } catch {
                 throw .execution("\(error)")

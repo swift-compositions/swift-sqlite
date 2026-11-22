@@ -6,7 +6,7 @@ extension SQLite.Pragma.ForeignKey {
     @Table
     public struct Check: Sendable {
         public static var tableAlias: String? { "foreignKeyChecks" }
-        public static var tableFragment: ISO_9075.Fragment { "pragma_foreign_key_check()" }
+        public static var tableFragment: ISO.`9075`.Fragment { "pragma_foreign_key_check()" }
 
         /// The child table containing the violation.
         public let table: String

@@ -20,7 +20,7 @@ where Selection.QueryValue == View {
     fileprivate let select: Selection
 
     public func drop(ifExists: Bool = false) -> some Statement<()> {
-        var query: ISO_9075.Fragment = "DROP VIEW"
+        var query: ISO.`9075`.Fragment = "DROP VIEW"
         if ifExists {
             query.append(" IF EXISTS")
         }
@@ -32,8 +32,8 @@ where Selection.QueryValue == View {
         return SQLQueryExpression(query)
     }
 
-    public var query: ISO_9075.Fragment {
-        var query: ISO_9075.Fragment = "CREATE TEMPORARY VIEW"
+    public var query: ISO.`9075`.Fragment {
+        var query: ISO.`9075`.Fragment = "CREATE TEMPORARY VIEW"
         if ifNotExists {
             query.append(" IF NOT EXISTS")
         }
@@ -42,7 +42,7 @@ where Selection.QueryValue == View {
             query.append("\(quote: schemaName).")
         }
         query.append(View.tableFragment)
-        let columnNames: [ISO_9075.Fragment] = View.TableColumns.allColumns
+        let columnNames: [ISO.`9075`.Fragment] = View.TableColumns.allColumns
             .map { "\(quote: $0.name)" }
         query.append("\(.newlineOrSpace)(\(columnNames.joined(separator: ", ")))")
         query.append("\(.newlineOrSpace)AS")

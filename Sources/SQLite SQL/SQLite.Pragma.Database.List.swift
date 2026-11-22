@@ -6,7 +6,7 @@ extension SQLite.Pragma.Database {
     @Table
     public struct List {
         public static var tableAlias: String? { "databases" }
-        public static var tableFragment: ISO_9075.Fragment { "pragma_database_list()" }
+        public static var tableFragment: ISO.`9075`.Fragment { "pragma_database_list()" }
 
         /// The database's position in the connection's attached-database list.
         @Column("seq") public let sequence: Int

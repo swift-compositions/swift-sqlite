@@ -8,7 +8,7 @@ public import SQLite_SQL
     @Observable
     public final class FetchStore<Value: Sendable> {
         public private(set) var value: Value
-        public private(set) var loadError: ISO_9075.Error?
+        public private(set) var loadError: ISO.`9075`.Error?
         public private(set) var isLoading = false
 
         @ObservationIgnored
@@ -66,10 +66,10 @@ public import SQLite_SQL
         ) -> AnyDatabaseCancellable {
             ValueObservation
                 .tracking { database in
-                    Result { () throws(ISO_9075.Error) -> Value in
+                    Result { () throws(ISO.`9075`.Error) -> Value in
                         do {
                             return try request.fetch(SQLite.Connection(database))
-                        } catch let error as ISO_9075.Error {
+                        } catch let error as ISO.`9075`.Error {
                             throw error
                         } catch {
                             throw .execution("\(SQLite.Error.translated(error))")
@@ -91,7 +91,7 @@ public import SQLite_SQL
             loading = nil
         }
 
-        private func receive(_ result: Result<Value, ISO_9075.Error>) {
+        private func receive(_ result: Result<Value, ISO.`9075`.Error>) {
             isLoading = false
             switch result {
             case .success(let value):

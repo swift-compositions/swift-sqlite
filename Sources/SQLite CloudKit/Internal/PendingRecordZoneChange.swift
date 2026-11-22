@@ -25,7 +25,7 @@
                     self.queryOutput = queryOutput
                 }
 
-                package var queryBinding: ISO_9075.Value {
+                package var queryBinding: ISO.`9075`.Value {
                     let archiver = NSKeyedArchiver(requiringSecureCoding: true)
                     switch queryOutput {
                     case .saveRecord(let recordID):
@@ -35,7 +35,7 @@
                         recordID.encode(with: archiver)
                         archiver.encode("deleteRecord", forKey: "changeType")
                     @unknown default:
-                        return .invalid(ISO_9075.Value.Failure("Unknown pending record zone change: \(queryOutput)"))
+                        return .invalid(ISO.`9075`.Value.Failure("Unknown pending record zone change: \(queryOutput)"))
                     }
                     return .blob([Byte](archiver.encodedData))
                 }

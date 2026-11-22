@@ -12,7 +12,7 @@
             if arguments.isEmpty {
                 try translatingErrors { try database.execute(sql: sql) }
             } else {
-                try SQLQueryExpression(ISO_9075.Fragment(text: sql, arguments: arguments)).execute(self)
+                try SQLQueryExpression(ISO.`9075`.Fragment(text: sql, arguments: arguments)).execute(self)
             }
         }
     }
@@ -24,7 +24,7 @@
             sql: String,
             arguments: [any QueryBindable] = []
         ) throws -> [QueryOutput] {
-            try SQLQueryExpression<Self>(ISO_9075.Fragment(text: sql, arguments: arguments)).fetch.all(connection)
+            try SQLQueryExpression<Self>(ISO.`9075`.Fragment(text: sql, arguments: arguments)).fetch.all(connection)
         }
 
         /// The first column of the first row `sql` returns, as `Self`, or none when it returns no row.
@@ -33,7 +33,7 @@
             sql: String,
             arguments: [any QueryBindable] = []
         ) throws -> QueryOutput? {
-            try SQLQueryExpression<Self>(ISO_9075.Fragment(text: sql, arguments: arguments)).fetch.one(connection)
+            try SQLQueryExpression<Self>(ISO.`9075`.Fragment(text: sql, arguments: arguments)).fetch.one(connection)
         }
     }
 
@@ -44,7 +44,7 @@
             sql: String,
             arguments: [any QueryBindable] = []
         ) throws -> [SQLite.Row] {
-            try connection.fetchAll(SQLite().render(ISO_9075.Fragment(text: sql, arguments: arguments))) { $0 }
+            try connection.fetchAll(SQLite().render(ISO.`9075`.Fragment(text: sql, arguments: arguments))) { $0 }
         }
 
         /// The first row `sql` returns, or none.
@@ -60,12 +60,12 @@
         public var columnNames: [String] { columns }
 
         /// The row's values, in column order.
-        public var databaseValues: [ISO_9075.Value] {
+        public var databaseValues: [ISO.`9075`.Value] {
             columns.indices.map { (try? value(at: $0)) ?? .null }
         }
 
         /// The value of the column named `name`, or `.null` when the row has none by that name.
-        public subscript(_ name: String) -> ISO_9075.Value {
+        public subscript(_ name: String) -> ISO.`9075`.Value {
             columns.firstIndex(of: name).flatMap { try? value(at: $0) } ?? .null
         }
 
@@ -86,7 +86,7 @@
             "[" + zip(columns, databaseValues).map { "\($0):\(SQLite.Row.quoted($1))" }.joined(separator: " ") + "]"
         }
 
-        package static func quoted(_ value: ISO_9075.Value) -> String {
+        package static func quoted(_ value: ISO.`9075`.Value) -> String {
             switch value {
             case .null: "NULL"
             case .bool(let flag): flag ? "1" : "0"
@@ -99,7 +99,7 @@
         }
     }
 
-    extension ISO_9075.Fragment {
+    extension ISO.`9075`.Fragment {
         /// `sql` with each `?` outside a quoted literal or identifier bound to the next of `arguments`.
         package init(text sql: String, arguments: [any QueryBindable]) {
             var segments: [Segment] = []

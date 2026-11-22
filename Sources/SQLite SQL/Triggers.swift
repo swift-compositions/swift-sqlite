@@ -66,7 +66,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
     public typealias Joins = ()
     public typealias QueryValue = ()
 
-    fileprivate enum When: ISO_9075.Fragment {
+    fileprivate enum When: ISO.`9075`.Fragment {
         case before = "BEFORE"
         case after = "AFTER"
         case insteadOf = "INSTEAD OF"
@@ -83,7 +83,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
 
         public static func insert(
             @QueryFragmentBuilder<_StatementClause>
-            forEachRow perform: (_ new: New) -> [ISO_9075.Fragment],
+            forEachRow perform: (_ new: New) -> [ISO.`9075`.Fragment],
             when condition: ((_ new: New) -> any QueryExpression<Bool>)? = nil
         ) -> Self {
             Self(
@@ -133,7 +133,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
 
         public static func update(
             @QueryFragmentBuilder<_StatementClause>
-            forEachRow perform: (_ old: Old, _ new: New) -> [ISO_9075.Fragment],
+            forEachRow perform: (_ old: Old, _ new: New) -> [ISO.`9075`.Fragment],
             when condition: ((_ old: Old, _ new: New) -> any QueryExpression<Bool>)? = nil
         ) -> Self {
             update(
@@ -146,7 +146,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
         public static func update<each Column: _TableColumnExpression>(
             of columns: (On.TableColumns) -> (repeat each Column),
             @QueryFragmentBuilder<_StatementClause>
-            forEachRow perform: (_ old: Old, _ new: New) -> [ISO_9075.Fragment],
+            forEachRow perform: (_ old: Old, _ new: New) -> [ISO.`9075`.Fragment],
             when condition: ((_ old: Old, _ new: New) -> any QueryExpression<Bool>)? = nil
         ) -> Self {
             Self(
@@ -250,7 +250,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
 
         public static func delete(
             @QueryFragmentBuilder<_StatementClause>
-            forEachRow perform: (_ old: Old) -> [ISO_9075.Fragment],
+            forEachRow perform: (_ old: Old) -> [ISO.`9075`.Fragment],
             when condition: ((_ old: Old) -> any QueryExpression<Bool>)? = nil
         ) -> Self {
             Self(
@@ -260,13 +260,13 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
         }
 
         private enum Kind {
-            case insert(operations: [ISO_9075.Fragment])
-            case update(operations: [ISO_9075.Fragment], columnNames: [String])
-            case delete(operations: [ISO_9075.Fragment])
+            case insert(operations: [ISO.`9075`.Fragment])
+            case update(operations: [ISO.`9075`.Fragment], columnNames: [String])
+            case delete(operations: [ISO.`9075`.Fragment])
         }
 
         private let kind: Kind
-        private let when: ISO_9075.Fragment?
+        private let when: ISO.`9075`.Fragment?
 
         private init(
             kind: @autoclosure () -> Kind,
@@ -279,9 +279,9 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
             self.when = when
         }
 
-        public var queryFragment: ISO_9075.Fragment {
-            var query: ISO_9075.Fragment = ""
-            let statements: [ISO_9075.Fragment]
+        public var queryFragment: ISO.`9075`.Fragment {
+            var query: ISO.`9075`.Fragment = ""
+            let statements: [ISO.`9075`.Fragment]
             switch kind {
             case .insert(let begin):
                 query.append("INSERT")
@@ -290,7 +290,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
                 query.append("UPDATE")
                 if !columnNames.isEmpty {
                     query.append(
-                        " OF \(columnNames.map { ISO_9075.Fragment(quote: $0) }.joined(separator: ", "))"
+                        " OF \(columnNames.map { ISO.`9075`.Fragment(quote: $0) }.joined(separator: ", "))"
                     )
                 }
                 statements = begin
@@ -328,7 +328,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
     fileprivate let column: UInt
 
     public func drop(ifExists: Bool = false) -> some Statement<()> {
-        var query: ISO_9075.Fragment = "DROP TRIGGER"
+        var query: ISO.`9075`.Fragment = "DROP TRIGGER"
         if ifExists {
             query.append(" IF EXISTS")
         }
@@ -336,8 +336,8 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
         return SQLQueryExpression(query)
     }
 
-    public var query: ISO_9075.Fragment {
-        var query: ISO_9075.Fragment = "CREATE TEMPORARY TRIGGER"
+    public var query: ISO.`9075`.Fragment {
+        var query: ISO.`9075`.Fragment = "CREATE TEMPORARY TRIGGER"
         if ifNotExists {
             query.append(" IF NOT EXISTS")
         }
@@ -346,7 +346,7 @@ public struct TemporaryTrigger<On: Table>: Sendable, Statement {
         return query.compiled(statementType: "CREATE TEMPORARY TRIGGER")
     }
 
-    private var triggerName: ISO_9075.Fragment {
+    private var triggerName: ISO.`9075`.Fragment {
         "\(quote: name ?? "\(operation.description)_on_\(On.tableName)@\(fileID):\(line):\(column)")"
     }
 }

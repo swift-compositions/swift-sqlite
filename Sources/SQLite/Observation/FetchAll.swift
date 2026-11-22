@@ -158,7 +158,7 @@ public import SQLite_SQL
     }
 
     struct Unsectioned<QueryValue: QueryRepresentable>: FetchKeyRequest where QueryValue.QueryOutput: Sendable {
-        let query: ISO_9075.Fragment
+        let query: ISO.`9075`.Fragment
 
         func fetch(_ connection: SQLite.Connection) throws -> ResultsSectionCollection<QueryValue.QueryOutput, String?> {
             ResultsSectionCollection(
@@ -169,7 +169,7 @@ public import SQLite_SQL
     }
 
     struct Sectioned<QueryValue: QueryRepresentable>: FetchKeyRequest where QueryValue.QueryOutput: Sendable {
-        let query: ISO_9075.Fragment
+        let query: ISO.`9075`.Fragment
 
         func fetch(_ connection: SQLite.Connection) throws -> ResultsSectionCollection<QueryValue.QueryOutput, String?> {
             try ResultsSectionCollection(

@@ -6,11 +6,11 @@ public import SQLite_SQL
     public import SQL
 
     extension SQLite {
-        public struct Row: ISO_9075.Row {
+        public struct Row: ISO.`9075`.Row {
             public let columns: [String]
-            let values: [ISO_9075.Value]
+            let values: [ISO.`9075`.Value]
 
-            public func value(at index: Int) throws(ISO_9075.Error) -> ISO_9075.Value {
+            public func value(at index: Int) throws(ISO.`9075`.Error) -> ISO.`9075`.Value {
                 guard values.indices.contains(index) else { throw .decoding("no column \(index)") }
                 return values[index]
             }
@@ -20,7 +20,7 @@ public import SQLite_SQL
         /// what every typed statement executes against.
         ///
         /// A connection is valid only inside the closure it was given to; it must not escape it.
-        public struct Connection: ISO_9075.Connection {
+        public struct Connection: ISO.`9075`.Connection {
             public let dialect = SQLite()
             package let database: GRDB.Database
 
@@ -28,31 +28,31 @@ public import SQLite_SQL
                 self.database = database
             }
 
-            public func execute(_ statement: ISO_9075.Rendering) throws(ISO_9075.Error) -> Int {
+            public func execute(_ statement: ISO.`9075`.Rendering) throws(ISO.`9075`.Error) -> Int {
                 try step(statement) { _ in }
                 return Int(unsafe sqlite3_changes(database.sqliteConnection))
             }
 
             public func fetchAll<Value>(
-                _ statement: ISO_9075.Rendering,
-                decode: (SQLite.Row) throws(ISO_9075.Error) -> Value
-            ) throws(ISO_9075.Error) -> [Value] {
+                _ statement: ISO.`9075`.Rendering,
+                decode: (SQLite.Row) throws(ISO.`9075`.Error) -> Value
+            ) throws(ISO.`9075`.Error) -> [Value] {
                 var values: [Value] = []
-                try step(statement) { row throws(ISO_9075.Error) in values.append(try decode(row)) }
+                try step(statement) { row throws(ISO.`9075`.Error) in values.append(try decode(row)) }
                 return values
             }
 
             private func step(
-                _ rendering: ISO_9075.Rendering,
-                _ body: (SQLite.Row) throws(ISO_9075.Error) -> Void
-            ) throws(ISO_9075.Error) {
+                _ rendering: ISO.`9075`.Rendering,
+                _ body: (SQLite.Row) throws(ISO.`9075`.Error) -> Void
+            ) throws(ISO.`9075`.Error) {
                 let statement: GRDB.Statement
                 do {
                     (statement, _) = try database.prepare(rendering, cached: true)
-                } catch let error as ISO_9075.Error {
+                } catch let error as ISO.`9075`.Error {
                     throw error
                 } catch let error as GRDB.DatabaseError {
-                    throw ISO_9075.Error(SQLite.Error(error))
+                    throw ISO.`9075`.Error(SQLite.Error(error))
                 } catch {
                     throw .execution("\(error)")
                 }
@@ -60,10 +60,10 @@ public import SQLite_SQL
                 let rows = Cursor(statement)
                 do {
                     while let row = try rows.next() { try body(row) }
-                } catch let error as ISO_9075.Error {
+                } catch let error as ISO.`9075`.Error {
                     throw error
                 } catch let error as GRDB.DatabaseError {
-                    throw ISO_9075.Error(SQLite.Error(error))
+                    throw ISO.`9075`.Error(SQLite.Error(error))
                 } catch {
                     throw .execution("\(error)")
                 }
@@ -111,7 +111,7 @@ public import SQLite_SQL
 
     extension SQLite.Row {
         /// Every row `statement` returns, each column by name, whatever its type: for a reader that compares whole rows.
-        public static func fetchAll(_ connection: SQLite.Connection, _ statement: some SQL::Statement) throws(ISO_9075.Error) -> [SQLite.Row] {
+        public static func fetchAll(_ connection: SQLite.Connection, _ statement: some SQL::Statement) throws(ISO.`9075`.Error) -> [SQLite.Row] {
             try connection.fetchAll(statement.query) { $0 }
         }
     }
@@ -130,7 +130,7 @@ public import SQLite_SQL
         }
 
         /// Makes the observation this connection reads for depend on `region`.
-        public func track(_ region: Region) throws(ISO_9075.Error) {
+        public func track(_ region: Region) throws(ISO.`9075`.Error) {
             try performing {
                 switch region {
                 case .all: try database.registerAccess(to: .fullDatabase)

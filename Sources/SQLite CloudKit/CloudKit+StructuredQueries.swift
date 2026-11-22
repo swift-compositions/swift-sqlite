@@ -10,7 +10,7 @@
         public struct _SystemFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
             public let queryOutput: Record
 
-            public var queryBinding: ISO_9075.Value {
+            public var queryBinding: ISO.`9075`.Value {
                 let archiver = NSKeyedArchiver(requiringSecureCoding: true)
                 queryOutput.encodeSystemFields(with: archiver)
                 if let recordChangeTag = queryOutput._recordChangeTag {
@@ -53,7 +53,7 @@
         public struct _AllFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
             public let queryOutput: Record
 
-            public var queryBinding: ISO_9075.Value {
+            public var queryBinding: ISO.`9075`.Value {
                 let archiver = NSKeyedArchiver(requiringSecureCoding: true)
                 queryOutput.encode(with: archiver)
                 if let recordChangeTag = queryOutput._recordChangeTag {
@@ -96,7 +96,7 @@
         extension CKDatabase.Scope {
             public struct RawValueRepresentation: QueryBindable, QueryRepresentable {
                 public let queryOutput: CKDatabase.Scope
-                public var queryBinding: ISO_9075.Value {
+                public var queryBinding: ISO.`9075`.Value {
                     .int(Int64(queryOutput.rawValue))
                 }
                 public init(queryOutput: CKDatabase.Scope) {
@@ -229,7 +229,7 @@
             ) throws {
                 var failures: [String: SyncEngine.Error] = [:]
                 for column in row.writableBindings {
-                    func open(_ column: (name: String, binding: ISO_9075.Value)) throws {
+                    func open(_ column: (name: String, binding: ISO.`9075`.Value)) throws {
                         switch column.binding {
                         case .blob(let value):
                             try setBytes(
@@ -259,7 +259,7 @@
                         case .uuid(let value):
                             setValue(String(value).lowercased(), forKey: column.name, at: userModificationTime)
                         case .array:
-                            throw ISO_9075.Value.Failure("SQLite has no array values")
+                            throw ISO.`9075`.Value.Failure("SQLite has no array values")
                         case .invalid(let failure):
                             throw failure
                         }
@@ -288,7 +288,7 @@
                 var failures: [String: SyncEngine.Error] = [:]
                 self.userModificationTime = other.userModificationTime
                 for column in row.writableBindings {
-                    func open(_ column: (name: String, binding: ISO_9075.Value)) {
+                    func open(_ column: (name: String, binding: ISO.`9075`.Value)) {
                         let key = column.name
                         let didSet: Bool
                         if let value = other[key] as? CKAsset {
@@ -326,7 +326,7 @@
                             case .uuid(let value):
                                 return other.encryptedValues[key] != String(value).lowercased()
                             case .array:
-                                failures[key] = .binding(ISO_9075.Value.Failure("SQLite has no array values"))
+                                failures[key] = .binding(ISO.`9075`.Value.Failure("SQLite has no array values"))
                                 return false
                             case .invalid(let failure):
                                 failures[key] = .binding(failure)
@@ -360,15 +360,15 @@
         }
 
         extension SQL::Table {
-            var writableBindings: [(name: String, binding: ISO_9075.Value)] {
+            var writableBindings: [(name: String, binding: ISO.`9075`.Value)] {
                 zip(Self.TableColumns.allColumns, _allFragments)
                     .filter { column, _ in column.isWritable }
                     .map { column, fragment in
-                        let binding: ISO_9075.Value =
+                        let binding: ISO.`9075`.Value =
                             switch (fragment.segments.count, fragment.segments.first) {
                             case (1, .value(let value)?): value
                             case (1, .sql("NULL")?): .null
-                            default: .invalid(ISO_9075.Value.Failure("\(column.name) is not a single value"))
+                            default: .invalid(ISO.`9075`.Value.Failure("\(column.name) is not a single value"))
                             }
                         return (column.name, binding)
                     }
@@ -376,7 +376,7 @@
         }
 
         extension __CKRecordObjCValue {
-            var queryFragment: ISO_9075.Fragment {
+            var queryFragment: ISO.`9075`.Fragment {
                 switch self {
                 case let value as Int64: value.queryFragment
                 case let value as Double: value.queryFragment
@@ -384,7 +384,7 @@
                 case let value as Data: [Byte](value).queryFragment
                 case let value as Date: Time.Instant(value).queryFragment
                 default:
-                    "\(ISO_9075.Value.invalid(ISO_9075.Value.Failure("\(type(of: self)) is not bindable")))"
+                    "\(ISO.`9075`.Value.invalid(ISO.`9075`.Value.Failure("\(type(of: self)) is not bindable")))"
                 }
             }
         }

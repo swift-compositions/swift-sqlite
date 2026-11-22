@@ -16,7 +16,7 @@
     extension `A connection's schema cache`.Integration {
         private static func migrator() -> Migrator<SQLite.Database> {
             var migrator = Migrator<SQLite.Database>()
-            migrator.register("Create items") { connection throws(ISO_9075.Error) in
+            migrator.register("Create items") { connection throws(ISO.`9075`.Error) in
                 // Migration schema uses a fragment rather than today's table model.
                 _ = try connection.execute(#"CREATE TABLE "items" ("id" INTEGER PRIMARY KEY)"#)
             }
@@ -31,7 +31,7 @@
             var migrator = Self.migrator()
             try await migrator.migrate(database)
             #expect(try Self.columns(database) == ["id"])
-            migrator.register("Add a note") { connection throws(ISO_9075.Error) in
+            migrator.register("Add a note") { connection throws(ISO.`9075`.Error) in
                 // Migration schema uses a fragment rather than today's table model.
                 _ = try connection.execute(#"ALTER TABLE "items" ADD COLUMN "note" TEXT"#)
             }

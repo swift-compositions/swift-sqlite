@@ -41,7 +41,7 @@ public import SQLite_SQL
                             .invoke(&definition.decoder)
                             .result(db: context)
                     } catch {
-                        unsafe ISO_9075.Value.invalid(ISO_9075.Value.Failure(error)).result(db: context)
+                        unsafe ISO.`9075`.Value.invalid(ISO.`9075`.Value.Failure(error)).result(db: context)
                     }
                 },
                 nil,
@@ -165,7 +165,7 @@ public import SQLite_SQL
 
         var body: Body { get }
         func step(_ decoder: inout some QueryDecoder) throws
-        var result: ISO_9075.Value { get }
+        var result: ISO.`9075`.Value { get }
     }
 
     private final class AggregateDatabaseFunctionIterator<
@@ -179,16 +179,16 @@ public import SQLite_SQL
         func step(_ decoder: inout some QueryDecoder) throws {
             elements.append(try body.step(&decoder))
         }
-        var result: ISO_9075.Value {
+        var result: ISO.`9075`.Value {
             do {
                 return try body.invoke(elements)
             } catch {
-                return .invalid(ISO_9075.Value.Failure(error))
+                return .invalid(ISO.`9075`.Value.Failure(error))
             }
         }
     }
 
-    extension ISO_9075.Value {
+    extension ISO.`9075`.Value {
         fileprivate func result(db: OpaquePointer?) {
             switch self {
             case .null:
@@ -203,7 +203,7 @@ public import SQLite_SQL
                 unsafe text.result(db: db)
             case .timestamp(let instant):
                 do {
-                    unsafe try ISO_9075.Literal.timestamp(instant).result(db: db)
+                    unsafe try ISO.`9075`.Literal.timestamp(instant).result(db: db)
                 } catch {
                     unsafe sqlite3_result_error(db, error.description, -1)
                 }

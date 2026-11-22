@@ -10,18 +10,18 @@ extension Time.Instant {
             self.queryOutput = queryOutput
         }
 
-        public static func _queryFragment(jsonEncoding queryFragment: ISO_9075.Fragment) -> ISO_9075.Fragment {
+        public static func _queryFragment(jsonEncoding queryFragment: ISO.`9075`.Fragment) -> ISO.`9075`.Fragment {
             "datetime(\(queryFragment), 'unixepoch')"
         }
 
-        public static func _queryFragment(jsonDecoding queryFragment: ISO_9075.Fragment) -> ISO_9075.Fragment {
+        public static func _queryFragment(jsonDecoding queryFragment: ISO.`9075`.Fragment) -> ISO.`9075`.Fragment {
             "unixepoch(\(queryFragment))"
         }
     }
 }
 
 extension Time.Instant.UnixTimeRepresentation: QueryBindable {
-    public var queryBinding: ISO_9075.Value { .int(queryOutput.secondsSinceUnixEpoch) }
+    public var queryBinding: ISO.`9075`.Value { .int(queryOutput.secondsSinceUnixEpoch) }
 }
 
 extension Time.Instant.UnixTimeRepresentation: QueryDecodable {

@@ -5,7 +5,7 @@ public import SQLite_SQL
     public import SQL
 
     extension SQL::Table {
-        public static func fetchCursor(_ connection: SQLite.Connection) throws(ISO_9075.Error) -> QueryCursor<QueryOutput> {
+        public static func fetchCursor(_ connection: SQLite.Connection) throws(ISO.`9075`.Error) -> QueryCursor<QueryOutput> {
             try all.fetchCursor(connection)
         }
 

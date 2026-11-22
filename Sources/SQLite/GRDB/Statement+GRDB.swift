@@ -5,7 +5,7 @@ public import SQLite_SQL
     public import SQL
 
     extension SQL::Statement {
-        public func fetchCursor(_ connection: SQLite.Connection) throws(ISO_9075.Error) -> QueryCursor<QueryValue.QueryOutput>
+        public func fetchCursor(_ connection: SQLite.Connection) throws(ISO.`9075`.Error) -> QueryCursor<QueryValue.QueryOutput>
         where QueryValue: QueryRepresentable {
             try performing { try fetchCursor(connection.database) }
         }
@@ -23,7 +23,7 @@ public import SQLite_SQL
     extension SQL::Statement {
         public func fetchCursor<each Value: QueryRepresentable>(
             _ connection: SQLite.Connection
-        ) throws(ISO_9075.Error) -> QueryCursor<(repeat (each Value).QueryOutput)>
+        ) throws(ISO.`9075`.Error) -> QueryCursor<(repeat (each Value).QueryOutput)>
         where QueryValue == (repeat each Value) {
             try performing { try fetchCursor(connection.database) }
         }
@@ -37,7 +37,7 @@ public import SQLite_SQL
     }
 
     extension SelectStatement where QueryValue == (), Joins == () {
-        public func fetchCursor(_ connection: SQLite.Connection) throws(ISO_9075.Error) -> QueryCursor<From.QueryOutput> {
+        public func fetchCursor(_ connection: SQLite.Connection) throws(ISO.`9075`.Error) -> QueryCursor<From.QueryOutput> {
             try performing { try fetchCursor(connection.database) }
         }
 
@@ -74,7 +74,7 @@ public import SQLite_SQL
     extension SelectStatement where QueryValue == () {
         public func fetchCursor<each J: SQL::Table>(
             _ connection: SQLite.Connection
-        ) throws(ISO_9075.Error) -> QueryCursor<(From.QueryOutput, repeat (each J).QueryOutput)>
+        ) throws(ISO.`9075`.Error) -> QueryCursor<(From.QueryOutput, repeat (each J).QueryOutput)>
         where Joins == (repeat each J) {
             try performing { try fetchCursor(connection.database) }
         }

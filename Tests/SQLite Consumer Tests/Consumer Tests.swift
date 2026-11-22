@@ -24,7 +24,7 @@
     extension Item {
         static var migrator: Migrator<SQLite.Database> {
             var migrator = Migrator<SQLite.Database>()
-            migrator.register("Create items") { connection throws(ISO_9075.Error) in
+            migrator.register("Create items") { connection throws(ISO.`9075`.Error) in
                 _ = try connection.execute(
                     """
                     CREATE TABLE "items" (
@@ -73,7 +73,7 @@
 
         @Test func `a failing statement throws the call-level interface's diagnostic, with SQLite's result code`() async throws {
             let database = try await Item.database()
-            await #expect(throws: ISO_9075.Error.self) {
+            await #expect(throws: ISO.`9075`.Error.self) {
                 try await database.write { connection in
                     try Item.insert { Item(id: "a", title: "Duplicate") }.execute(connection)
                 }
@@ -83,7 +83,7 @@
                     try Item.insert { Item(id: "a", title: "Duplicate") }.execute(connection)
                 }
                 Issue.record("A duplicate primary key was inserted")
-            } catch let error as ISO_9075.Error {
+            } catch let error as ISO.`9075`.Error {
                 guard case .diagnostic(let diagnostic) = error else {
                     Issue.record("expected a diagnostic, got \(error)")
                     return
@@ -95,8 +95,8 @@
 
         @Test func `a typed write throws the call-level interface's diagnostic, its state and its result code`() async throws {
             let database = try await Item.database()
-            do throws(ISO_9075.Error) {
-                try await database.write { connection throws(ISO_9075.Error) in
+            do throws(ISO.`9075`.Error) {
+                try await database.write { connection throws(ISO.`9075`.Error) in
                     try Item.insert { Item(id: "a", title: "Duplicate") }.execute(connection)
                 }
                 Issue.record("A duplicate primary key was inserted")

@@ -7,9 +7,9 @@ extension TableDefinition where QueryValue: FTS5 {
     public func bm25(
         _ rankings: KeyValuePairs<PartialKeyPath<QueryValue>, Double> = [:]
     ) -> some QueryExpression<Double> {
-        var queryFragments: [ISO_9075.Fragment] = ["\(quote: QueryValue.tableName)"]
+        var queryFragments: [ISO.`9075`.Fragment] = ["\(quote: QueryValue.tableName)"]
         if !rankings.isEmpty {
-            var columnNameToRanking: ISO_9075.Fragment = """
+            var columnNameToRanking: ISO.`9075`.Fragment = """
                 CASE "name"
                 """
             for (keyPath, ranking) in rankings {
@@ -76,7 +76,7 @@ where
     }
 
     public func match(_ pattern: some StringProtocol) -> some QueryExpression<Bool> {
-        Root.columns.match("\(name):\(ISO_9075.Identifier("\(pattern)").delimited)")
+        Root.columns.match("\(name):\(ISO.`9075`.Identifier("\(pattern)").delimited)")
     }
 
     public func snippet(

@@ -7,7 +7,7 @@ extension SQLite.Pragma.Table {
     public struct Info<Base: SQL.Table> {
         public static var tableAlias: String? { "\(Base.tableName)TableInfo" }
         public static var schemaName: String? { Base.schemaName }
-        public static var tableFragment: ISO_9075.Fragment {
+        public static var tableFragment: ISO.`9075`.Fragment {
             "pragma_table_info(\(text: Base.tableName))"
         }
 

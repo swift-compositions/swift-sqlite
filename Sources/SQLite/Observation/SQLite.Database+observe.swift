@@ -13,12 +13,12 @@ public import SQLite_SQL
         /// leaves, unless it equals the one before, so a test can write and then await the next element with no sleep
         /// or poll. What `body` read is tracked, and read again after each commit that touches it.
         public func observe<Value: Equatable & Sendable>(
-            _ body: @escaping @Sendable (SQLite.Connection) throws(ISO_9075.Error) -> Value
-        ) async throws(ISO_9075.Error) -> SQLite.Observation<Value> {
+            _ body: @escaping @Sendable (SQLite.Connection) throws(ISO.`9075`.Error) -> Value
+        ) async throws(ISO.`9075`.Error) -> SQLite.Observation<Value> {
             let (values, continuation) = AsyncThrowingStream<Value, any Swift.Error>.makeStream()
-            let first = Mutex<CheckedContinuation<ISO_9075.Error?, Never>?>(nil)
+            let first = Mutex<CheckedContinuation<ISO.`9075`.Error?, Never>?>(nil)
             var cancellable: AnyDatabaseCancellable?
-            let failure = await withCheckedContinuation { (started: CheckedContinuation<ISO_9075.Error?, Never>) in
+            let failure = await withCheckedContinuation { (started: CheckedContinuation<ISO.`9075`.Error?, Never>) in
                 first.withLock { $0 = started }
                 cancellable =
                     ValueObservation
@@ -28,7 +28,7 @@ public import SQLite_SQL
                         in: writer,
                         scheduling: .async(onQueue: DispatchQueue(label: "swift-sqlite.observation")),
                         onError: { error in
-                            let error = ISO_9075.Error.observed(error)
+                            let error = ISO.`9075`.Error.observed(error)
                             continuation.finish(throwing: error)
                             first.withLock { $0.take() }?.resume(returning: error)
                         },
@@ -50,8 +50,8 @@ public import SQLite_SQL
         @_disfavoredOverload
         public func observe<Value: Equatable & Sendable>(
             _ body: @escaping @Sendable (SQLite.Connection) throws -> Value
-        ) async throws(ISO_9075.Error) -> SQLite.Observation<Value> {
-            try await observe { (connection: SQLite.Connection) throws(ISO_9075.Error) -> Value in
+        ) async throws(ISO.`9075`.Error) -> SQLite.Observation<Value> {
+            try await observe { (connection: SQLite.Connection) throws(ISO.`9075`.Error) -> Value in
                 do {
                     return try body(connection)
                 } catch {
@@ -61,7 +61,7 @@ public import SQLite_SQL
         }
     }
 
-    extension ISO_9075.Error {
+    extension ISO.`9075`.Error {
         fileprivate static func observed(_ error: any Swift.Error) -> Self {
             .typed(error)
         }

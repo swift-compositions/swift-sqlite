@@ -11,7 +11,7 @@ extension RFC_4122.UUID {
             self.queryOutput = queryOutput
         }
 
-        public static func _queryFragment(jsonEncoding queryFragment: ISO_9075.Fragment) -> ISO_9075.Fragment {
+        public static func _queryFragment(jsonEncoding queryFragment: ISO.`9075`.Fragment) -> ISO.`9075`.Fragment {
             """
             CASE WHEN \(queryFragment) IS NULL THEN NULL ELSE lower(printf('%s-%s-%s-%s-%s', \
             substr(hex(\(queryFragment)), 1, 8), \
@@ -25,7 +25,7 @@ extension RFC_4122.UUID {
 }
 
 extension RFC_4122.UUID.BytesRepresentation: QueryBindable {
-    public var queryBinding: ISO_9075.Value { .blob(queryOutput.byteArray.map(Byte.init(bitPattern:))) }
+    public var queryBinding: ISO.`9075`.Value { .blob(queryOutput.byteArray.map(Byte.init(bitPattern:))) }
 }
 
 extension RFC_4122.UUID.BytesRepresentation: QueryDecodable {

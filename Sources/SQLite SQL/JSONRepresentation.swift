@@ -9,7 +9,7 @@ public struct JSONRepresentation<QueryOutput: Codable>: Codable, QueryRepresenta
         self.queryOutput = queryOutput
     }
 
-    public static func _queryFragment(jsonEncoding queryFragment: ISO_9075.Fragment) -> ISO_9075.Fragment {
+    public static func _queryFragment(jsonEncoding queryFragment: ISO.`9075`.Fragment) -> ISO.`9075`.Fragment {
         "json(\(queryFragment))"
     }
 }
@@ -19,11 +19,11 @@ extension JSONRepresentation: Hashable where QueryOutput: Hashable {}
 extension JSONRepresentation: Sendable where QueryOutput: Sendable {}
 
 extension JSONRepresentation: QueryBindable {
-    public var queryBinding: ISO_9075.Value {
+    public var queryBinding: ISO.`9075`.Value {
         do {
             return .text(String(decoding: try JSONRepresentation.encoder.encode(queryOutput), as: UTF8.self))
         } catch {
-            return .invalid(ISO_9075.Value.Failure(error))
+            return .invalid(ISO.`9075`.Value.Failure(error))
         }
     }
 }

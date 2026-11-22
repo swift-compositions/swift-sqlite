@@ -86,7 +86,7 @@ import SQLite_SQL
         mutating func decode(_ columnType: Time.Instant.Type) throws(QueryDecodingError) -> Time.Instant? {
             try decode(String.self).map { string throws(QueryDecodingError) in
                 do {
-                    return try ISO_9075.Literal.instant(string)
+                    return try ISO.`9075`.Literal.instant(string)
                 } catch {
                     throw .dataCorrupted("\(string) as a timestamp")
                 }

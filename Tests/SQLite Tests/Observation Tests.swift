@@ -18,8 +18,8 @@
             return database
         }
 
-        @Sendable static func titles(_ connection: SQLite.Connection) throws(ISO_9075.Error) -> [String] {
-            try connection.fetchAll(#"SELECT "title" FROM "reminder" ORDER BY "title""#) { row throws(ISO_9075.Error) in
+        @Sendable static func titles(_ connection: SQLite.Connection) throws(ISO.`9075`.Error) -> [String] {
+            try connection.fetchAll(#"SELECT "title" FROM "reminder" ORDER BY "title""#) { row throws(ISO.`9075`.Error) in
                 guard case .text(let title) = try row.value(at: 0) else { throw .decoding("title is not text") }
                 return title
             }
@@ -66,9 +66,9 @@
 
         @Test func `a failing first answer is thrown by observe`() async throws {
             let database = try await `Observation Tests`.database()
-            await #expect(throws: ISO_9075.Error.self) {
-                _ = try await database.observe { connection throws(ISO_9075.Error) in
-                    try connection.fetchAll(#"SELECT "title" FROM "missing""#) { _ throws(ISO_9075.Error) in 0 }
+            await #expect(throws: ISO.`9075`.Error.self) {
+                _ = try await database.observe { connection throws(ISO.`9075`.Error) in
+                    try connection.fetchAll(#"SELECT "title" FROM "missing""#) { _ throws(ISO.`9075`.Error) in 0 }
                 }
             }
         }

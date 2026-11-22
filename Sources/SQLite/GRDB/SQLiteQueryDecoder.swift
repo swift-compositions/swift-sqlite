@@ -93,10 +93,10 @@ import SQLite_SQL
             }
         }
 
-        mutating func decode(_ columnType: RFC_4122.UUID.Type) throws(QueryDecodingError) -> RFC_4122.UUID? {
+        mutating func decode(_ columnType: IETF.RFC.`4122`.UUID.Type) throws(QueryDecodingError) -> IETF.RFC.`4122`.UUID? {
             try decode(String.self).map { string throws(QueryDecodingError) in
                 do {
-                    return try RFC_4122.UUID(string)
+                    return try IETF.RFC.`4122`.UUID(string)
                 } catch {
                     throw .dataCorrupted("\(string) as a UUID")
                 }

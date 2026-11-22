@@ -192,7 +192,7 @@
             notificationCenter: NotificationCenter = NotificationCenter(),
             dataManager: InMemoryDataManager = InMemoryDataManager(),
             now: @escaping @Sendable () -> Date = { Date(timeIntervalSince1970: 0) },
-            uuid: @escaping @Sendable () -> RFC_4122.UUID = IncrementingUUID().callAsFunction,
+            uuid: @escaping @Sendable () -> IETF.RFC.`4122`.UUID = IncrementingUUID().callAsFunction,
             clock: ManualClock = ManualClock()
         ) async throws
         where
@@ -236,7 +236,7 @@
             notificationCenter: NotificationCenter = NotificationCenter(),
             dataManager: InMemoryDataManager = InMemoryDataManager(),
             now: @escaping @Sendable () -> Date = { Date(timeIntervalSince1970: 0) },
-            uuid: @escaping @Sendable () -> RFC_4122.UUID = IncrementingUUID().callAsFunction,
+            uuid: @escaping @Sendable () -> IETF.RFC.`4122`.UUID = IncrementingUUID().callAsFunction,
             clock: ManualClock = ManualClock()
         ) async throws {
             try self.init(

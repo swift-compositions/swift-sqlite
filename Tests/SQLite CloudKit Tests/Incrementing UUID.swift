@@ -7,8 +7,8 @@
     final class IncrementingUUID: Sendable {
         private let count = Mutex<UInt64>(0)
 
-        func callAsFunction() -> RFC_4122.UUID {
-            RFC_4122.UUID(
+        func callAsFunction() -> IETF.RFC.`4122`.UUID {
+            IETF.RFC.`4122`.UUID(
                 count.withLock { count in
                     defer { count += 1 }
                     return count
@@ -17,7 +17,7 @@
         }
     }
 
-    extension RFC_4122.UUID {
+    extension IETF.RFC.`4122`.UUID {
         init(_ value: UInt64) {
             self.init(
                 bytes: (

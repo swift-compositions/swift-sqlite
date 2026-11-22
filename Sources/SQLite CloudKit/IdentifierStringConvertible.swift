@@ -20,7 +20,7 @@
 
     extension Substring: IdentifierStringConvertible {}
 
-    extension RFC_4122.UUID: IdentifierStringConvertible {
+    extension IETF.RFC.`4122`.UUID: IdentifierStringConvertible {
         public init?(rawIdentifier: String) {
             try? self.init(rawIdentifier)
         }

@@ -13,16 +13,16 @@
 
     @Suite(.timeLimit(.minutes(5))) struct `Primary key migration` {
         @Table("parents") struct Parent: Identifiable {
-            let id: RFC_4122.UUID
+            let id: IETF.RFC.`4122`.UUID
             var title = ""
         }
         @Table("children") struct Child {
-            let id: RFC_4122.UUID
+            let id: IETF.RFC.`4122`.UUID
             var title = ""
             var parentID: Parent.ID
         }
         @Table("tags") struct Tag {
-            let id: RFC_4122.UUID
+            let id: IETF.RFC.`4122`.UUID
             var title = ""
         }
         @Table("phoneNumbers") struct PhoneNumber {
@@ -31,7 +31,7 @@
         }
         @Table("users") struct User {
             @Column(primaryKey: true)
-            let identifier: RFC_4122.UUID
+            let identifier: IETF.RFC.`4122`.UUID
             var name = ""
         }
         let database: SQLite.Database
@@ -46,12 +46,12 @@
         }
 
         @DatabaseFunction
-        func uuid() -> RFC_4122.UUID {
+        func uuid() -> IETF.RFC.`4122`.UUID {
             incrementingUUID()
         }
 
         @DatabaseFunction
-        func customUUID() -> RFC_4122.UUID {
+        func customUUID() -> IETF.RFC.`4122`.UUID {
             incrementingUUID()
         }
 
@@ -328,7 +328,7 @@
 
         @Table("users") struct PrimaryKeyNamedUnique {
             @Column(primaryKey: true)
-            let unique: RFC_4122.UUID
+            let unique: IETF.RFC.`4122`.UUID
             var title = ""
         }
         @Test func `migrates a primary key named unique`() throws {

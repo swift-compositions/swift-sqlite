@@ -13,8 +13,8 @@
                 _ connection: SQLite.Connection,
                 tables: repeat (each T).Type,
                 dropUniqueConstraints: Bool = false,
-                uuid uuidFunction: (any ScalarDatabaseFunction<(), RFC_4122.UUID>)? = nil,
-                randomUUID: () -> RFC_4122.UUID = systemRandomUUID
+                uuid uuidFunction: (any ScalarDatabaseFunction<(), IETF.RFC.`4122`.UUID>)? = nil,
+                randomUUID: () -> IETF.RFC.`4122`.UUID = systemRandomUUID
             ) throws
             where
                 repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible,
@@ -35,16 +35,16 @@
                 _ db: GRDB.Database,
                 tables: repeat (each T).Type,
                 dropUniqueConstraints: Bool = false,
-                uuid uuidFunction: (any ScalarDatabaseFunction<(), RFC_4122.UUID>)? = nil,
-                randomUUID: () -> RFC_4122.UUID = systemRandomUUID
+                uuid uuidFunction: (any ScalarDatabaseFunction<(), IETF.RFC.`4122`.UUID>)? = nil,
+                randomUUID: () -> IETF.RFC.`4122`.UUID = systemRandomUUID
             ) throws
             where
                 repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible,
                 repeat (each T).TableColumns.PrimaryColumn: TableColumnExpression
             {
                 let salt = String(
-                    try uuidFunction.flatMap { uuid -> RFC_4122.UUID? in
-                        try #sql("SELECT \(quote: uuid.name)()", as: RFC_4122.UUID.self).fetch.one(db)
+                    try uuidFunction.flatMap { uuid -> IETF.RFC.`4122`.UUID? in
+                        try #sql("SELECT \(quote: uuid.name)()", as: IETF.RFC.`4122`.UUID.self).fetch.one(db)
                     }
                         ?? randomUUID()
                 )
@@ -114,7 +114,7 @@
             fileprivate static func migratePrimaryKeyToUUID(
                 db: Database,
                 dropUniqueConstraints: Bool,
-                uuidFunction: (any ScalarDatabaseFunction<(), RFC_4122.UUID>)? = nil,
+                uuidFunction: (any ScalarDatabaseFunction<(), IETF.RFC.`4122`.UUID>)? = nil,
                 migratedTableNames: [String],
                 salt: String
             ) throws {
@@ -552,9 +552,9 @@
         ]
 
         @DatabaseFunction("swiftsqlite_icloud_backfillUUID")
-        private func backfillUUID(id: Int, table: String, salt: String) -> RFC_4122.UUID {
+        private func backfillUUID(id: Int, table: String, salt: String) -> IETF.RFC.`4122`.UUID {
             let digest = Array(Insecure.MD5.hash(data: Data("\(table):\(id):\(salt)".utf8)))
-            return RFC_4122.UUID(
+            return IETF.RFC.`4122`.UUID(
                 bytes: (
                     digest[0], digest[1], digest[2], digest[3], digest[4], digest[5], digest[6], digest[7],
                     digest[8], digest[9], digest[10], digest[11], digest[12], digest[13], digest[14], digest[15]

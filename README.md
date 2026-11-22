@@ -12,7 +12,7 @@ Use this package when your app keeps its data in an SQLite file and you want to 
 - An aggregate `@DatabaseFunction` sees every row, in the given order when you pass `order:`.
 - `CanonicalCollation` orders strings as Swift `String` comparison does, and treats canonically equivalent strings as equal.
 - `Time.Instant` columns are text and keep fractional seconds through insert and update. Text that GRDB wrote for a `Date` decodes as a `Time.Instant`.
-- `RFC_4122.UUID` decodes from text in any letter case. Text containing NUL binds and decodes whole.
+- `IETF.RFC.`4122`.UUID` decodes from text in any letter case. Text containing NUL binds and decodes whole.
 - Inserting no rows and updating no columns run as no-ops.
 - An offset without a limit renders as `LIMIT -1`. Pragma writes render their values inline, with booleans as 1 and 0, not as bindings.
 - When nothing is wired, `Dependency.Values.defaultDatabase` is an in-memory database.

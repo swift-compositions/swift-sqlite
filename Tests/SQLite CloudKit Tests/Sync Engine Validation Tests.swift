@@ -14,7 +14,7 @@
     @Suite(.timeLimit(.minutes(5))) struct `Sync engine schema validation` {
         @Table("invalid:table")
         struct InvalidTable {
-            let id: RFC_4122.UUID
+            let id: IETF.RFC.`4122`.UUID
         }
 
         @Table("childs") struct Child: Identifiable {

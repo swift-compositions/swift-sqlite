@@ -75,7 +75,7 @@
             }
         }
 
-        public mutating func decode(_ columnType: RFC_4122.UUID.Type) throws(QueryDecodingError) -> RFC_4122.UUID? {
+        public mutating func decode(_ columnType: IETF.RFC.`4122`.UUID.Type) throws(QueryDecodingError) -> IETF.RFC.`4122`.UUID? {
             switch value {
             case .null: nil
             case .uuid(let uuid): uuid

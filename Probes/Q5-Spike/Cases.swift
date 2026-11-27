@@ -7,6 +7,8 @@
 //   ./cases own 20000           a loop body that awaits a post on the same hub
 //   ./cases cross               two listeners whose bodies post at the same time
 //   ./cases cancel 2000         a listener that is cancelled while posts wait for it
+//   ./cases body 20000          the decided rule: a post from a loop body waits for nobody
+//   ./cases child               a loop body that posts from a child task
 //
 // Case 2, a listener on no actor, is a compile-time question: see Isolation/.
 //
@@ -38,6 +40,9 @@ enum Exempt: String, Sendable, CaseIterable {
     case own = "the post does not wait for the posting task's own listener"
     /// Every listener whose loop body is inside a post now.
     case posting = "the post does not wait for a listener that is inside a post"
+    /// The decided rule. A post from a listener's loop body delivers to every listener and returns. It waits for
+    /// nobody. A post from anywhere else waits for every listener.
+    case body = "a post from a loop body waits for nobody"
 }
 
 /// The identity of the current task, to know a listener's own post. An address: it is valid as an identity only
@@ -282,6 +287,14 @@ final class Hub: Sendable {
         }
         // The listeners whose loop body is this very task. They get the number as their latest, on their next read.
         let own = published.map(\.0).filter { $0.isListener(task) }
+        if exempt == .body && !own.isEmpty {
+            // Delivered to every listener by `publish`. A listener that waited in `next` is resumed here, with no
+            // handshake: nobody waits for it. No suspension in this branch.
+            for (_, published) in published {
+                if case .waiter(let waiter) = published { waiter.resume(returning: number) }
+            }
+            return number
+        }
         for subscription in own { subscription.enterPost(exempt) }
         defer { for subscription in own { subscription.leavePost() } }
 
@@ -399,6 +412,8 @@ enum Body: String, Sendable, CaseIterable {
     case suspends = "body that suspends"
     /// `record(number)`, and for one number of five the body awaits a post on the same hub.
     case posts = "body that posts"
+    /// The same, and the body also suspends for two numbers of three.
+    case postsAndSuspends = "body that posts and suspends"
 }
 
 /// What a body that posts needs.
@@ -454,8 +469,8 @@ final class Probe: Sendable {
         if number <= last { disorder.add(1, ordering: .sequentiallyConsistent) }
         seen.store(number, ordering: .sequentiallyConsistent)
         handled.add(1, ordering: .sequentiallyConsistent)
-        if body == .suspends && number % 3 != 0 { await Task.yield() }
-        if body == .posts && number % 5 == 0 { await reaction?.post(from: self) }
+        if (body == .suspends || body == .postsAndSuspends) && number % 3 != 0 { await Task.yield() }
+        if (body == .posts || body == .postsAndSuspends) && number % 5 == 0 { await reaction?.post(from: self) }
     }
 }
 
@@ -809,7 +824,10 @@ func manyMatrix(posts: Int) async {
 
 /// `posting` listeners whose body posts, `quiet` listeners whose body does not, and 4 posters outside. Every post
 /// waits for a busy listener, and all handshakes go together. Returns nil when it did not end in `limit` seconds.
-func reacting(posting: Int, quiet: Int, _ exempt: Exempt, posts: Int, limit: Double) async -> String {
+func reacting(
+    posting: Int, quiet: Int, _ exempt: Exempt, posts: Int, limit: Double,
+    postingBody: Body = .posts, quietBody: Body = .synchronous
+) async -> String {
     let hub = Hub()
     let reaction = Reaction(hub: hub, exempt: exempt, limit: posts)
     let listeners = Listeners()
@@ -820,7 +838,7 @@ func reacting(posting: Int, quiet: Int, _ exempt: Exempt, posts: Int, limit: Dou
     for index in 0..<(posting + quiet) {
         let probe = Probe(reaction: reaction)
         probes.withLock { $0.append(probe) }
-        let body: Body = index < posting ? .posts : .synchronous
+        let body: Body = index < posting ? postingBody : quietBody
         let task = listeners.start(kinds[index % kinds.count], hub, probe, body, priority: levels[index % levels.count])
         tasks.withLock { $0.append(task) }
         while hub.listeners < index + 1 { await Task.yield() }
@@ -874,6 +892,107 @@ func cross(posts: Int) async {
         print("\(exempt.rawValue):")
         print("  2 listeners whose bodies post, 1 that does not: \(await reacting(posting: 2, quiet: 1, exempt, posts: posts, limit: 20))")
         print("  3 listeners whose bodies post: \(await reacting(posting: 3, quiet: 0, exempt, posts: posts, limit: 20))")
+    }
+}
+
+// MARK: - The decided rule: a post from a loop body waits for nobody
+
+func bodyRule(posts: Int) async {
+    print("build: \(build); about \(posts) numbers per line; a post from outside waits for every listener, all handshakes together; a post from a loop body waits for nobody")
+    let lines: [(String, Int, Int, Body, Body)] = [
+        ("1 listener whose body posts, 2 that do not", 1, 2, .posts, .synchronous),
+        ("2 listeners whose bodies post, 1 that does not", 2, 1, .posts, .synchronous),
+        ("3 listeners whose bodies post", 3, 0, .posts, .synchronous),
+        ("8 listeners whose bodies post", 8, 0, .posts, .synchronous),
+        ("2 listeners whose bodies post and suspend, 1 whose body suspends", 2, 1, .postsAndSuspends, .suspends),
+        ("3 listeners whose bodies post and suspend", 3, 0, .postsAndSuspends, .synchronous),
+        ("3 listeners whose bodies post and suspend, 5 whose bodies suspend", 3, 5, .postsAndSuspends, .suspends),
+    ]
+    for (name, posting, quiet, postingBody, quietBody) in lines {
+        let result = await reacting(
+            posting: posting, quiet: quiet, .body, posts: posts, limit: 120, postingBody: postingBody, quietBody: quietBody)
+        print("  \(name): \(result)")
+    }
+}
+
+// MARK: - A loop body that posts from a child task
+
+final class Flag: Sendable {
+    private let value = Atomic<Bool>(false)
+    func set() { value.store(true, ordering: .sequentiallyConsistent) }
+    var isSet: Bool { value.load(ordering: .sequentiallyConsistent) }
+}
+
+actor Parent {
+    enum Child: String, Sendable, CaseIterable {
+        case asyncLet = "async let, awaited"
+        case group = "a task group child, awaited"
+        case unstructuredAwaited = "Task { }, awaited"
+        case unstructured = "Task { }, not awaited"
+        case direct = "no child task (the body's own task)"
+    }
+
+    /// For number 1, the body posts once, in the given way. The post is number 2.
+    func listen(_ hub: Hub, _ probe: Probe, _ child: Child, _ returned: Flag) async {
+        for await number in hub.follow() {
+            await probe.handle(number, .synchronous)
+            guard number == 1 else { continue }
+            switch child {
+            case .asyncLet:
+                async let posted = hub.post(.waits, .together, exempt: .body)
+                _ = await posted
+                returned.set()
+            case .group:
+                await withTaskGroup(of: Void.self) { group in
+                    group.addTask { _ = await hub.post(.waits, .together, exempt: .body) }
+                }
+                returned.set()
+            case .unstructuredAwaited:
+                await Task { _ = await hub.post(.waits, .together, exempt: .body) }.value
+                returned.set()
+            case .unstructured:
+                Task {
+                    _ = await hub.post(.waits, .together, exempt: .body)
+                    returned.set()
+                }
+            case .direct:
+                _ = await hub.post(.waits, .together, exempt: .body)
+                returned.set()
+            }
+        }
+    }
+}
+
+func child() async {
+    print("build: \(build); 2 listeners; the body of the first posts once, for number 1; the rule is: a post from a loop body waits for nobody")
+    for child in Parent.Child.allCases {
+        let hub = Hub()
+        let first = Probe()
+        let second = Probe()
+        let returned = Flag()
+        let parent = Parent()
+        let other = DefaultActor()
+        let listener = Task.detached { await parent.listen(hub, first, child, returned) }
+        while hub.listeners < 1 { await Task.yield() }
+        let quiet = Task.detached { await other.listen(hub, second, .synchronous) }
+        while hub.listeners < 2 { await Task.yield() }
+
+        // Number 1, from outside. With an awaited child, the listener then never ends its body for number 1.
+        let (outside, _) = await ends(within: 2) { _ = await hub.post(.waits, .together, exempt: .body) }
+        let deadline = seconds() + 2
+        while !(returned.isSet && first.last >= 2 && second.last >= 2) && seconds() < deadline {
+            await Task.yield()
+        }
+        let posted = returned.isSet
+        // One more post from outside: does the hub still work?
+        let (next, _) = await ends(within: 2) { _ = await hub.post(.waits, .together, exempt: .body) }
+        print("  \(child.rawValue): the first post from outside \(outside ? "returned" : "did NOT return"); the body's post \(posted ? "returned" : "did NOT return within 2 s"); "
+            + "the posting listener handled \(first.last) and the other listener \(second.last) of \(hub.posted); a later post from outside \(next ? "returned" : "did NOT return within 2 s")")
+        if posted && next {
+            hub.finish()
+            await listener.value
+            await quiet.value
+        }
     }
 }
 
@@ -1011,7 +1130,9 @@ enum Cases {
         case "own": await ownMatrix(posts: posts)
         case "cross": await cross(posts: min(posts, 2000))
         case "cancel": await cancel(rounds: arguments.dropFirst().first.flatMap { Int($0) } ?? 2000)
-        default: print("usage: cases busy|stuck|many|own|cross|cancel [posts]")
+        case "body": await bodyRule(posts: posts)
+        case "child": await child()
+        default: print("usage: cases busy|stuck|many|own|cross|cancel|body|child [posts]")
         }
     }
 }

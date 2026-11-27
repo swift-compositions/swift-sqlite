@@ -62,3 +62,37 @@ the post does not wait for a busy listener, body that suspends:
   8 listeners, together: 5024 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 55 µs per post
 
 == ./cases many 20000 (run 2)
+build: -O; posts per line: 20000; listeners on the main actor, default actors and custom executors in turn, at four priorities; 4 posters at four priorities
+the post does not wait for a busy listener, synchronous body:
+  3 listeners, one after another: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 60 µs per post
+  3 listeners, together: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 39 µs per post
+  8 listeners, one after another: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 153 µs per post
+  8 listeners, together: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 61 µs per post
+the post waits for a busy listener, body that suspends:
+  3 listeners, one after another: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 49 µs per post
+  3 listeners, together: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 45 µs per post
+  8 listeners, one after another: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 134 µs per post
+  8 listeners, together: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 66 µs per post
+the post does not wait for a busy listener, body that suspends:
+  3 listeners, one after another: 3508 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 51 µs per post
+  3 listeners, together: 5928 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 29 µs per post
+  8 listeners, one after another: 5905 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 141 µs per post
+  8 listeners, together: 4917 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 55 µs per post
+
+== ./cases many 20000 (run 3)
+build: -O; posts per line: 20000; listeners on the main actor, default actors and custom executors in turn, at four priorities; 4 posters at four priorities
+the post does not wait for a busy listener, synchronous body:
+  3 listeners, one after another: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 61 µs per post
+  3 listeners, together: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 41 µs per post
+  8 listeners, one after another: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 161 µs per post
+  8 listeners, together: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 57 µs per post
+the post waits for a busy listener, body that suspends:
+  3 listeners, one after another: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 51 µs per post
+  3 listeners, together: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 39 µs per post
+  8 listeners, one after another: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 117 µs per post
+  8 listeners, together: 0 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 61 µs per post
+the post does not wait for a busy listener, body that suspends:
+  3 listeners, one after another: 2929 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 48 µs per post
+  3 listeners, together: 5459 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 30 µs per post
+  8 listeners, one after another: 5655 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 141 µs per post
+  8 listeners, together: 5323 posts returned before every listener had handled their number; 0 numbers out of order; 0 listeners without the last number; 54 µs per post

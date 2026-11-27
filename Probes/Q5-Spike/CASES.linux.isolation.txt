@@ -1,0 +1,29 @@
+Swift version 6.4.2 (swift-6.4.2-RELEASE)
+Target: x86_64-unknown-linux-gnu
+Linux 6.18.44-fc-v880 x86_64
+
+accepted: Accepted.Actor.swift
+accepted: Accepted.Helper.swift
+accepted: Accepted.IsolatedParameter.swift
+accepted: Accepted.MainActor.swift
+rejected: Rejected.AskedForAnotherActor.swift
+    error: non-Sendable 'Values'-typed result can not be returned from actor-isolated instance method 'follow(isolation:)' to @concurrent context [#RegionIsolation]
+rejected: Rejected.Concurrent.swift
+    error: 'nil' is not compatible with expected argument type 'any Actor'
+    error: actor-isolated instance method 'follow(isolation:)' cannot be called from outside of the actor
+rejected: Rejected.DetachedTask.swift
+    error: 'nil' is not compatible with expected argument type 'any Actor'
+    error: actor-isolated instance method 'follow(isolation:)' cannot be called from outside of the actor
+rejected: Rejected.NonisolatedAsync.swift
+    error: 'nil' is not compatible with expected argument type 'any Actor'
+    error: actor-isolated instance method 'follow(isolation:)' cannot be called from outside of the actor
+rejected: Rejected.OptionalIsolation.swift
+    error: actor-isolated instance method 'follow(isolation:)' cannot be called from outside of the actor
+    error: value of optional type '(any Actor)?' must be unwrapped to a value of type 'any Actor'
+rejected: Rejected.SentToAConcurrentFunction.swift
+    error: sending 'hub.follow' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+rejected: Rejected.SentToADetachedTask.swift
+    error: passing closure as a 'sending' parameter risks causing data races between 'self'-isolated code and concurrent execution of the closure [#RegionIsolation::SendingClosureRisksDataRace]
+rejected: Rejected.Synchronous.swift
+    error: 'nil' is not compatible with expected argument type 'any Actor'
+    error: call to actor-isolated instance method 'follow(isolation:)' in a synchronous nonisolated context [#ActorIsolatedCall]

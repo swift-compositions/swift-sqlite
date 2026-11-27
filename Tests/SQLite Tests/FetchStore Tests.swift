@@ -110,7 +110,7 @@
             #expect(store.value == ["Groceries"])
         }
 
-        @Test func `a value that is not Equatable is taken again at every commit`() async throws {
+        @Test func `a value that is not Equatable is taken again at every commit to a table it reads`() async throws {
             let database = try await reminders()
             let deliveries = Deliveries()
             let scheduler = SQLite.Scheduler { change in
@@ -121,6 +121,11 @@
             #expect(store.value.rows == 1)
             try await database.write { connection throws(ISO.`9075`.Error) in
                 try #sql(#"INSERT INTO "note" VALUES ('unrelated')"#).execute(connection)
+            }
+            // A commit to a table the fetch does not read leaves its value as it is.
+            #expect(deliveries.count == 0)
+            try await database.write { connection throws(ISO.`9075`.Error) in
+                try #sql(#"UPDATE "reminder" SET "title" = "title""#).execute(connection)
             }
             #expect(deliveries.count == 1)
             try await insert("Taxes", into: database)

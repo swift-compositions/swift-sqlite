@@ -37,8 +37,10 @@ extension SQLite {
     /// One followed read, with its value type erased.
     protocol Follower: AnyObject, Sendable {
         /// Reads again on the writer's connection and publishes the answer if it changed. Synchronous, and called in
-        /// commit order. A follower that reads none of the tables in `written` keeps its answer and is not read.
-        func refresh(on core: SQLite.Connection.Core, number: Int, written: SQLite.Region) -> (any Settlement)?
+        /// commit order.
+        func refresh(on core: SQLite.Connection.Core, number: Int) -> (any Settlement)?
+        /// Whether a write to `written` can have changed this follower's answer.
+        func reads(_ written: SQLite.Region) -> Bool
         /// Whether `task` is the task of this follower's loop.
         func isListener(_ task: UInt) -> Bool
         var isGone: Bool { get }
@@ -69,19 +71,19 @@ extension SQLite.Hub {
         // A scope whose statements could write nothing left every answer as it was.
         let written = core.footprint.writes
         guard !written.isEmpty else { return }
+        // A follower that reads none of the tables that were written keeps its answer and is not read.
         let (number, followers): (Int, [any SQLite.Follower]) = state.withLock { state in
             state.followers.removeAll { $0.isGone }
-            guard !state.followers.isEmpty else { return (0, []) }
+            let stale = state.followers.filter { $0.reads(written) }
+            guard !stale.isEmpty else { return (0, []) }
             state.number += 1
-            return (state.number, state.followers)
+            return (state.number, stale)
         }
         guard !followers.isEmpty else { return }
         // A followed read only reads: the writer's connection refuses a write for as long as they run.
         try? core.control("PRAGMA query_only = 1")
         for follower in followers {
-            if let settlement = follower.refresh(on: core, number: number, written: written) {
-                receipt.add(settlement)
-            }
+            if let settlement = follower.refresh(on: core, number: number) { receipt.add(settlement) }
         }
         try? core.control("PRAGMA query_only = 0")
     }
@@ -209,9 +211,11 @@ extension SQLite.Subscription {
         task != 0 && state.withLock { $0.task == task && !$0.gone }
     }
 
-    func refresh(on core: SQLite.Connection.Core, number: Int, written: SQLite.Region) -> (any SQLite.Settlement)? {
-        let stale = state.withLock { $0.region.isEmpty || $0.region.intersects(written) }
-        guard stale else { return nil }
+    func reads(_ written: SQLite.Region) -> Bool {
+        state.withLock { $0.region.isEmpty || $0.region.intersects(written) }
+    }
+
+    func refresh(on core: SQLite.Connection.Core, number: Int) -> (any SQLite.Settlement)? {
         let (element, region): (Element, SQLite.Region) = core.measure {
             do throws(ISO.`9075`.Error) {
                 return .success(try body(SQLite.Connection(core)))

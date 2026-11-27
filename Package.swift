@@ -130,6 +130,19 @@ let package = Package(
                 .product(name: "Test", package: "swift-test"),
             ]
         ),
+        // Not a product: it prints the driver's fixed costs, each as two variants in one run.
+        .executableTarget(
+            name: "SQLite Benchmark",
+            dependencies: [
+                .target(name: "SQLite"),
+                .target(name: "SQLite Test Support"),
+                .product(name: "Byte", package: "swift-byte"),
+                .product(name: "Path", package: "swift-path"),
+                .product(name: "SQL", package: "swift-sql"),
+                .product(name: "ISO 9075 Call-Level Interface", package: "swift-iso-9075"),
+            ],
+            path: "Benchmarks/SQLite Benchmark"
+        ),
         .testTarget(
             name: "SQLite Tests",
             dependencies: [

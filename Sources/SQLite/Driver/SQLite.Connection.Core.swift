@@ -22,7 +22,20 @@ extension SQLite.Connection {
         let pointer: OpaquePointer
 
         /// The prepared statements, by their text. A statement in use is not handed out twice.
-        private var statements: [String: OpaquePointer]
+        private var statements: [String: Kept]
+
+        /// A prepared statement that is kept, and what it reads and writes.
+        struct Kept {
+            let pointer: OpaquePointer
+            var footprint: SQLite.Footprint
+        }
+
+        /// What SQLite reported since it was last taken: filled while a statement compiles.
+        private var pending = SQLite.Footprint()
+
+        /// What the statements of the scope that runs have read and written so far. The slot empties it when a
+        /// scope begins. The driver's own statements, such as the ones that begin and end a transaction, are not in it.
+        var footprint = SQLite.Footprint()
 
         /// The lowest SQLite the driver runs on: 3.29.0, the first that can refuse double-quoted string literals.
         static let lowestVersion: Int32 = 3_029_000
@@ -66,11 +79,36 @@ extension SQLite.Connection {
                 },
                 unsafe Unmanaged.passUnretained(self).toOpaque()
             )
+            // SQLite reports here, while it compiles a statement, each table the statement reads and each it writes.
+            unsafe sqlite3_set_authorizer(
+                opened,
+                { context, action, first, second, _, _ in
+                    guard let context = unsafe context else { return SQLITE_OK }
+                    let core = unsafe Unmanaged<Core>.fromOpaque(context).takeUnretainedValue()
+                    switch action {
+                    case SQLITE_READ:
+                        if let first = unsafe first { core.pending.reads.tables.insert(unsafe String(cString: first)) }
+                    case SQLITE_INSERT, SQLITE_UPDATE, SQLITE_DELETE:
+                        if let first = unsafe first { core.pending.writes.tables.insert(unsafe String(cString: first)) }
+                    case SQLITE_SELECT, SQLITE_FUNCTION, SQLITE_TRANSACTION, SQLITE_SAVEPOINT, SQLITE_RECURSIVE:
+                        break
+                    case SQLITE_PRAGMA:
+                        // A pragma with a value sets something that no table names.
+                        if unsafe second != nil { core.pending.writes.everything = true }
+                    default:
+                        // The schema, an attached database, an analysis: no table names what a reader then sees.
+                        core.pending.writes.everything = true
+                    }
+                    return SQLITE_OK
+                },
+                unsafe Unmanaged.passUnretained(self).toOpaque()
+            )
         }
 
         deinit {
-            for unsafe statement in unsafe statements.values { unsafe sqlite3_finalize(statement) }
+            for unsafe statement in unsafe statements.values { unsafe sqlite3_finalize(statement.pointer) }
             unsafe sqlite3_progress_handler(pointer, 0, nil, nil)
+            unsafe sqlite3_set_authorizer(pointer, nil, nil)
             unsafe sqlite3_close_v2(pointer)
         }
     }
@@ -81,14 +119,70 @@ extension SQLite.Connection.Core {
 
     var changes: Int { Int(unsafe sqlite3_changes(pointer)) }
 
-    /// Runs every statement in `script`, with no bindings and no rows: the statements that open and end transactions
-    /// and configure the connection. A cancelled task does not interrupt them.
+    /// Runs every statement in `script`, with no bindings and no rows, for the body of a scope. A cancelled task does
+    /// not interrupt them. What they read and write is added to ``footprint``.
     func run(script: String) throws(SQLite.Error) {
         shielded = true
-        defer { shielded = false }
+        defer {
+            shielded = false
+            footprint.formUnion(pending)
+            pending = SQLite.Footprint()
+        }
         guard unsafe sqlite3_exec(pointer, script, nil, nil, nil) == SQLITE_OK else {
             throw unsafe SQLite.Error(connection: pointer, statement: script)
         }
+    }
+
+    /// Runs the driver's own `script`: the pragmas that configure the connection. It is compiled each time, because
+    /// some pragmas act while they are compiled. It is not part of ``footprint``.
+    func control(_ script: String) throws(SQLite.Error) {
+        shielded = true
+        defer {
+            shielded = false
+            pending = SQLite.Footprint()
+        }
+        guard unsafe sqlite3_exec(pointer, script, nil, nil, nil) == SQLITE_OK else {
+            throw unsafe SQLite.Error(connection: pointer, statement: script)
+        }
+    }
+
+    /// Runs the driver's own `statement`, one that begins or ends a transaction or a savepoint, from the kept
+    /// statements: it is compiled once. A cancelled task does not interrupt it. It is not part of ``footprint``.
+    func transact(_ statement: String) throws(SQLite.Error) {
+        shielded = true
+        defer {
+            shielded = false
+            pending = SQLite.Footprint()
+        }
+        let prepared: (statement: OpaquePointer, cached: Bool, footprint: SQLite.Footprint)
+        do throws(ISO.`9075`.Error) {
+            prepared = unsafe try prepare(statement)
+        } catch {
+            throw SQLite.Error(error)
+        }
+        defer {
+            if unsafe prepared.cached {
+                unsafe sqlite3_reset(prepared.statement)
+            } else {
+                unsafe sqlite3_finalize(prepared.statement)
+            }
+        }
+        while true {
+            switch unsafe sqlite3_step(prepared.statement) {
+            case SQLITE_ROW: continue
+            case SQLITE_DONE: return
+            default: throw unsafe SQLite.Error(connection: pointer, statement: statement)
+            }
+        }
+    }
+
+    /// Runs `body` and gives what its statements read, apart from the scope around it.
+    func measure<Value>(_ body: () -> Value) -> (value: Value, reads: SQLite.Region) {
+        let outer = footprint
+        footprint = SQLite.Footprint()
+        defer { footprint = outer }
+        let value = body()
+        return (value, footprint.reads)
     }
 
     func busy(timeout: Duration?) {
@@ -106,7 +200,7 @@ extension SQLite.Connection.Core {
     func establishWriteAheadLog(at path: String) throws(SQLite.Error) {
         var persistent: Int32 = 0
         _ = unsafe sqlite3_file_control(pointer, nil, SQLITE_FCNTL_PERSIST_WAL, &persistent)
-        try run(script: "SELECT 1 FROM sqlite_master LIMIT 1")
+        try control("SELECT 1 FROM sqlite_master LIMIT 1")
         var status = stat()
         guard unsafe stat(path + "-wal", &status) != 0 else { return }
         let versions: [ISO.`9075`.Value]
@@ -118,7 +212,7 @@ extension SQLite.Connection.Core {
             throw SQLite.Error(error)
         }
         guard case .int(let version)? = versions.first else { return }
-        try run(script: "PRAGMA user_version = \(version)")
+        try control("PRAGMA user_version = \(version)")
     }
 
     /// Steps `rendering` to its end, giving each row to `body`.
@@ -128,8 +222,16 @@ extension SQLite.Connection.Core {
     ) throws(ISO.`9075`.Error) {
         if Task.isCancelled { throw ISO.`9075`.Error(SQLite.Error.cancelled) }
         let sql = rendering.sql.isEmpty ? "SELECT 1 WHERE 0" : rendering.sql
-        let (statement, cached) = unsafe try prepare(sql)
+        let (statement, cached, compiled) = unsafe try prepare(sql)
+        footprint.formUnion(compiled)
         defer {
+            // What SQLite compiled while the statement ran: a virtual table's own statements, or the statement again
+            // after a change of the schema.
+            if !pending.isEmpty {
+                footprint.formUnion(pending)
+                if cached { unsafe statements[sql]?.footprint.formUnion(pending) }
+                pending = SQLite.Footprint()
+            }
             if cached {
                 unsafe sqlite3_reset(statement)
                 unsafe sqlite3_clear_bindings(statement)
@@ -164,10 +266,14 @@ extension SQLite.Connection.Core {
     /// The statement for `sql`: the one kept for that text, or, while that one is in use by an outer fetch, one of its
     /// own that the caller finalizes. More than one statement in `sql` is refused, as a statement that would be dropped.
     @unsafe
-    private func prepare(_ sql: String) throws(ISO.`9075`.Error) -> (statement: OpaquePointer, cached: Bool) {
-        if let kept = unsafe statements[sql], unsafe sqlite3_stmt_busy(kept) == 0 {
-            return unsafe (kept, true)
+    private func prepare(
+        _ sql: String
+    ) throws(ISO.`9075`.Error) -> (statement: OpaquePointer, cached: Bool, footprint: SQLite.Footprint) {
+        if let kept = unsafe statements[sql], unsafe sqlite3_stmt_busy(kept.pointer) == 0 {
+            return unsafe (kept.pointer, true, kept.footprint)
         }
+        pending = SQLite.Footprint()
+        defer { pending = SQLite.Footprint() }
         var prepared: OpaquePointer?
         var text = sql
         let (code, rest): (Int32, Bool) = text.withUTF8 { utf8 in
@@ -198,10 +304,10 @@ extension SQLite.Connection.Core {
             return unsafe try prepare("SELECT 1 WHERE 0")
         }
         if unsafe statements[sql] == nil {
-            unsafe statements[sql] = prepared
-            return unsafe (prepared, true)
+            unsafe statements[sql] = Kept(pointer: prepared, footprint: pending)
+            return unsafe (prepared, true, pending)
         }
-        return unsafe (prepared, false)
+        return unsafe (prepared, false, pending)
     }
 
     private static func isBlank(_ character: CChar) -> Bool {

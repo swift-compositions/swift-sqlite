@@ -88,8 +88,9 @@ extension SQLite.Database {
         do throws(ISO.`9075`.Failure<ISO.`9075`.Error>) {
             subscription = try await writer.run(.guardedRead) {
                 (connection: borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> SQLite.Subscription<Value> in
+                let (first, region) = try connection.measure(body)
                 let subscription = SQLite.Subscription(
-                    isolation: listener, first: try body(connection), same: same, body: body)
+                    isolation: listener, first: first, region: region, same: same, body: body)
                 hub.add(subscription)
                 return subscription
             }
@@ -159,10 +160,10 @@ extension SQLite.Database {
             body: @escaping @Sendable (borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> Value,
             on connection: borrowing SQLite.Connection
         ) throws(ISO.`9075`.Error) {
-            let first = try body(connection)
+            let (first, region) = try connection.measure(body)
             self.first = first
             self.subscription = SQLite.Subscription(
-                isolation: listener, first: first, yieldsFirst: false, same: same, body: body)
+                isolation: listener, first: first, region: region, yieldsFirst: false, same: same, body: body)
             hub.add(subscription)
         }
     }
@@ -181,5 +182,22 @@ extension SQLite.Database: FollowingDatabase {
         return FollowedRead { (actor: isolated (any Actor)?) async throws(ISO.`9075`.Error) -> Value? in
             try await lease.subscription.next(isolation: actor)?.get()
         }
+    }
+}
+
+extension SQLite.Connection {
+    /// Runs a followed read's `body` on this connection, and gives its answer and the tables it took it from.
+    func measure<Value>(
+        _ body: (borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> Value
+    ) throws(ISO.`9075`.Error) -> (value: Value, region: SQLite.Region) {
+        let core = core
+        let (result, region): (Result<Value, ISO.`9075`.Error>, SQLite.Region) = core.measure {
+            do throws(ISO.`9075`.Error) {
+                return .success(try body(SQLite.Connection(core)))
+            } catch {
+                return .failure(error)
+            }
+        }
+        return (try result.get(), region)
     }
 }

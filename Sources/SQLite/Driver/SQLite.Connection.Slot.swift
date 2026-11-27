@@ -15,11 +15,11 @@ extension SQLite.Connection {
             core.busy(timeout: configuration.busyTimeout)
             switch journal {
             case .writeAheadLog:
-                try core.run(script: "PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL")
+                try core.control("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL")
                 try core.establishWriteAheadLog(at: path)
             case .asFound: break
             }
-            try core.run(script: "PRAGMA foreign_keys = \(configuration.foreignKeysEnabled ? "ON" : "OFF")")
+            try core.control("PRAGMA foreign_keys = \(configuration.foreignKeysEnabled ? "ON" : "OFF")")
             for preparation in configuration.preparations {
                 do throws(ISO.`9075`.Error) {
                     try preparation(SQLite.Connection(core))
@@ -65,10 +65,11 @@ extension SQLite.Connection.Slot {
         return try core.withLock { (core: inout sending SQLite.Connection.Core?) throws(ISO.`9075`.Failure<Thrown>) -> Value in
             guard let live = core else { throw .database(ISO.`9075`.Error(SQLite.Error.closed)) }
             do throws(SQLite.Error) {
-                try live.run(script: scope.begin)
+                try scope.begin(live)
             } catch {
                 throw .database(ISO.`9075`.Error(error))
             }
+            live.footprint = SQLite.Footprint()
             let value: Value
             do throws(Thrown) {
                 value = try body(SQLite.Connection(live))
@@ -77,7 +78,7 @@ extension SQLite.Connection.Slot {
                 throw .body(error)
             }
             do throws(SQLite.Error) {
-                try live.run(script: scope.end)
+                try scope.end(live)
             } catch {
                 scope.abandon(live)
                 throw .database(ISO.`9075`.Error(error))
@@ -117,28 +118,32 @@ extension SQLite.Connection.Slot {
 }
 
 extension SQLite.Connection.Slot.Scope {
-    fileprivate var begin: String {
+    fileprivate func begin(_ core: SQLite.Connection.Core) throws(SQLite.Error) {
         switch self {
-        case .read: "BEGIN DEFERRED TRANSACTION"
-        case .guardedRead: "PRAGMA query_only = 1; BEGIN DEFERRED TRANSACTION"
-        case .write, .rollback: "BEGIN IMMEDIATE TRANSACTION"
-        case .bare: ""
+        case .read: try core.transact("BEGIN DEFERRED TRANSACTION")
+        case .guardedRead:
+            try core.control("PRAGMA query_only = 1")
+            try core.transact("BEGIN DEFERRED TRANSACTION")
+        case .write, .rollback: try core.transact("BEGIN IMMEDIATE TRANSACTION")
+        case .bare: break
         }
     }
 
-    fileprivate var end: String {
+    fileprivate func end(_ core: SQLite.Connection.Core) throws(SQLite.Error) {
         switch self {
-        case .read, .write: "COMMIT TRANSACTION"
-        case .guardedRead: "COMMIT TRANSACTION; PRAGMA query_only = 0"
-        case .rollback: "ROLLBACK TRANSACTION"
-        case .bare: ""
+        case .read, .write: try core.transact("COMMIT TRANSACTION")
+        case .guardedRead:
+            try core.transact("COMMIT TRANSACTION")
+            try core.control("PRAGMA query_only = 0")
+        case .rollback: try core.transact("ROLLBACK TRANSACTION")
+        case .bare: break
         }
     }
 
     /// Leaves the connection as the next scope expects it, after a body or a commit that failed.
     fileprivate func abandon(_ core: SQLite.Connection.Core) {
         if case .bare = self { return }
-        if core.isInsideTransaction { try? core.run(script: "ROLLBACK TRANSACTION") }
-        if case .guardedRead = self { try? core.run(script: "PRAGMA query_only = 0") }
+        if core.isInsideTransaction { try? core.transact("ROLLBACK TRANSACTION") }
+        if case .guardedRead = self { try? core.control("PRAGMA query_only = 0") }
     }
 }

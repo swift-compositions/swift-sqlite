@@ -76,7 +76,7 @@ extension SQLite.Connection {
         _ body: () throws(Thrown) -> Completion
     ) throws(ISO.`9075`.Failure<Thrown>) {
         do throws(SQLite.Error) {
-            try core.run(script: begin)
+            try core.control(begin)
         } catch {
             throw .database(ISO.`9075`.Error(error))
         }
@@ -84,16 +84,16 @@ extension SQLite.Connection {
         do throws(Thrown) {
             completion = try body()
         } catch {
-            if core.isInsideTransaction { try? core.run(script: rollback) }
+            if core.isInsideTransaction { try? core.control(rollback) }
             throw .body(error)
         }
         do throws(SQLite.Error) {
             switch completion {
-            case .commit: try core.run(script: commit)
-            case .rollback: try core.run(script: rollback)
+            case .commit: try core.control(commit)
+            case .rollback: try core.control(rollback)
             }
         } catch {
-            if core.isInsideTransaction { try? core.run(script: rollback) }
+            if core.isInsideTransaction { try? core.control(rollback) }
             throw .database(ISO.`9075`.Error(error))
         }
     }

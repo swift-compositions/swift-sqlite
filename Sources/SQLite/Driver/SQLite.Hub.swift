@@ -37,8 +37,8 @@ extension SQLite {
     /// One followed read, with its value type erased.
     protocol Follower: AnyObject, Sendable {
         /// Reads again on the writer's connection and publishes the answer if it changed. Synchronous, and called in
-        /// commit order.
-        func refresh(on core: SQLite.Connection.Core, number: Int) -> (any Settlement)?
+        /// commit order. A follower that reads none of the tables in `written` keeps its answer and is not read.
+        func refresh(on core: SQLite.Connection.Core, number: Int, written: SQLite.Region) -> (any Settlement)?
         /// Whether `task` is the task of this follower's loop.
         func isListener(_ task: UInt) -> Bool
         var isGone: Bool { get }
@@ -66,6 +66,9 @@ extension SQLite.Hub {
 
     /// Called by the writer, with its connection, after a commit.
     func publish(on core: SQLite.Connection.Core, into receipt: Receipt) {
+        // A scope whose statements could write nothing left every answer as it was.
+        let written = core.footprint.writes
+        guard !written.isEmpty else { return }
         let (number, followers): (Int, [any SQLite.Follower]) = state.withLock { state in
             state.followers.removeAll { $0.isGone }
             guard !state.followers.isEmpty else { return (0, []) }
@@ -74,11 +77,13 @@ extension SQLite.Hub {
         }
         guard !followers.isEmpty else { return }
         // A followed read only reads: the writer's connection refuses a write for as long as they run.
-        try? core.run(script: "PRAGMA query_only = 1")
+        try? core.control("PRAGMA query_only = 1")
         for follower in followers {
-            if let settlement = follower.refresh(on: core, number: number) { receipt.add(settlement) }
+            if let settlement = follower.refresh(on: core, number: number, written: written) {
+                receipt.add(settlement)
+            }
         }
-        try? core.run(script: "PRAGMA query_only = 0")
+        try? core.control("PRAGMA query_only = 0")
     }
 
     /// Called by `write` after its commit, on the caller's isolation.
@@ -127,11 +132,14 @@ extension SQLite {
         let body: @Sendable (borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> Value
         /// Whether two answers are the same, for a read whose equal answers yield nothing.
         let same: (@Sendable (Value, Value) -> Bool)?
-        private let state = Mutex(State())
+        private let state: Mutex<State>
 
         struct State {
             /// The answer of the last publication, to compare the next with.
             var last: Value?
+            /// The tables the read took its last answer from. Empty for a read that named none, such as one of a
+            /// pragma: that one is read again after every write.
+            var region: SQLite.Region
             /// The latest publication that the listener has not taken yet.
             var latest: (number: Int, element: Element)?
             /// The highest publication that the listener took.
@@ -151,6 +159,7 @@ extension SQLite {
         init(
             isolation: any Actor,
             first: Value,
+            region: SQLite.Region,
             yieldsFirst: Bool = true,
             same: (@Sendable (Value, Value) -> Bool)?,
             body: @escaping @Sendable (borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> Value
@@ -158,10 +167,10 @@ extension SQLite {
             self.isolation = isolation
             self.body = body
             self.same = same
-            state.withLock { state in
-                state.last = first
-                if yieldsFirst { state.latest = (0, .success(first)) }
-            }
+            var state = State(region: region)
+            state.last = first
+            if yieldsFirst { state.latest = (0, .success(first)) }
+            self.state = Mutex(state)
         }
 
         /// What `publish` found, for the wait that follows it.
@@ -200,15 +209,20 @@ extension SQLite.Subscription {
         task != 0 && state.withLock { $0.task == task && !$0.gone }
     }
 
-    func refresh(on core: SQLite.Connection.Core, number: Int) -> (any SQLite.Settlement)? {
-        let element: Element
-        do throws(ISO.`9075`.Error) {
-            element = .success(try body(SQLite.Connection(core)))
-        } catch {
-            element = .failure(error)
+    func refresh(on core: SQLite.Connection.Core, number: Int, written: SQLite.Region) -> (any SQLite.Settlement)? {
+        let stale = state.withLock { $0.region.isEmpty || $0.region.intersects(written) }
+        guard stale else { return nil }
+        let (element, region): (Element, SQLite.Region) = core.measure {
+            do throws(ISO.`9075`.Error) {
+                return .success(try body(SQLite.Connection(core)))
+            } catch {
+                return .failure(error)
+            }
         }
         let published: Published? = state.withLock { state in
             if state.gone { return nil }
+            // A read that failed may have named fewer tables than it reads: it keeps the ones it had.
+            if case .success = element { state.region = region } else { state.region.formUnion(region) }
             if case .success(let value) = element {
                 if let last = state.last, let same, same(last, value) { return nil }
                 state.last = value

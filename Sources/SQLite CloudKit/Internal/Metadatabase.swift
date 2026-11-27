@@ -23,7 +23,14 @@
                 open "\(url.path(percentEncoded: false))"
                 """
             )
-            let database = try SQLite.Database(path: try Path::Path(validating: url.path(percentEncoded: false)))
+            // The user database's writer writes this file too, through its attached schema: wait for it rather than
+            // fail at once.
+            var configuration = SQLite.Configuration()
+            configuration.busyTimeout = .seconds(5)
+            let database = try SQLite.Database(
+                path: try Path::Path(validating: url.path(percentEncoded: false)),
+                configuration: configuration
+            )
             return UserDatabase(database: database)
         }
 

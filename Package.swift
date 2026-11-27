@@ -19,15 +19,13 @@ let package = Package(
         .library(name: "SQLite Test Support", targets: ["SQLite Test Support"]),
     ],
     traits: [
-        .trait(name: "GRDB", description: "Connection, execution and decoding over GRDB"),
         .trait(name: "Observation", description: "Observed fetches"),
         .trait(name: "CloudKit", description: "CloudKit synchronization", enabledTraits: ["Observation"]),
         .trait(name: "Tagged", description: "SQLite conformances for swift-atoms Tagged"),
-        .trait(name: "Dependencies", description: "The ambient database as a dependency value", enabledTraits: ["GRDB"]),
+        .trait(name: "Dependencies", description: "The ambient database as a dependency value"),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.2"),
-        .package(url: "https://github.com/swift-compositions/GRDB.swift.git", branch: "main"),
         .package(
             url: "https://github.com/swift-compositions/swift-sql.git",
             branch: "lent-connection",
@@ -69,7 +67,6 @@ let package = Package(
             linkerSettings: [.linkedLibrary("sqlite3")]
         ),
         // The database: connections, execution and the writer and reader actors, over the driver in Sources/SQLite/Driver.
-        // What still runs on GRDB itself (cursors, CloudKit) sits behind the GRDB trait and is not ported yet.
         .target(
             name: "SQLite",
             dependencies: [
@@ -85,12 +82,6 @@ let package = Package(
                 .product(name: "Order", package: "swift-order"),
                 .product(name: "Time", package: "swift-time"),
                 .product(name: "RFC 4122", package: "swift-rfc-4122"),
-                .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["GRDB"])),
-                .product(
-                    name: "OrderedCollections",
-                    package: "swift-collections",
-                    condition: .when(traits: ["GRDB"])
-                ),
                 .product(name: "Tagged", package: "swift-tagged", condition: .when(traits: ["Tagged"])),
                 .product(name: "Dependencies", package: "swift-dependencies", condition: .when(traits: ["Dependencies"])),
             ]
@@ -136,7 +127,6 @@ let package = Package(
                 .product(name: "Byte", package: "swift-byte"),
                 .product(name: "RFC 4122", package: "swift-rfc-4122"),
                 .product(name: "Time", package: "swift-time"),
-                .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["GRDB"])),
                 .product(name: "Test", package: "swift-test"),
             ]
         ),
@@ -150,7 +140,6 @@ let package = Package(
                 .product(name: "SQL Migrations", package: "swift-sql"),
                 .product(name: "SQL Test Support", package: "swift-sql"),
                 .product(name: "ISO 9075 Call-Level Interface", package: "swift-iso-9075"),
-                .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["GRDB"])),
                 .product(name: "Dependencies", package: "swift-dependencies", condition: .when(traits: ["Dependencies"])),
                 .product(name: "Tests Inline Snapshot", package: "swift-tests"),
                 .product(name: "Tests Apple Testing Bridge", package: "swift-tests"),
@@ -174,8 +163,7 @@ let package = Package(
                 .treatAllWarnings(as: .error)
             ]
         ),
-        // A consumer's view: the Institute's modules only, never the driver. It compiles only while no public
-        // declaration of SQLite or SQLite CloudKit needs a GRDB type.
+        // A consumer's view: the public modules only, as a product names them.
         .testTarget(
             name: "SQLite Consumer Tests",
             dependencies: [

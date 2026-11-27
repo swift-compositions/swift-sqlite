@@ -16,7 +16,7 @@
         @Test
         func `a wired database is the one read back`() throws {
             let path = NSTemporaryDirectory() + "defaultDatabase-\(UInt64.random(in: 0 ... .max)).sqlite"
-            let wired = try SQLite.Database(path: try Path::Path(validating: path), kind: .queue)
+            let wired = try SQLite.Database(path: try Path::Path(validating: path))
             withDependencies {
                 $0.defaultDatabase = wired
             } operation: {

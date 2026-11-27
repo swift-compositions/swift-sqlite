@@ -24,8 +24,8 @@ extension Test::Test.Snapshot.Strategy where Format == Swift.String {
         )
     }
 
-    /// The rows the statement returns when read on the writer's connection of `database`, which sees what is attached
-    /// to that connection alone. The statement must only read.
+    /// The rows the statement returns when run in a write on the writer's connection of `database`, which also sees
+    /// what is attached to that connection alone. Followed reads are not told of what the statement changes.
     @_disfavoredOverload
     public static func rows<each V: QueryRepresentable>(
         writing database: SQLite.Database,
@@ -36,7 +36,7 @@ extension Test::Test.Snapshot.Strategy where Format == Swift.String {
             { (statement: Value) throws(ISO.`9075`.Error) in
                 let query = statement.query
                 do throws(ISO.`9075`.Failure<ISO.`9075`.Error>) {
-                    return try database.readOnWriter {
+                    return try database.writeOnCaller {
                         (connection: borrowing SQLite.Connection) throws(ISO.`9075`.Error) in
                         Carried(try SQLQueryExpression(query, as: (repeat each V).self).fetch.all(connection))
                     }.rows
@@ -65,7 +65,7 @@ extension Test::Test.Snapshot.Strategy where Format == Swift.String {
         )
     }
 
-    /// Every column of the selected tables, read on the writer's connection of `database`.
+    /// Every column of the selected tables, read in a write on the writer's connection of `database`.
     public static func rows<each J: SQL::Table>(
         writing database: SQLite.Database,
         drawing: @escaping (Any) -> Swift.String? = { _ in nil }
@@ -75,7 +75,7 @@ extension Test::Test.Snapshot.Strategy where Format == Swift.String {
             { (statement: Value) throws(ISO.`9075`.Error) in
                 let query = statement.selectStar().query
                 do throws(ISO.`9075`.Failure<ISO.`9075`.Error>) {
-                    return try database.readOnWriter {
+                    return try database.writeOnCaller {
                         (connection: borrowing SQLite.Connection) throws(ISO.`9075`.Error) in
                         Carried(try SQLQueryExpression(query, as: (Value.From, repeat each J).self).fetch.all(connection))
                     }.rows

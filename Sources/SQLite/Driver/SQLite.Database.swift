@@ -179,14 +179,15 @@ extension SQLite.Database {
         }
     }
 
-    /// Reads on the writer's connection, on the caller's thread: it sees what is attached to that connection alone,
-    /// and it waits behind a lock for a write that is running. For tests that read through the writer.
+    /// Runs `body` in a write transaction on the writer's connection, on the caller's thread: it waits behind a lock
+    /// for a write that is running, and it sees what is attached to that connection alone. The followed reads of
+    /// the database are not told of what it changes. For test support, whose snapshots are synchronous.
     ///
     /// Do not call it from the body of a read or write of the same database: it would wait for itself.
-    package func readOnWriter<Value, Thrown: Swift.Error>(
+    package func writeOnCaller<Value, Thrown: Swift.Error>(
         _ body: sending (borrowing SQLite.Connection) throws(Thrown) -> sending Value
     ) throws(ISO.`9075`.Failure<Thrown>) -> sending Value {
-        try writer.slot.run(.guardedRead, body)
+        try writer.slot.run(.write, body)
     }
 
     /// Copies every page of this database into `destination`, replacing what it held. Runs on `destination`'s writer.

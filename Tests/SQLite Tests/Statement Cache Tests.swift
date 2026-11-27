@@ -37,20 +37,6 @@ private struct Record: Equatable {
         }
     }
 
-    #if GRDB
-        @Test func `does not share a statement with an escaping cursor`() throws {
-            try queue.read { database in
-                let query = Record.where { $0.id.lte(3) }
-                let cursor = try query.fetchCursor(database)
-                #expect(try cursor.next()?.id == 1)
-                #expect(try query.fetch.all(database).map(\.id) == [1, 2, 3])
-                #expect(try cursor.next()?.id == 2)
-                #expect(try cursor.next()?.id == 3)
-                #expect(try cursor.next() == nil)
-            }
-        }
-    #endif
-
     @Test func `reuses a cached execute`() async throws {
         try await queue.write { connection throws(ISO.`9075`.Error) in
             for id in 11...20 {

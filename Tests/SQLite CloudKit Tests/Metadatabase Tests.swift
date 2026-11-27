@@ -47,7 +47,8 @@
                 .execute(db)
                 // The shape GRDB's migrator leaves: its own table of names, and none of the driver's.
                 try #sql(#"CREATE TABLE "grdb_migrations" ("identifier" TEXT NOT NULL PRIMARY KEY)"#).execute(db)
-                try #sql(#"INSERT INTO "grdb_migrations" SELECT "name" FROM "_sql_migrations""#).execute(db)
+                // The one migration the GRDB version registered, by the name it recorded.
+                try #sql(#"INSERT INTO "grdb_migrations" VALUES ('Create Metadata Tables')"#).execute(db)
                 try #sql(#"DROP TABLE "_sql_migrations""#).execute(db)
             }
 
@@ -60,8 +61,8 @@
                 ]
             }
             #expect(counts[0] == 1)
-            #expect(counts[1] != 0)
-            #expect(counts[1] == counts[2])
+            #expect(counts[1] == 1)
+            #expect(counts[2] == 1)
         }
     }
 #endif

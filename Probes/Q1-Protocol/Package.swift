@@ -9,6 +9,7 @@ import PackageDescription
 let package = Package(
     name: "Q1-Protocol",
     platforms: [.macOS(.v27)],
+    products: [.library(name: "Lent Interface", targets: ["Lent Interface"])],
     dependencies: [
         .package(url: "https://github.com/swift-iso/swift-iso-9075.git", branch: "main")
     ],

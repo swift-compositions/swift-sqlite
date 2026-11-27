@@ -1,0 +1,31 @@
+Rejected/ReturnedFromTheBody.swift:6:16: error: instance method 'lend' requires that 'SQLite.Handle' conform to 'Escapable'
+ 4 | // The handle as the body's result.
+ 5 | func returnedFromTheBody(_ connection: borrowing SQLite.Connection) {
+ 6 |     connection.lend { (handle: borrowing SQLite.Handle) -> SQLite.Handle in
+   |                `- error: instance method 'lend' requires that 'SQLite.Handle' conform to 'Escapable'
+ 7 |         return handle
+ 8 |     }
+
+/home/user/swift-sqlite/Probes/Q2-Handle/Sources/SQLite Handle/SQLite.swift:45:31: note: 'where Value: Escapable' is implicit here
+ 43 | 
+ 44 |         /// Lends the connection to `body` as a handle that cannot outlive the call.
+ 45 |         public borrowing func lend<Value, Thrown: Swift.Error>(
+    |                               `- note: 'where Value: Escapable' is implicit here
+ 46 |             _ body: (borrowing Handle) throws(Thrown) -> Value
+ 47 |         ) throws(Thrown) -> Value {
+
+Rejected/ReturnedFromTheBody.swift:6:16: error: instance method 'lend' requires that 'SQLite.Handle' conform to 'Copyable'
+ 4 | // The handle as the body's result.
+ 5 | func returnedFromTheBody(_ connection: borrowing SQLite.Connection) {
+ 6 |     connection.lend { (handle: borrowing SQLite.Handle) -> SQLite.Handle in
+   |                `- error: instance method 'lend' requires that 'SQLite.Handle' conform to 'Copyable'
+ 7 |         return handle
+ 8 |     }
+
+/home/user/swift-sqlite/Probes/Q2-Handle/Sources/SQLite Handle/SQLite.swift:45:31: note: 'where Value: Copyable' is implicit here
+ 43 | 
+ 44 |         /// Lends the connection to `body` as a handle that cannot outlive the call.
+ 45 |         public borrowing func lend<Value, Thrown: Swift.Error>(
+    |                               `- note: 'where Value: Copyable' is implicit here
+ 46 |             _ body: (borrowing Handle) throws(Thrown) -> Value
+ 47 |         ) throws(Thrown) -> Value {

@@ -1,0 +1,9 @@
+Rejected/StoredInAClass.swift:6:9: error: lifetime-dependent variable 'value' escapes its scope
+4 | // The handle stored in a class, and in a variable outside the body.
+5 | final class Keeper {
+6 |     var handle: SQLite.Handle?
+  |         |- error: lifetime-dependent variable 'value' escapes its scope
+  |         |- note: error in compiler-generated 'set'
+  |         `- note: it depends on the lifetime of argument 'value'
+7 | }
+8 | 

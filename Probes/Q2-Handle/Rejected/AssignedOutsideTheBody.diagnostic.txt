@@ -1,0 +1,22 @@
+Rejected/AssignedOutsideTheBody.swift:14:24: error: 'handle' is borrowed and cannot be consumed
+12 | func assignedOutsideTheBody(_ connection: borrowing SQLite.Connection) {
+13 |     var kept: Keeper?
+14 |     connection.lend { (handle: borrowing SQLite.Handle) in
+   |                        `- error: 'handle' is borrowed and cannot be consumed
+15 |         kept = Keeper(handle)
+   |                `- note: consumed here
+16 |     }
+17 |     _ = kept
+
+Rejected/AssignedOutsideTheBody.swift:13:9: error: lifetime-dependent variable 'kept' escapes its scope
+11 | 
+12 | func assignedOutsideTheBody(_ connection: borrowing SQLite.Connection) {
+13 |     var kept: Keeper?
+   |         `- error: lifetime-dependent variable 'kept' escapes its scope
+14 |     connection.lend { (handle: borrowing SQLite.Handle) in
+   |                        `- note: it depends on the lifetime of argument 'handle'
+15 |         kept = Keeper(handle)
+16 |     }
+   |     `- note: this use causes the lifetime-dependent value to escape
+17 |     _ = kept
+18 | }

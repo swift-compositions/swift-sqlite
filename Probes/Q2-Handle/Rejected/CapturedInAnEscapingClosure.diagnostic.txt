@@ -1,0 +1,20 @@
+Rejected/CapturedInAnEscapingClosure.swift:6:24: error: 'handle' cannot be captured by an escaping closure since it is a borrowed parameter
+ 4 | // Capture of the handle in a closure that escapes, with no Task.
+ 5 | func capturedInAnEscapingClosure(_ connection: borrowing SQLite.Connection) -> () -> Void {
+ 6 |     connection.lend { (handle: borrowing SQLite.Handle) in
+   |                        `- error: 'handle' cannot be captured by an escaping closure since it is a borrowed parameter
+ 7 |         return { _ = try? handle.execute("DELETE FROM item") }
+   |                `- note: closure capturing 'handle' here
+ 8 |     }
+ 9 | }
+
+Rejected/CapturedInAnEscapingClosure.swift:6:24: error: lifetime-dependent variable 'handle' escapes its scope
+ 4 | // Capture of the handle in a closure that escapes, with no Task.
+ 5 | func capturedInAnEscapingClosure(_ connection: borrowing SQLite.Connection) -> () -> Void {
+ 6 |     connection.lend { (handle: borrowing SQLite.Handle) in
+   |                        |- error: lifetime-dependent variable 'handle' escapes its scope
+   |                        `- note: it depends on the lifetime of argument 'handle'
+ 7 |         return { _ = try? handle.execute("DELETE FROM item") }
+   |                `- note: this use causes the lifetime-dependent value to escape
+ 8 |     }
+ 9 | }

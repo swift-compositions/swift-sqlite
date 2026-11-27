@@ -1,0 +1,7 @@
+Rejected/Copied.swift:7:22: error: 'copy' cannot be applied to noncopyable types
+ 5 | func copied(_ connection: borrowing SQLite.Connection) {
+ 6 |     connection.lend { (handle: borrowing SQLite.Handle) in
+ 7 |         let second = copy handle
+   |                      `- error: 'copy' cannot be applied to noncopyable types
+ 8 |         _ = try? second.execute("DELETE FROM item")
+ 9 |     }

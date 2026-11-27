@@ -1,0 +1,10 @@
+Rejected/ReturnedPastTheConnection.swift:8:23: error: lifetime-dependent value escapes its scope
+ 5 | @_lifetime(immortal)
+ 6 | func returnedPastTheConnection() throws -> SQLite.Handle {
+ 7 |     let connection = try SQLite.Connection(path: ":memory:")
+   |         `- note: it depends on the lifetime of variable 'connection'
+ 8 |     return connection.handle
+   |     |                 `- error: lifetime-dependent value escapes its scope
+   |     `- note: this use causes the lifetime-dependent value to escape
+ 9 | }
+10 | 

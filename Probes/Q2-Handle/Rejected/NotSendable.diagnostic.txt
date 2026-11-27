@@ -1,0 +1,15 @@
+Rejected/NotSendable.swift:9:9: error: type 'SQLite.Handle' does not conform to the 'Sendable' protocol
+ 7 | func notSendable(_ connection: borrowing SQLite.Connection) {
+ 8 |     connection.lend { (handle: borrowing SQLite.Handle) in
+ 9 |         requiresSendable(handle)
+   |         `- error: type 'SQLite.Handle' does not conform to the 'Sendable' protocol
+10 |     }
+11 | }
+
+/home/user/swift-sqlite/Probes/Q2-Handle/Sources/SQLite Handle/SQLite.swift:62:19: note: struct 'Handle' does not conform to the 'Sendable' protocol
+ 60 |     /// What a body is given: the connection's pointer, for as long as the connection is borrowed and no longer.
+ 61 |     @safe
+ 62 |     public struct Handle: Lent.Connection, ~Copyable, ~Escapable {
+    |                   `- note: struct 'Handle' does not conform to the 'Sendable' protocol
+ 63 |         public let dialect = SQLite.Dialect()
+ 64 |         private let pointer: OpaquePointer

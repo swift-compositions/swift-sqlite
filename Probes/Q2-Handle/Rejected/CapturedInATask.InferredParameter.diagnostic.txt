@@ -1,0 +1,33 @@
+Begin Error in Function: '$s4null15capturedInATaskyy13SQLite_Handle0E0O10ConnectionVFyAE0F0VXEfU_'
+Have operand with incompatible ownership?!
+Value:   %4 = mark_unresolved_non_copyable_value [no_consume_or_assign] %3 : $SQLite.Handle // users: %21, %13, %5
+User:   copy_addr %4 to [init] %12 : $*SQLite.Handle    // id: %13
+Operand Number: 0
+Conv: owned
+Constraint:
+<Constraint Kind:none LifetimeConstraint:NonLifetimeEnding>
+End Error in Function: '$s4null15capturedInATaskyy13SQLite_Handle0E0O10ConnectionVFyAE0F0VXEfU_'
+Found ownership error?!
+Rejected/CapturedInATask.InferredParameter.swift:9:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 7 | func capturedInATask(_ connection: borrowing SQLite.Connection) {
+ 8 |     connection.lend { handle in
+ 9 |         Task { _ = try handle.execute("DELETE FROM item") }
+   |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+   |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+10 |         return ()
+11 |     }
+
+<unknown>:0: error: fatal error encountered during compilation; please submit a bug report (https://swift.org/contributing/#reporting-bugs)
+<unknown>:0: note: triggering standard assertion failure routine
+Please submit a bug report (https://swift.org/contributing/#reporting-bugs) and include the crash backtrace.
+Stack dump:
+0.	Program arguments: /opt/swift/usr/bin/swift-frontend -frontend -emit-sil -primary-file Rejected/CapturedInATask.InferredParameter.swift -target x86_64-unknown-linux-gnu -disable-objc-interop -I .build/out/Products/Debug-linux-x86_64 -no-color-diagnostics -Xcc -fno-color-diagnostics -swift-version 6 -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-upcoming-feature ExistentialAny -enable-upcoming-feature InferIsolatedConformances -enable-experimental-feature Lifetimes -strict-memory-safety -empty-abi-descriptor -Xcc -fmodule-map-file=Sources/CSQLite/module.modulemap -no-auto-bridging-header-chaining -module-name null -in-process-plugin-server-path /opt/swift/usr/lib/swift/host/libSwiftInProcPluginServer.so -plugin-path /opt/swift/usr/lib/swift/host/plugins -plugin-path /opt/swift/usr/local/lib/swift/host/plugins -parse-as-library -o /dev/null
+1.	Swift version 6.4.2 (swift-6.4.2-RELEASE)
+2.	Compiling with the current language version
+3.	While evaluating request ExecuteSILPipelineRequest(Run pipelines { SILGen Passes } on SIL for null)
+4.	While running pass #0 SILModuleTransform "SILGenCleanup".
+5.	While silgen cleanup SIL function "@$s4null15capturedInATaskyy13SQLite_Handle0E0O10ConnectionVFyAE0F0VXEfU_".
+ for expression at [Rejected/CapturedInATask.InferredParameter.swift:8:21 - line:11:5] RangeText="{ handle in
+        Task { _ = try handle.execute("DELETE FROM item") }
+        return ()
+    "

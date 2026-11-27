@@ -1,0 +1,42 @@
+Rejected/CapturedInATask.swift:8:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 6 | func capturedInATask(_ connection: borrowing SQLite.Connection) {
+ 7 |     connection.lend { (handle: borrowing SQLite.Handle) in
+ 8 |         Task { _ = try handle.execute("DELETE FROM item") }
+   |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+   |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 9 |         return ()
+10 |     }
+
+Rejected/CapturedInATask.swift:8:9: error: passing closure as a 'sending' parameter risks causing data races between code in the current isolation context and concurrent execution of the closure [#RegionIsolation::SendingClosureRisksDataRace]
+ 6 | func capturedInATask(_ connection: borrowing SQLite.Connection) {
+ 7 |     connection.lend { (handle: borrowing SQLite.Handle) in
+ 8 |         Task { _ = try handle.execute("DELETE FROM item") }
+   |         |              `- note: closure captures 'handle' which is accessible to code in the current isolation context
+   |         `- error: passing closure as a 'sending' parameter risks causing data races between code in the current isolation context and concurrent execution of the closure [#RegionIsolation::SendingClosureRisksDataRace]
+ 9 |         return ()
+10 |     }
+
+Rejected/CapturedInATask.swift:7:24: error: 'handle' cannot be captured by an escaping closure since it is a borrowed parameter
+ 5 | // inference the compiler crashes (CapturedInATask.InferredParameter.swift).
+ 6 | func capturedInATask(_ connection: borrowing SQLite.Connection) {
+ 7 |     connection.lend { (handle: borrowing SQLite.Handle) in
+   |                        `- error: 'handle' cannot be captured by an escaping closure since it is a borrowed parameter
+ 8 |         Task { _ = try handle.execute("DELETE FROM item") }
+   |              `- note: closure capturing 'handle' here
+ 9 |         return ()
+10 |     }
+
+Rejected/CapturedInATask.swift:7:24: error: lifetime-dependent variable 'handle' escapes its scope
+ 5 | // inference the compiler crashes (CapturedInATask.InferredParameter.swift).
+ 6 | func capturedInATask(_ connection: borrowing SQLite.Connection) {
+ 7 |     connection.lend { (handle: borrowing SQLite.Handle) in
+   |                        |- error: lifetime-dependent variable 'handle' escapes its scope
+   |                        `- note: it depends on the lifetime of argument 'handle'
+ 8 |         Task { _ = try handle.execute("DELETE FROM item") }
+   |              `- note: this use causes the lifetime-dependent value to escape
+ 9 |         return ()
+10 |     }
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[#RegionIsolation]: <https://docs.swift.org/compiler/documentation/diagnostics/region-isolation>
+[#SendingClosureRisksDataRace]: <https://docs.swift.org/compiler/documentation/diagnostics/sending-closure-risks-data-race>

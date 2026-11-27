@@ -9,6 +9,8 @@ swift build >/dev/null 2>&1 || { echo "the package itself does not build"; exit 
 modules=".build/out/Products/Debug-linux-x86_64"
 [ -d "$modules" ] || modules="$(swift build --show-bin-path)"
 status=0
+maps=()
+for map in Sources/*/module.modulemap; do [ -f "$map" ] && maps+=(-Xcc "-fmodule-map-file=$map"); done
 for file in Rejected/*.swift; do
     out="${file%.swift}.diagnostic.txt"
     if swiftc -emit-sil -o /dev/null -parse-as-library -swift-version 6 -I "$modules" \
@@ -16,10 +18,16 @@ for file in Rejected/*.swift; do
         -enable-upcoming-feature ExistentialAny \
         -enable-upcoming-feature InferIsolatedConformances \
         -enable-experimental-feature Lifetimes \
-        -strict-memory-safety ${EXTRA_FLAGS:-} \
+        -strict-memory-safety "${maps[@]}" ${EXTRA_FLAGS:-} \
         "$file" >"$out" 2>&1
     then
         echo "ACCEPTED (expected a rejection): $file"; status=1
+    elif grep -q "fatal error encountered during compilation" "$out"; then
+        # Keep the compiler's own words; drop the stack dump and the register dump.
+        sed -i -E '/^ *#[0-9]+ 0x|^\*\*\* Signal/,$d' "$out"
+        echo "COMPILER CRASH (not accepted, but no diagnostic): $file"; grep -E "Found ownership error|Have operand" "$out" | sed 's/^/    /'
+    elif grep -qE "missing required module|no such module" "$out"; then
+        echo "NOT COMPILED (a module was not found): $file"; status=2
     else
         echo "rejected: $file"; grep -E "error:" "$out" | sed 's/^/    /'
     fi

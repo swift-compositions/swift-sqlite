@@ -1,0 +1,20 @@
+Rejected/ReturnedFromTheBody.NonEscapableResult.swift:15:39: error: 'handle' is borrowed and cannot be consumed
+13 | 
+14 | func returnedFromTheBody(_ connection: borrowing SQLite.Connection) {
+15 |     let escaped = lend(connection) { (handle: borrowing SQLite.Handle) -> SQLite.Handle in
+   |                                       `- error: 'handle' is borrowed and cannot be consumed
+16 |         return handle
+   |                `- note: consumed here
+17 |     }
+18 |     _ = try? escaped.execute("DELETE FROM item")
+
+Rejected/ReturnedFromTheBody.NonEscapableResult.swift:15:39: error: lifetime-dependent variable 'handle' escapes its scope
+13 | 
+14 | func returnedFromTheBody(_ connection: borrowing SQLite.Connection) {
+15 |     let escaped = lend(connection) { (handle: borrowing SQLite.Handle) -> SQLite.Handle in
+   |                                       |- error: lifetime-dependent variable 'handle' escapes its scope
+   |                                       `- note: it depends on the lifetime of argument 'handle'
+16 |         return handle
+   |                `- note: this use causes the lifetime-dependent value to escape
+17 |     }
+18 |     _ = try? escaped.execute("DELETE FROM item")

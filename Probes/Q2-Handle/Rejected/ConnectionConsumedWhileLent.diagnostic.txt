@@ -1,0 +1,7 @@
+Rejected/ConnectionConsumedWhileLent.swift:10:11: error: noncopyable 'connection' cannot be consumed when captured by an escaping closure or borrowed by a non-Escapable type
+ 8 |     let connection = try SQLite.Connection(path: ":memory:")
+ 9 |     let handle = connection.handle
+10 |     close(connection)
+   |           `- error: noncopyable 'connection' cannot be consumed when captured by an escaping closure or borrowed by a non-Escapable type
+11 |     _ = try handle.execute("DELETE FROM item")
+12 | }

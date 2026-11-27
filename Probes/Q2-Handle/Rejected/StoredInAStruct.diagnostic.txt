@@ -1,0 +1,19 @@
+Rejected/StoredInAStruct.swift:6:9: error: stored property 'handle' of 'Copyable'-conforming struct 'Keeper' has non-Copyable type 'SQLite.Handle'
+3 | 
+4 | // The handle stored in an ordinary struct.
+5 | struct Keeper {
+  |        `- note: consider adding '~Copyable' to struct 'Keeper'
+6 |     let handle: SQLite.Handle
+  |         `- error: stored property 'handle' of 'Copyable'-conforming struct 'Keeper' has non-Copyable type 'SQLite.Handle'
+7 | }
+8 | 
+
+Rejected/StoredInAStruct.swift:6:9: error: stored property 'handle' of 'Escapable'-conforming struct 'Keeper' has non-Escapable type 'SQLite.Handle'
+3 | 
+4 | // The handle stored in an ordinary struct.
+5 | struct Keeper {
+  |        `- note: consider adding '~Escapable' to struct 'Keeper'
+6 |     let handle: SQLite.Handle
+  |         `- error: stored property 'handle' of 'Escapable'-conforming struct 'Keeper' has non-Escapable type 'SQLite.Handle'
+7 | }
+8 | 

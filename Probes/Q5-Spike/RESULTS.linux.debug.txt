@@ -134,3 +134,17 @@ HOLDS  6 acknowledgement inside the listener's isolation: 0 breaks, 0 of 90 conf
   custom executor | 4 tasks on the listener's isolation | 0 0 0 0 0 0 0 0 0 0
 
 == ./spike matrix 20000 5
+build: debug; posts per configuration: 20000
+BREAKS 5 held job: no continuation: 1 breaks, 1 of 90 configurations broken
+  columns: listener/posters priority medium/medium, low/high, high/low, background/high, high/background; each quiet, then busy
+  main actor | 4 tasks, no isolation | 0 0 0 0 0 0 0 0 0 0
+  main actor | 4 tasks on another actor | 0 0 0 0 0 0 0 0 0 0
+  main actor | 4 tasks on the listener's isolation | 0 0 0 0 0 0 0 0 0 0
+  default actor | 4 tasks, no isolation | 0 0 0 0 0 0 0 0 0 1
+  default actor | 4 tasks on another actor | 0 0 0 0 0 0 0 0 0 0
+  default actor | 4 tasks on the listener's isolation | 0 0 0 0 0 0 0 0 0 0
+  custom executor | 4 tasks, no isolation | 0 0 0 0 0 0 0 0 0 0
+  custom executor | 4 tasks on another actor | 0 0 0 0 0 0 0 0 0 0
+  custom executor | 4 tasks on the listener's isolation | 0 0 0 0 0 0 0 0 0 0
+
+== ./spike matrix 20000 6

@@ -136,6 +136,10 @@ enum Variation: String, CaseIterable, Sendable {
     /// continuation when it is back on its isolation. The poster must get that isolation again to return, and the
     /// listener holds it until its body is over.
     case acknowledged = "6 acknowledgement inside the listener's isolation"
+    /// Variation 6, but `next` binds its isolated parameter with `guard let`. The test clock of swift-atoms/swift-clock
+    /// (8174e46, Clock.Test.swift) has the same mechanism and warns that on Swift 6.4.2 a function that binds its
+    /// isolated parameter to a local no longer resumes on that actor.
+    case acknowledgedBound = "6b the same, with the isolated parameter bound by guard let"
 }
 
 /// The state that the listener, the posters and the holding executor share.
@@ -278,7 +282,29 @@ final class Channel: AsyncSequence, Sendable {
 
     // MARK: The listener's side
 
+    /// Variation 6b: variation 6 with `guard let isolation`.
+    func nextBound(isolation: isolated (any Actor)?) async -> Int? {
+        guard let isolation else { return nil }
+        let ready: Int?? = core.state.withLock { state in
+            state.isolation = isolation
+            state.listening = true
+            if !state.buffer.isEmpty { return .some(state.buffer.removeFirst()) }
+            if state.finished { return .some(nil) }
+            return nil
+        }
+        if let ready { return ready }
+        let value = await withCheckedContinuation { park(.checked($0)) }
+        let acknowledgements = core.state.withLock { state in
+            state.transit = false
+            defer { state.acknowledgements = [] }
+            return state.acknowledgements
+        }
+        for acknowledgement in acknowledgements { acknowledgement.resume() }
+        return value
+    }
+
     func next(isolation actor: isolated (any Actor)?) async -> Int? {
+        if variation == .acknowledgedBound { return await nextBound(isolation: actor) }
         let priority = Task.currentPriority
         while true {
             // A value that is already there is returned with no suspension: its body runs in the job that runs now.
@@ -308,7 +334,7 @@ final class Channel: AsyncSequence, Sendable {
             case .heldJob:
                 // No continuation: a call to another actor. Its executor holds the job until a value is posted.
                 if let value = await gate.take() { return value }
-            case .acknowledged:
+            case .acknowledged, .acknowledgedBound:
                 let value = await withCheckedContinuation { park(.checked($0)) }
                 // Back on the listener's isolation. The posters that wait here can go on only when this job is
                 // over: after the body, at the next suspension of the loop.
@@ -392,7 +418,7 @@ final class Channel: AsyncSequence, Sendable {
         case .heldJob:
             return await postToHeldJob()
 
-        case .acknowledged:
+        case .acknowledged, .acknowledgedBound:
             let (number, waiter, isolation) = core.state.withLock { state -> (Int, Core.Waiter?, (any Actor)?) in
                 state.posted += 1
                 let isolation = state.listening ? state.isolation : nil

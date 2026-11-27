@@ -1,0 +1,40 @@
+macro expansion #isolation:1:1: error: 'nil' is not compatible with expected argument type 'any Actor'
+`- Rejected.Synchronous.swift:1:48: note: expanded code originates here
+1 | func nowhere(_ hub: Hub) -> Values { hub.follow() }
+  +--- Rejected.Synchronous.swift --------------------------------------
+  |1 |                                                #isolation
+  |  |                                                `- note: in expansion of macro 'isolation' here
+  |  +--- macro expansion #isolation -----------------------------------
+  |  |1 | nil                                                                                                                             
+  |  |  | `- error: 'nil' is not compatible with expected argument type 'any Actor'
+  |  +------------------------------------------------------------------
+  +---------------------------------------------------------------------
+2 | 
+
+Rejected.Synchronous.swift:1:42: error: call to actor-isolated instance method 'follow(isolation:)' in a synchronous nonisolated context [#ActorIsolatedCall]
+1 | func nowhere(_ hub: Hub) -> Values { hub.follow() }
+  |                                          `- error: call to actor-isolated instance method 'follow(isolation:)' in a synchronous nonisolated context [#ActorIsolatedCall]
+2 | 
+
+Follow.swift:27:10: note: calls to instance method 'follow(isolation:)' from outside of its actor context are implicitly asynchronous
+25 | final class Hub: Sendable {
+26 |     /// The isolated parameter is not optional, and its default is the caller's isolation.
+27 |     func follow(isolation: isolated any Actor = #isolation) -> Values { Values(isolation: isolation) }
+   |          `- note: calls to instance method 'follow(isolation:)' from outside of its actor context are implicitly asynchronous
+28 | }
+29 | 
+
+macro expansion #isolation:1:1: error: 'nil' is not compatible with expected argument type 'any Actor'
+`- Rejected.Synchronous.swift:1:48: note: expanded code originates here
+1 | func nowhere(_ hub: Hub) -> Values { hub.follow() }
+  +--- Rejected.Synchronous.swift --------------------------------------
+  |1 |                                                #isolation
+  |  |                                                `- note: in expansion of macro 'isolation' here
+  |  +--- macro expansion #isolation -----------------------------------
+  |  |1 | nil                                                                                                                             
+  |  |  | `- error: 'nil' is not compatible with expected argument type 'any Actor'
+  |  +------------------------------------------------------------------
+  +---------------------------------------------------------------------
+2 | 
+
+[#ActorIsolatedCall]: <https://docs.swift.org/compiler/documentation/diagnostics/actor-isolated-call>

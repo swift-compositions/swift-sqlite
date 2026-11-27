@@ -1,0 +1,30 @@
+macro expansion #isolation:1:1: error: 'nil' is not compatible with expected argument type 'any Actor'
+`- Rejected.NonisolatedAsync.swift:1:59: note: expanded code originates here
+1 | func nowhere(_ hub: Hub) async { for await _ in hub.follow() {} }
+  +--- Rejected.NonisolatedAsync.swift ---------------------------------
+  |1 |                                                           #isolation
+  |  |                                                           `- note: in expansion of macro 'isolation' here
+  |  +--- macro expansion #isolation -----------------------------------
+  |  |1 | nil                                                                                                                             
+  |  |  | `- error: 'nil' is not compatible with expected argument type 'any Actor'
+  |  +------------------------------------------------------------------
+  +---------------------------------------------------------------------
+2 | 
+
+macro expansion #isolation:1:1: error: 'nil' is not compatible with expected argument type 'any Actor'
+`- Rejected.NonisolatedAsync.swift:1:59: note: expanded code originates here
+1 | func nowhere(_ hub: Hub) async { for await _ in hub.follow() {} }
+  +--- Rejected.NonisolatedAsync.swift ---------------------------------
+  |1 |                                                           #isolation
+  |  |                                                           `- note: in expansion of macro 'isolation' here
+  |  +--- macro expansion #isolation -----------------------------------
+  |  |1 | nil                                                                                                                             
+  |  |  | `- error: 'nil' is not compatible with expected argument type 'any Actor'
+  |  +------------------------------------------------------------------
+  +---------------------------------------------------------------------
+2 | 
+
+Rejected.NonisolatedAsync.swift:1:53: error: actor-isolated instance method 'follow(isolation:)' cannot be called from outside of the actor
+1 | func nowhere(_ hub: Hub) async { for await _ in hub.follow() {} }
+  |                                                     `- error: actor-isolated instance method 'follow(isolation:)' cannot be called from outside of the actor
+2 | 

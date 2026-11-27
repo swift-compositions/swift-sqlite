@@ -1,0 +1,17 @@
+Rejected.AskedForAnotherActor.swift:5:32: error: non-Sendable 'Values'-typed result can not be returned from actor-isolated instance method 'follow(isolation:)' to @concurrent context [#RegionIsolation]
+3 | func start(_ hub: Hub, _ listener: Listener) {
+4 |     Task.detached {
+5 |         let values = await hub.follow(isolation: listener)
+  |                                `- error: non-Sendable 'Values'-typed result can not be returned from actor-isolated instance method 'follow(isolation:)' to @concurrent context [#RegionIsolation]
+6 |         for await _ in values {}
+7 |     }
+
+Follow.swift:11:8: note: consider making struct 'Values' conform to the 'Sendable' protocol
+ 9 | 
+10 | /// Not Sendable: it stays in the region of the actor that asked for it.
+11 | struct Values: AsyncSequence {
+   |        `- note: consider making struct 'Values' conform to the 'Sendable' protocol
+12 |     typealias Element = Int
+13 |     typealias Failure = Never
+
+[#RegionIsolation]: <https://docs.swift.org/compiler/documentation/diagnostics/region-isolation>

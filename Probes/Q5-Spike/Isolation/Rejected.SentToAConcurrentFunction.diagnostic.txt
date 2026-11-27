@@ -1,0 +1,9 @@
+Rejected.SentToAConcurrentFunction.swift:2:56: error: sending 'hub.follow' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+1 | @concurrent func drain(_ values: Values) async { for await _ in values {} }
+2 | actor Listener { func listen(_ hub: Hub) async { await drain(hub.follow()) } }
+  |                                                        |- error: sending 'hub.follow' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+  |                                                        `- note: sending 'self'-isolated 'hub.follow' to @concurrent global function 'drain' risks causing data races between @concurrent and 'self'-isolated uses
+3 | 
+
+[#RegionIsolation]: <https://docs.swift.org/compiler/documentation/diagnostics/region-isolation>
+[#SendingRisksDataRace]: <https://docs.swift.org/compiler/documentation/diagnostics/sending-risks-data-race>

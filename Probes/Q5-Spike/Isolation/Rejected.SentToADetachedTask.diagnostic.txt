@@ -1,0 +1,11 @@
+Rejected.SentToADetachedTask.swift:5:14: error: passing closure as a 'sending' parameter risks causing data races between 'self'-isolated code and concurrent execution of the closure [#RegionIsolation::SendingClosureRisksDataRace]
+3 |     func listen(_ hub: Hub) {
+4 |         let values = hub.follow()
+5 |         Task.detached { for await _ in values {} }
+  |              |                         `- note: closure captures 'values' which is accessible to 'self'-isolated code
+  |              `- error: passing closure as a 'sending' parameter risks causing data races between 'self'-isolated code and concurrent execution of the closure [#RegionIsolation::SendingClosureRisksDataRace]
+6 |     }
+7 | }
+
+[#RegionIsolation]: <https://docs.swift.org/compiler/documentation/diagnostics/region-isolation>
+[#SendingClosureRisksDataRace]: <https://docs.swift.org/compiler/documentation/diagnostics/sending-closure-risks-data-race>

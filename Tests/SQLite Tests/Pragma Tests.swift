@@ -1,3 +1,4 @@
+import ISO_9075_Call_Level_Interface
 import SQL
 import SQL_Macros
 import SQLite
@@ -11,9 +12,7 @@ private struct Record {
 @Suite(.timeLimit(.minutes(5))) struct `SQLite pragmas` {
     @Suite(.timeLimit(.minutes(5))) struct Unit {}
 
-    #if GRDB
-        @Suite(.timeLimit(.minutes(5))) struct Integration {}
-    #endif
+    @Suite(.timeLimit(.minutes(5))) struct Integration {}
 }
 
 extension `SQLite pragmas`.Unit {
@@ -65,38 +64,40 @@ extension `SQLite pragmas`.Unit {
     }
 }
 
-#if GRDB
-    import GRDB
+extension `SQLite pragmas`.Integration {
+    @Test func `scalar pragmas round trip typed values`() async throws {
+        let database = try SQLite.Database()
 
-    extension `SQLite pragmas`.Integration {
-        @Test func `scalar pragmas round trip typed values`() throws {
-            let database = try DatabaseQueue()
+        try await database.writeWithoutTransaction { connection throws(ISO.`9075`.Error) in
+            try SQLite.Pragma.ForeignKeys.set(true).execute(connection)
+            let foreignKeys = try SQLite.Pragma.ForeignKeys.get.fetch.one(connection)
+            #expect(foreignKeys == true)
 
-            try database.writeWithoutTransaction { db in
-                try SQLite.Pragma.ForeignKeys.set(true).execute(db)
-                #expect(try SQLite.Pragma.ForeignKeys.get.fetch.one(db) == true)
+            try SQLite.Pragma.DeferForeignKeys.set(true).execute(connection)
+            let deferred = try SQLite.Pragma.DeferForeignKeys.get.fetch.one(connection)
+            #expect(deferred == true)
 
-                try SQLite.Pragma.DeferForeignKeys.set(true).execute(db)
-                #expect(try SQLite.Pragma.DeferForeignKeys.get.fetch.one(db) == true)
+            let mode = try SQLite.Pragma.JournalMode.set(.memory).fetch.one(connection)
+            #expect(mode == .memory)
+            let journal = try SQLite.Pragma.JournalMode.get.fetch.one(connection)
+            #expect(journal == .memory)
 
-                let mode = try SQLite.Pragma.JournalMode.set(.memory).fetch.one(db)
-                #expect(mode == .memory)
-                #expect(try SQLite.Pragma.JournalMode.get.fetch.one(db) == .memory)
-
-                try SQLite.Pragma.UserVersion.set(42).execute(db)
-                #expect(try SQLite.Pragma.UserVersion.get.fetch.one(db) == 42)
-            }
-        }
-
-        @Test func `checks report an intact database`() throws {
-            let database = try DatabaseQueue()
-
-            try database.read { db in
-                let quick = try SQLite.Pragma.QuickCheck.get.fetch.all(db)
-                let integrity = try SQLite.Pragma.IntegrityCheck.get.fetch.all(db)
-                #expect(quick == ["ok"])
-                #expect(integrity == ["ok"])
-            }
+            try SQLite.Pragma.UserVersion.set(42).execute(connection)
+            let version = try SQLite.Pragma.UserVersion.get.fetch.one(connection)
+            #expect(version == 42)
         }
     }
-#endif
+
+    @Test func `checks report an intact database`() async throws {
+        let database = try SQLite.Database()
+
+        let (quick, integrity) = try await database.read { connection throws(ISO.`9075`.Error) in
+            (
+                try SQLite.Pragma.QuickCheck.get.fetch.all(connection),
+                try SQLite.Pragma.IntegrityCheck.get.fetch.all(connection)
+            )
+        }
+        #expect(quick == ["ok"])
+        #expect(integrity == ["ok"])
+    }
+}

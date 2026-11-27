@@ -1,5 +1,5 @@
 public import SQLite_SQL
-internal import GRDBSQLite
+internal import SQLite_Shims
 public import ISO_9075_Call_Level_Interface
 
 extension SQLite {

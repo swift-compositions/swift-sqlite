@@ -63,15 +63,18 @@ let package = Package(
                 .product(name: "Tagged", package: "swift-tagged", condition: .when(traits: ["Tagged"])),
             ]
         ),
+        // The system's SQLite, on every platform, and the one call Swift cannot make of it. No logic.
+        .target(
+            name: "SQLite Shims",
+            linkerSettings: [.linkedLibrary("sqlite3")]
+        ),
         // The database: connections, execution and the writer and reader actors, over the driver in Sources/SQLite/Driver.
-        // SQLite's C interface comes from the GRDBSQLite target of the GRDB fork until the C code has a home of its own
-        // (swift-compositions/swift-sqlite#26): the system library on Apple platforms, a compiled copy elsewhere. What
-        // still runs on GRDB itself (observation, CloudKit) sits behind the GRDB trait and is not ported yet.
+        // What still runs on GRDB itself (observation, CloudKit) sits behind the GRDB trait and is not ported yet.
         .target(
             name: "SQLite",
             dependencies: [
                 .target(name: "SQLite SQL"),
-                .product(name: "GRDBSQLite", package: "GRDB.swift"),
+                .target(name: "SQLite Shims"),
                 .product(name: "Thread Actor", package: "swift-threads"),
                 .product(name: "Path", package: "swift-path"),
                 .product(name: "SQL", package: "swift-sql"),

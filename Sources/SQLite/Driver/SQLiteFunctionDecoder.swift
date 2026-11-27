@@ -1,6 +1,6 @@
 import SQLite_SQL
 import Byte
-internal import GRDBSQLite
+internal import SQLite_Shims
 internal import ISO_9075_Foundation
 import RFC_4122
 public import SQL

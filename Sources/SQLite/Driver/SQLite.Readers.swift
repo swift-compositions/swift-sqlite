@@ -1,4 +1,4 @@
-internal import GRDBSQLite
+internal import SQLite_Shims
 internal import SQLite_SQL
 internal import Synchronization
 

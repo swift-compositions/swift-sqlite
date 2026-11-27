@@ -1,4 +1,4 @@
-internal import GRDBSQLite
+internal import SQLite_Shims
 public import ISO_9075_Call_Level_Interface
 public import Path
 public import SQLite_SQL

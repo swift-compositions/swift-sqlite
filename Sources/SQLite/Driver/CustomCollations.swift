@@ -1,5 +1,5 @@
 public import SQLite_SQL
-internal import GRDBSQLite
+internal import SQLite_Shims
 public import Order
 public import SQL
 

@@ -1,5 +1,5 @@
 import SQLite_SQL
-import GRDBSQLite
+import SQLite_Shims
 
 @usableFromInline
 func storageClassName(_ type: Int32) -> String {

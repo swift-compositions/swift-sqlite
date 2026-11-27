@@ -1,5 +1,5 @@
 internal import Byte
-internal import GRDBSQLite
+internal import SQLite_Shims
 internal import ISO_9075_Call_Level_Interface
 internal import RFC_4122
 internal import SQLite_SQL
@@ -17,10 +17,19 @@ extension SQLite.Connection {
         /// The prepared statements, by their text. A statement in use is not handed out twice.
         private var statements: [String: OpaquePointer]
 
+        /// The lowest SQLite the driver runs on: 3.29.0, the first that can refuse double-quoted string literals.
+        static let lowestVersion: Int32 = 3_029_000
+
         /// True while a statement runs that a cancelled task must not interrupt: the end of a transaction.
         private var shielded = false
 
         init(path: String, flags: Int32) throws(SQLite.Error) {
+            guard unsafe sqlite3_libversion_number() >= Self.lowestVersion else {
+                throw SQLite.Error(
+                    extendedCode: .misuse,
+                    message: "the system's SQLite is \(unsafe String(cString: sqlite3_libversion())); the driver needs 3.29.0 or later"
+                )
+            }
             var opened: OpaquePointer?
             let code = unsafe sqlite3_open_v2(path, &opened, flags | SQLITE_OPEN_NOMUTEX, nil)
             guard code == SQLITE_OK, let opened = unsafe opened else {
@@ -33,7 +42,11 @@ extension SQLite.Connection {
             unsafe self.statements = [:]
             unsafe sqlite3_extended_result_codes(opened, 1)
             // A quoted name that matches no column is an error, not a string literal.
-            unsafe _disableDoubleQuotedStringLiterals(opened)
+            let configured = unsafe sqlite_shims_disable_double_quoted_strings(opened)
+            guard configured == SQLITE_OK else {
+                unsafe sqlite3_close_v2(opened)
+                throw SQLite.Error(code: configured)
+            }
             // A cancelled task interrupts the statement it runs. The handler runs on the thread that steps the
             // statement, which is the thread of the task that asked for it, so it reads that task's cancellation.
             unsafe sqlite3_progress_handler(

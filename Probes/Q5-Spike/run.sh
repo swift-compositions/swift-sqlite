@@ -30,6 +30,12 @@ for build in debug O; do
         .build/spike-$build matrix "$holding" 5
         echo
         echo "== ./spike matrix $holding 6"
-        .build/spike-$build matrix "$holding" 6
+        .build/spike-$build matrix "$holding" "6 "
+        echo
+        echo "== ./spike matrix $holding 6b"
+        .build/spike-$build matrix "$holding" 6b
+        echo
+        echo "== ./spike fanout $holding"
+        .build/spike-$build fanout "$holding"
     } > "$out" 2>&1
 done

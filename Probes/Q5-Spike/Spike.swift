@@ -248,8 +248,16 @@ actor Gate {
     }
 }
 
-/// The job on the listener's isolation: nothing, on that actor.
-func barrier(on actor: isolated any Actor) {}
+/// The job on the listener's isolation. It is not inlined and it is not empty: in `-O` the compiler removes the hop
+/// to an isolated function that does nothing, and then no job is enqueued at all. The first runs of this spike had
+/// an empty function here, and in `-O` the enqueue log showed no job of the poster.
+@inline(never)
+func barrier(on actor: isolated any Actor) {
+    actor.preconditionIsolated()
+    jobs.add(1, ordering: .relaxed)
+}
+
+let jobs = Atomic<Int>(0)
 
 final class Channel: AsyncSequence, Sendable {
     typealias Element = Int

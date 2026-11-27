@@ -30,12 +30,13 @@ let package = Package(
         .package(url: "https://github.com/swift-compositions/GRDB.swift.git", branch: "main"),
         .package(
             url: "https://github.com/swift-compositions/swift-sql.git",
-            branch: "main",
+            branch: "lent-connection",
             traits: [.trait(name: "Tagged", condition: .when(traits: ["Tagged"]))]
         ),
         .package(url: "https://github.com/swift-atoms/swift-byte.git", branch: "main"),
         .package(url: "https://github.com/swift-atoms/swift-order.git", branch: "main"),
-        .package(url: "https://github.com/swift-iso/swift-iso-9075.git", branch: "main"),
+        .package(url: "https://github.com/swift-iso/swift-iso-9075.git", branch: "lent-connection"),
+        .package(url: "https://github.com/swift-compositions/swift-threads.git", branch: "main"),
         .package(url: "https://github.com/swift-ietf/swift-rfc-4122.git", branch: "main"),
         .package(url: "https://github.com/swiftlang/swift-syntax.git", "604.0.0"..<"605.0.0"),
         .package(url: "https://github.com/swift-atoms/swift-path.git", branch: "main"),
@@ -62,11 +63,16 @@ let package = Package(
                 .product(name: "Tagged", package: "swift-tagged", condition: .when(traits: ["Tagged"])),
             ]
         ),
-        // The database: connections, execution, observation, over GRDB as a private driver.
+        // The database: connections, execution and the writer and reader actors, over the driver in Sources/SQLite/Driver.
+        // SQLite's C interface comes from the GRDBSQLite target of the GRDB fork until the C code has a home of its own
+        // (swift-compositions/swift-sqlite#26): the system library on Apple platforms, a compiled copy elsewhere. What
+        // still runs on GRDB itself (observation, CloudKit) sits behind the GRDB trait and is not ported yet.
         .target(
             name: "SQLite",
             dependencies: [
                 .target(name: "SQLite SQL"),
+                .product(name: "GRDBSQLite", package: "GRDB.swift"),
+                .product(name: "Thread Actor", package: "swift-threads"),
                 .product(name: "Path", package: "swift-path"),
                 .product(name: "SQL", package: "swift-sql"),
                 .product(name: "SQL Macros", package: "swift-sql"),
@@ -200,6 +206,7 @@ for target in package.targets where ![.system, .binary, .plugin].contains(target
         .enableUpcomingFeature("MemberImportVisibility"),
         .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
         .enableUpcomingFeature("InferIsolatedConformances"),
+        .enableExperimentalFeature("Lifetimes"),
     ]
 
     target.swiftSettings = (target.swiftSettings ?? []) + ecosystem

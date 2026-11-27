@@ -30,7 +30,7 @@
 
         extension [Byte] {
             init(_ data: Data) {
-                self = unsafe data.withUnsafeBytes { unsafe [Byte](copying: $0) }
+                self = unsafe data.withUnsafeBytes { unsafe [Byte](bitPatterns: $0) }
             }
         }
 

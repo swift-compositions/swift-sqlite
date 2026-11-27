@@ -1,8 +1,10 @@
 #if CloudKit
     #if canImport(CloudKit)
         import SQLite
-        import GRDB
         import Foundation
+        import ISO_9075_Call_Level_Interface
+        import Path
+        import SQL_Migrations
         import os
         import SQL
         import SQL_Macros
@@ -10,43 +12,44 @@
         func defaultMetadatabase(
             logger: Logger,
             url: URL,
-            configuration: Configuration,
             context: SyncEngine.Context
-        ) throws -> any DatabaseWriter {
+        ) throws -> UserDatabase {
             logger.debug(
                 """
                 Metadatabase connection:
                 open "\(url.path(percentEncoded: false))"
                 """
             )
-
-            guard !url.isInMemory || context != .live
-            else {
-                struct InMemoryDatabase: Swift.Error {}
-                throw InMemoryDatabase()
-            }
-
-            var metadatabaseConfiguration = Configuration()
-            metadatabaseConfiguration.observesSuspensionNotifications = configuration.observesSuspensionNotifications
-            let metadatabase: any DatabaseWriter =
-                if url.isInMemory {
-                    try DatabaseQueue(
-                        path: url.absoluteString,
-                        configuration: metadatabaseConfiguration
-                    )
-                } else {
-                    try DatabasePool(
-                        path: url.path(percentEncoded: false),
-                        configuration: metadatabaseConfiguration
-                    )
-                }
-            try migrate(metadatabase: metadatabase)
-            return metadatabase
+            let database = try SQLite.Database(path: try Path::Path(validating: url.path(percentEncoded: false)))
+            return UserDatabase(database: database)
         }
 
-        func migrate(metadatabase: some DatabaseWriter) throws {
-            var migrator = DatabaseMigrator()
-            migrator.registerMigration("Create Metadata Tables") { db in
+        /// GRDB's record of the migrations it ran, in a metadatabase made before the driver.
+        private let legacyBookkeeping = "grdb_migrations"
+
+        /// Brings the metadatabase's tables up to date, in the caller's transaction.
+        ///
+        /// A metadatabase made before the driver recorded its migrations in GRDB's table. Those names are taken over
+        /// first, so that a migration that ran there does not run again.
+        func migrate(metadatabase connection: borrowing SQLite.Connection) throws(ISO.`9075`.Error) {
+            var migrator = Migrator<SQLite.Database>()
+            // With no migration registered yet, this makes the bookkeeping table and nothing else.
+            try migrator.migrate(in: connection)
+            let legacy: [Bool] = try connection.fetchAll(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = \(.text(legacyBookkeeping))"
+            ) { _ throws(ISO.`9075`.Error) in true }
+            if !legacy.isEmpty {
+                let applied = try migrator.applied(in: connection)
+                let names = try connection.fetchAll("SELECT \(quote: "identifier") FROM \(quote: legacyBookkeeping)") {
+                    row throws(ISO.`9075`.Error) -> String in
+                    guard case .text(let name) = try row.value(at: 0) else { throw .decoding("a migration name") }
+                    return name
+                }
+                for name in names where !applied.contains(name) {
+                    try migrator.record(name, in: connection)
+                }
+            }
+            migrator.register("Create Metadata Tables") { db throws(ISO.`9075`.Error) in
                 try #sql(
                     """
                     CREATE TABLE "\(raw: .sqliteCloudKitSchemaName)_metadata" (
@@ -139,19 +142,7 @@
                 )
                 .execute(db)
             }
-            #if DEBUG
-                try metadatabase.read { db in
-                    let hasSchemaChanges = try migrator.hasSchemaChanges(db)
-                    assert(
-                        !hasSchemaChanges,
-                        """
-                        A previously run migration has been removed or edited. \
-                        Metadatabase migrations must not be modified after release.
-                        """
-                    )
-                }
-            #endif
-            try migrator.migrate(metadatabase)
+            try migrator.migrate(in: connection)
         }
     #endif
 

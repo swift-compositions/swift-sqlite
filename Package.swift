@@ -21,7 +21,7 @@ let package = Package(
     traits: [
         .trait(name: "GRDB", description: "Connection, execution and decoding over GRDB"),
         .trait(name: "Observation", description: "Observed fetches"),
-        .trait(name: "CloudKit", description: "CloudKit synchronization", enabledTraits: ["GRDB", "Observation"]),
+        .trait(name: "CloudKit", description: "CloudKit synchronization", enabledTraits: ["Observation"]),
         .trait(name: "Tagged", description: "SQLite conformances for swift-atoms Tagged"),
         .trait(name: "Dependencies", description: "The ambient database as a dependency value", enabledTraits: ["GRDB"]),
     ],
@@ -85,11 +85,11 @@ let package = Package(
                 .product(name: "Order", package: "swift-order"),
                 .product(name: "Time", package: "swift-time"),
                 .product(name: "RFC 4122", package: "swift-rfc-4122"),
-                .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["GRDB", "CloudKit"])),
+                .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["GRDB"])),
                 .product(
                     name: "OrderedCollections",
                     package: "swift-collections",
-                    condition: .when(traits: ["GRDB", "CloudKit"])
+                    condition: .when(traits: ["GRDB"])
                 ),
                 .product(name: "Tagged", package: "swift-tagged", condition: .when(traits: ["Tagged"])),
                 .product(name: "Dependencies", package: "swift-dependencies", condition: .when(traits: ["Dependencies"])),
@@ -101,10 +101,12 @@ let package = Package(
                 .target(name: "SQLite"),
                 .product(name: "SQL", package: "swift-sql"),
                 .product(name: "SQL Macros", package: "swift-sql"),
+                .product(name: "SQL Migrations", package: "swift-sql"),
+                .product(name: "ISO 9075 Call-Level Interface", package: "swift-iso-9075"),
+                .product(name: "Path", package: "swift-path"),
                 .product(name: "Byte", package: "swift-byte"),
                 .product(name: "Time", package: "swift-time"),
                 .product(name: "RFC 4122", package: "swift-rfc-4122"),
-                .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["CloudKit"])),
                 .product(
                     name: "OrderedCollections",
                     package: "swift-collections",

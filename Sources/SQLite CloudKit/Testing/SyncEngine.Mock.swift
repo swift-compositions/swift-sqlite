@@ -1,7 +1,6 @@
 #if CloudKit
     #if canImport(CloudKit)
         public import CloudKit
-        import GRDB
         import OSLog
         public import SQL
         import RFC_4122
@@ -70,7 +69,7 @@
                 defaultZone: CKRecordZone = CKRecordZone(zoneName: "org.swift-institute.SQLite.defaultZone"),
                 delegate: (any SyncEngineDelegate)? = nil,
                 now: @escaping @Sendable () -> Date = Date.init
-            ) throws
+            ) async throws
             where
                 repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
                 repeat (each T1).TableColumns.PrimaryColumn: WritableTableColumnExpression,
@@ -86,7 +85,7 @@
                     allPrivateTables.append(SynchronizedTable(for: privateTable))
                 }
                 let container = mock.container
-                try self.init(
+                try await self.init(
                     container: container,
                     defaultZone: defaultZone,
                     defaultSyncEngines: { _, syncEngine in
@@ -103,7 +102,7 @@
                             )
                         )
                     },
-                    userDatabase: UserDatabase(database: database.writer),
+                    userDatabase: UserDatabase(database: database),
                     logger: Logger(.disabled),
                     delegate: delegate,
                     tables: allTables,
@@ -112,7 +111,7 @@
                     dataManager: mock.dataManager,
                     now: now
                 )
-                try setUpSyncEngine()
+                try await setUpSyncEngine()
             }
 
             /// Delivers an account change to the engine, as CloudKit does. A stopped engine receives nothing, as a

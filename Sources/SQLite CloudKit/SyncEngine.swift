@@ -3,7 +3,6 @@
         public import SQLite
         public import CloudKit
         import Byte
-        package import GRDB
         import OrderedCollections
         public import OSLog
         public import RFC_4122
@@ -13,6 +12,8 @@
         import SwiftData
         package import Synchronization
         import TabularData
+        public import ISO_9075_Call_Level_Interface
+        import Path
 
         #if canImport(UIKit)
             import UIKit
@@ -21,7 +22,7 @@
         public final class SyncEngine: Observable, Sendable {
             package let userDatabase: UserDatabase
             package let logger: Logger
-            package let metadatabase: any DatabaseWriter
+            package let metadatabase: UserDatabase
             package let tables: [any SynchronizableTable]
             package let privateTables: [any SynchronizableTable]
             let tablesByName: [String: any SynchronizableTable]
@@ -31,7 +32,7 @@
             package let defaultZone: CKRecordZone
             let delegate: (any SyncEngineDelegate)?
             let defaultSyncEngines:
-                @Sendable (any DatabaseReader, SyncEngine)
+                @Sendable (UserDatabase, SyncEngine)
                     -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
             package let container: any CloudContainer
             public let context: Context
@@ -73,7 +74,7 @@
                         switch error {
                         case let error as Error: error
                         case let error as CKError: .cloudKit(error)
-                        case let error as DatabaseError: .database(SQLite.Error(error))
+                        case let error as ISO.`9075`.Error: .database(SQLite.Error(error))
                         case let error as SQLite.Error: .database(error)
                         case let error as SchemaError: .schema(error)
                         case let error as ISO.`9075`.Value.Failure: .binding(error)
@@ -106,7 +107,7 @@
                 now: @escaping @Sendable () -> Date = Date.init,
                 uuid: @escaping @Sendable () -> IETF.RFC.`4122`.UUID = systemRandomUUID,
                 clock: some Clock<Duration> = ContinuousClock()
-            ) throws
+            ) async throws
             where
                 repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
                 repeat (each T1).TableColumns.PrimaryColumn: WritableTableColumnExpression,
@@ -125,7 +126,7 @@
                 for privateTable in repeat each privateTables {
                     allPrivateTables.append(SynchronizedTable(for: privateTable))
                 }
-                let userDatabase = UserDatabase(database: database.writer)
+                let userDatabase = UserDatabase(database: database)
 
                 guard context == .live
                 else {
@@ -138,7 +139,7 @@
                     )
                     privateDatabase.set(container: container)
                     sharedDatabase.set(container: container)
-                    try self.init(
+                    try await self.init(
                         container: container,
                         defaultZone: defaultZone,
                         defaultSyncEngines: { _, syncEngine in
@@ -167,9 +168,9 @@
                         uuid: uuid,
                         clock: clock
                     )
-                    try setUpSyncEngine()
+                    try await setUpSyncEngine()
                     if startImmediately ?? (context != .test) {
-                        _ = try start()
+                        _ = try launch()
                     }
                     return
                 }
@@ -179,7 +180,7 @@
                 }
 
                 let container = CKContainer(identifier: containerIdentifier)
-                try self.init(
+                try await self.init(
                     container: container,
                     defaultZone: defaultZone,
                     defaultSyncEngines: { metadatabase, syncEngine in
@@ -222,9 +223,9 @@
                     uuid: uuid,
                     clock: clock
                 )
-                try setUpSyncEngine()
+                try await setUpSyncEngine()
                 if startImmediately ?? (context != .test) {
-                    _ = try start()
+                    _ = try launch()
                 }
             }
 
@@ -233,7 +234,7 @@
                 defaultZone: CKRecordZone,
                 defaultSyncEngines:
                     @escaping @Sendable (
-                        any DatabaseReader,
+                        UserDatabase,
                         SyncEngine
                     ) -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol),
                 userDatabase: UserDatabase,
@@ -247,7 +248,7 @@
                 now: @escaping @Sendable () -> Date = Date.init,
                 uuid: @escaping @Sendable () -> IETF.RFC.`4122`.UUID = systemRandomUUID,
                 clock: some Clock<Duration> = ContinuousClock()
-            ) throws {
+            ) async throws {
                 let allTables = OrderedSet((tables + privateTables).map(HashableSynchronizedTable.init))
                     .map(\.type)
                 self.tables = allTables
@@ -255,11 +256,11 @@
                 self.delegate = delegate
 
                 let foreignKeysByTableName = Dictionary(
-                    uniqueKeysWithValues: try userDatabase.read { db in
-                        try allTables.map { table -> (String, [ForeignKey]) in
-                            func open<T>(
-                                _: some SynchronizableTable<T>
-                            ) throws -> (String, [ForeignKey]) {
+                    uniqueKeysWithValues: try await userDatabase.read { db in
+                        func open<T>(
+                            _: some SynchronizableTable<T>,
+                            _ db: borrowing SQLite.Connection
+                        ) throws -> (String, [ForeignKey]) {
                                 (
                                     T.tableName,
                                     try SQLite.Pragma.ForeignKey.List<T>
@@ -276,9 +277,12 @@
                                         }
                                         .fetch.all(db)
                                 )
-                            }
-                            return try open(table)
                         }
+                        var foreignKeys: [(String, [ForeignKey])] = []
+                        for table in allTables {
+                            foreignKeys.append(try open(table, db))
+                        }
+                        return foreignKeys
                     }
                 )
                 self.container = container
@@ -292,20 +296,21 @@
                 self.now = now
                 self.uuid = uuid
                 self.clock = clock
-                self.metadatabase = try defaultMetadatabase(
+                let metadatabase = try defaultMetadatabase(
                     logger: logger,
-                    url: try URL.metadatabase(
+                    url: try await URL.metadatabase(
                         userDatabase: userDatabase,
                         containerIdentifier: container.containerIdentifier
                     ),
-                    configuration: userDatabase.configuration,
                     context: context
                 )
+                try await metadatabase.write { db in try migrate(metadatabase: db) }
+                self.metadatabase = metadatabase
                 self.tablesByName = Dictionary(
                     uniqueKeysWithValues: self.tables.map { ($0.base.tableName, $0) }
                 )
                 self.foreignKeysByTableName = foreignKeysByTableName
-                tablesByOrder = try topologicalOrder(
+                tablesByOrder = try await topologicalOrder(
                     userDatabase: userDatabase,
                     tables: allTables,
                     tablesByName: tablesByName
@@ -339,32 +344,32 @@
                 }
             }
 
-            nonisolated package func setUpSyncEngine() throws {
-                try userDatabase.write { db in
-                    try setUpSyncEngine(writableDB: db)
+            /// Attaches the metadatabase to the writer's connection and gives it the engine's functions, outside of
+            /// any transaction, then creates the triggers in one.
+            nonisolated package func setUpSyncEngine() async throws {
+                try await userDatabase.writeWithoutTransaction { db in
+                    try self.attach(on: db)
+                }
+                try await userDatabase.write { db in
+                    try self.createTriggers(on: db)
                 }
             }
 
-            nonisolated package func setUpSyncEngine(writableDB db: Database) throws {
+            nonisolated package func setUpSyncEngine(writableDB db: borrowing SQLite.Connection) throws {
+                try attach(on: db)
+                try createTriggers(on: db)
+            }
+
+            nonisolated func attach(on db: borrowing SQLite.Connection) throws {
                 let attachedMetadatabasePath: String? =
                     try SQLite.Pragma.Database.List
                     .where { $0.name.eq(String.sqliteCloudKitSchemaName) }
                     .select(\.file)
                     .fetch.one(db)
                 if let attachedMetadatabasePath {
-                    let metadatabaseName =
-                        metadatabase.path.isEmpty
-                        ? try URL.metadatabase(
-                            databasePath: "",
-                            containerIdentifier: self.container.containerIdentifier
-                        )
-                        .lastPathComponent
-                        : URL(filePath: metadatabase.path).lastPathComponent
-                    let attachedMetadatabaseName =
-                        URL(string: attachedMetadatabasePath)?.lastPathComponent ?? ""
-                    if metadatabaseName != attachedMetadatabaseName
-                        && !(context == .preview && attachedMetadatabaseName.isEmpty)
-                    {
+                    let metadatabaseName = URL(filePath: metadatabase.path).lastPathComponent
+                    let attachedMetadatabaseName = URL(filePath: attachedMetadatabasePath).lastPathComponent
+                    if metadatabaseName != attachedMetadatabaseName {
                         throw SchemaError(
                             reason: .metadatabaseMismatch(
                                 attachedPath: attachedMetadatabasePath,
@@ -391,7 +396,9 @@
                 db.add(function: $hasPermission)
                 db.add(function: $currentZoneName)
                 db.add(function: $currentOwnerName)
+            }
 
+            nonisolated func createTriggers(on db: borrowing SQLite.Connection) throws {
                 for trigger in SyncMetadata.callbackTriggers(for: self) {
                     try trigger.execute(db)
                 }
@@ -408,7 +415,7 @@
             }
 
             public func start() async throws {
-                try await start().value
+                try await launch().value
             }
 
             public var isSendingChanges: Bool {
@@ -457,7 +464,7 @@
                 }
             }
 
-            private func start() throws -> Task<Void, Never> {
+            private func launch() throws -> Task<Void, Never> {
                 guard !isRunning else { return Task {} }
                 observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
                     syncEngines.withLock {
@@ -480,10 +487,14 @@
                                 && $0.tableName.in(tables.map { $0.base.tableName })
                         }
                         .fetch.all(db)
-                    return try namesAndSchemas.compactMap { schema -> RecordType? in
+                    var recordTypes: [RecordType] = []
+                    for schema in namesAndSchemas {
                         guard let sql = schema.sql, let table = tablesByName[schema.name]
-                        else { return nil }
-                        func open<T>(_: some SynchronizableTable<T>) throws -> RecordType {
+                        else { continue }
+                        func open<T>(
+                            _: some SynchronizableTable<T>,
+                            _ db: borrowing SQLite.Connection
+                        ) throws -> RecordType {
                             try RecordType(
                                 tableName: schema.name,
                                 schema: sql,
@@ -502,8 +513,9 @@
                                 )
                             )
                         }
-                        return try open(table)
+                        recordTypes.append(try open(table, db))
                     }
+                    return recordTypes
                 }
                 let previousRecordTypeByTableName = Dictionary(
                     uniqueKeysWithValues: previousRecordTypes.map {
@@ -659,7 +671,7 @@
 
             private func uploadRecordsToCloudKit<T>(
                 table: some SynchronizableTable<T>,
-                db: Database
+                db: borrowing SQLite.Connection
             ) throws {
                 try #sql(
                     """
@@ -669,13 +681,13 @@
                 .execute(db)
             }
 
-            private func uploadRecordsToCloudKit(tableName: String, db: Database) throws {
+            private func uploadRecordsToCloudKit(tableName: String, db: borrowing SQLite.Connection) throws {
                 guard let table = self.tablesByName[tableName]
                 else { return }
-                func open<T>(_ table: some SynchronizableTable<T>) throws {
+                func open<T>(_ table: some SynchronizableTable<T>, _ db: borrowing SQLite.Connection) throws {
                     try uploadRecordsToCloudKit(table: table, db: db)
                 }
-                try open(table)
+                try open(table, db)
             }
 
             private func updateLocalFromSchemaChange(
@@ -717,8 +729,8 @@
                 }
             }
 
-            package func tearDownSyncEngine() throws {
-                try userDatabase.write { db in
+            package func tearDownSyncEngine() async throws {
+                try await userDatabase.write { db in
                     for table in tables.reversed() {
                         try table.base
                             .dropTriggers(defaultZone: defaultZone, privateTables: privateTables, db: db)
@@ -727,26 +739,35 @@
                         try trigger.drop().execute(db)
                     }
                 }
-                try metadatabase.erase()
-                try migrate(metadatabase: metadatabase)
+                // Every table of the metadatabase goes, its record of migrations too, and is made again.
+                try await metadatabase.write { db in
+                    let tables = try SQLiteSchema
+                        .where { $0.type.eq(#bind(.table)) }
+                        .select(\.name)
+                        .fetch.all(db)
+                    for table in tables where !table.hasPrefix("sqlite_") {
+                        try #sql("DROP TABLE \(quote: table)").execute(db)
+                    }
+                    try migrate(metadatabase: db)
+                }
             }
 
             public func deleteLocalData() async throws {
                 stop()
-                try tearDownSyncEngine()
+                try await tearDownSyncEngine()
                 do {
                     try await userDatabase.write { db in
                         for table in tables {
-                            func open<T>(_: some SynchronizableTable<T>) {
+                            func open<T>(_: some SynchronizableTable<T>, _ db: borrowing SQLite.Connection) {
                                 do {
                                     try T.delete().execute(db)
                                 } catch {
                                     surface(Error(error))
                                 }
                             }
-                            open(table)
+                            open(table, db)
                         }
-                        try setUpSyncEngine(writableDB: db)
+                        try self.createTriggers(on: db)
                     }
                 } catch {
                     surface(Error(error))
@@ -930,7 +951,7 @@
                 tablesByName: [String: any SynchronizableTable],
                 defaultZone: CKRecordZone,
                 privateTables: [any SynchronizableTable],
-                db: Database
+                db: borrowing SQLite.Connection
             ) throws {
                 let parentForeignKey =
                     foreignKeysByTableName[tableName]?.count == 1
@@ -949,7 +970,7 @@
             fileprivate static func dropTriggers(
                 defaultZone: CKRecordZone,
                 privateTables: [any SynchronizableTable],
-                db: Database
+                db: borrowing SQLite.Connection
             ) throws {
                 for trigger in metadataTriggers(
                     parentForeignKey: nil,
@@ -1403,7 +1424,7 @@
                     syncEngine.state.add(pendingDatabaseChanges: [.saveZone(self.defaultZone)])
                 }
                 @Sendable
-                func deleteRecords(in zoneID: CKRecordZone.ID, db: Database) throws {
+                func deleteRecords(in zoneID: CKRecordZone.ID, db: borrowing SQLite.Connection) throws {
                     let recordTypes = Dictionary(
                         grouping:
                             try SyncMetadata
@@ -1418,18 +1439,21 @@
                     for (recordType, primaryKeys) in recordTypes {
                         guard let table = tablesByName[recordType]
                         else { continue }
-                        func open<T: PrimaryKeyedTable>(_: some SynchronizableTable<T>) {
+                        func open<T: PrimaryKeyedTable>(
+                            _: some SynchronizableTable<T>,
+                            _ db: borrowing SQLite.Connection
+                        ) {
                             do {
                                 try T.unscoped.where { #sql("\($0.primaryKey)").in(primaryKeys) }.delete().execute(db)
                             } catch {
                                 surface(Error(error))
                             }
                         }
-                        open(table)
+                        open(table, db)
                     }
                 }
                 @Sendable
-                func uploadRecords(in zoneID: CKRecordZone.ID, db: Database) throws {
+                func uploadRecords(in zoneID: CKRecordZone.ID, db: borrowing SQLite.Connection) throws {
                     let recordTypes = Set(
                         try SyncMetadata
                             .where(\.hasLastKnownServerRecord)
@@ -1441,7 +1465,7 @@
                     for recordType in recordTypes {
                         guard let table = tablesByName[recordType]
                         else { continue }
-                        func open<T>(_: some SynchronizableTable<T>) {
+                        func open<T>(_: some SynchronizableTable<T>, _ db: borrowing SQLite.Connection) {
                             do {
                                 pendingRecordZoneChanges.append(
                                     contentsOf: try T.unscoped.select(\._recordName).fetch.all(db).map {
@@ -1452,7 +1476,7 @@
                                 surface(Error(error))
                             }
                         }
-                        open(table)
+                        open(table, db)
                     }
                     syncEngine.state.add(pendingRecordZoneChanges: pendingRecordZoneChanges)
                 }
@@ -1924,7 +1948,7 @@
             private func upsertFromServerRecord(
                 _ serverRecord: CKRecord,
                 force: Bool = false,
-                db: Database
+                db: borrowing SQLite.Connection
             ) {
                 do {
                     guard
@@ -1968,7 +1992,7 @@
 
                     serverRecord.userModificationTime = metadata.userModificationTime
 
-                    func open<T>(_ table: some SynchronizableTable<T>) throws {
+                    func open<T>(_ table: some SynchronizableTable<T>, _ db: borrowing SQLite.Connection) throws {
                         var columnNames: [String] = T.TableColumns.writableColumns.map(\.name)
                         if !force,
                             let allFields = metadata._lastKnownServerRecordAllFields,
@@ -2008,9 +2032,8 @@
                                 .execute(db)
                         } catch {
                             guard
-                                let error = error as? DatabaseError,
-                                error.resultCode == .SQLITE_CONSTRAINT,
-                                error.extendedResultCode == .SQLITE_CONSTRAINT_FOREIGNKEY
+                                let error = error as? ISO.`9075`.Error,
+                                SQLite.Error(error).extendedCode == .foreignKeyConstraint
                             else {
                                 throw error
                             }
@@ -2021,7 +2044,7 @@
                             .execute(db)
                         }
                     }
-                    try open(table)
+                    try open(table, db)
                 } catch {
                     surface(Error(error))
                 }
@@ -2031,19 +2054,16 @@
                 do {
                     try await userDatabase.write { db in
                         let metadata = try SyncMetadata.find(record.recordID).fetch.one(db)
-                        func updateLastKnownServerRecord() throws {
-                            try SyncMetadata
-                                .find(record.recordID)
-                                .update { $0.setLastKnownServerRecord(record) }
-                                .execute(db)
-                        }
+                        let update = SyncMetadata
+                            .find(record.recordID)
+                            .update { $0.setLastKnownServerRecord(record) }
 
                         if let lastKnownDate = metadata?.lastKnownServerRecord?.modificationDate {
                             if let recordDate = record.modificationDate, lastKnownDate < recordDate {
-                                try updateLastKnownServerRecord()
+                                try update.execute(db)
                             }
                         } else {
-                            try updateLastKnownServerRecord()
+                            try update.execute(db)
                         }
                     }
                 } catch {
@@ -2152,9 +2172,10 @@
             package static let sqliteCloudKitFailure = "SQLite CloudKit Failure"
         }
 
-        private let inMemoryMetadatabaseOrdinal = Atomic<Int>(0)
-
         extension URL {
+            /// Where the metadatabase of the database at `databasePath` is: a hidden file beside it, named for the
+            /// container. A database in memory has no place of its own, so its metadatabase is a new file in the
+            /// temporary directory: every call gives another one.
             package static func metadatabase(
                 databasePath: String,
                 containerIdentifier: String?
@@ -2167,9 +2188,9 @@
                 }
                 guard !databaseURL.isInMemory
                 else {
-                    guard let url = URL(string: "file:\(String.sqliteCloudKitSchemaName)?mode=memory&cache=shared")
-                    else { throw InvalidDatabasePath() }
-                    return url
+                    return URL.temporaryDirectory.appending(
+                        component: "\(String.sqliteCloudKitSchemaName)-\(UUID().uuidString).sqlite"
+                    )
                 }
                 return
                     databaseURL.deletingLastPathComponent().appending(
@@ -2180,35 +2201,24 @@
 
             /// The metadatabase a sync engine opens for `userDatabase`.
             ///
-            /// An in-memory metadatabase is a shared-cache database, so its name decides which databases share it.
-            /// One attached in `prepareDatabase` keeps the fixed name ``metadatabase(databasePath:containerIdentifier:)``
-            /// gives it, because the engine must open that same database. Otherwise the engine attaches its own, and
-            /// it gets a name no other metadatabase in the process uses: sharing one would let unrelated in-memory
-            /// databases see each other's sync metadata and block each other with table locks.
+            /// A database in memory that attached one in `prepareDatabase` keeps that one: the engine must open the
+            /// same file. Otherwise the engine attaches its own.
             package static func metadatabase(
                 userDatabase: UserDatabase,
                 containerIdentifier: String?
-            ) throws -> URL {
-                struct InvalidDatabasePath: Error {}
+            ) async throws -> URL {
                 let url = try metadatabase(
                     databasePath: userDatabase.path,
                     containerIdentifier: containerIdentifier
                 )
-                guard url.isInMemory else { return url }
-                let attachedPath: String? = try userDatabase.read { db in
+                guard userDatabase.path.isEmpty else { return url }
+                let attachedPath: String? = try await userDatabase.read { db in
                     try SQLite.Pragma.Database.List
                         .where { $0.name.eq(String.sqliteCloudKitSchemaName) }
                         .select(\.file)
                         .fetch.one(db)
                 }
-                guard attachedPath == nil else { return url }
-                let ordinal = inMemoryMetadatabaseOrdinal.add(1, ordering: .relaxed).newValue
-                guard
-                    let unique = URL(
-                        string: "file:\(String.sqliteCloudKitSchemaName)-\(ordinal)?mode=memory&cache=shared"
-                    )
-                else { throw InvalidDatabasePath() }
-                return unique
+                return attachedPath.map { URL(filePath: $0) } ?? url
             }
 
             package var isInMemory: Bool {
@@ -2254,18 +2264,7 @@
         extension SQLite.Connection {
             /// Attaches the sync engine's metadatabase to this connection, as sqlite-data's `attachMetadatabase`: call it
             /// from ``SQLite/Configuration/prepareDatabase(_:)`` to query `SyncMetadata` alongside the synced tables.
-            public func attachMetadatabase(
-                containerIdentifier: String? = nil,
-                context: SyncEngine.Context = .live
-            ) throws {
-                try translatingErrors {
-                    try database.attachMetadatabase(containerIdentifier: containerIdentifier, context: context)
-                }
-            }
-        }
-
-        extension GRDB.Database {
-            package func attachMetadatabase(
+            public borrowing func attachMetadatabase(
                 containerIdentifier: String? = nil,
                 context: SyncEngine.Context = .live
             ) throws {
@@ -2280,7 +2279,6 @@
 
                 let databasePath = try SQLite.Pragma.Database.List.select(\.file).fetch.one(self)
                 guard let databasePath else {
-                    struct PathError: Error {}
                     throw SyncEngine.SchemaError(
                         reason: .unknown,
                         debugDescription: """
@@ -2292,14 +2290,9 @@
                     databasePath: databasePath,
                     containerIdentifier: containerIdentifier
                 )
-                let path = url.isInMemory ? url.absoluteString : url.path(percentEncoded: false)
-                let database: any DatabaseWriter =
-                    url.isInMemory
-                    ? try DatabaseQueue(path: path)
-                    : try DatabasePool(path: path)
-                _ = try database.read { db in
-                    try #sql("SELECT 1").execute(db)
-                }
+                let path = url.path(percentEncoded: false)
+                // The file exists, in WAL mode, before it is attached: a read-only connection can make neither.
+                try SQLite.Database(path: try Path::Path(validating: path)).close()
                 try #sql(
                     """
                     ATTACH DATABASE \(bind: path) AS \(quote: .sqliteCloudKitSchemaName)
@@ -2379,7 +2372,7 @@
                     }
 
                     for table in tables {
-                        func open<T>(_: some SynchronizableTable<T>) throws {
+                        func open<T>(_: some SynchronizableTable<T>, _ db: borrowing SQLite.Connection) throws {
                             let columnsWithUniqueConstraints = try SQLite.Pragma.Index.List<T>
                                 .where { $0.isUnique && $0.origin.neq("pk") }
                                 .select(\.name)
@@ -2393,7 +2386,7 @@
                                 )
                             }
                         }
-                        try open(table)
+                        try open(table, db)
                     }
                 }
             }
@@ -2440,13 +2433,13 @@
                 var dependencies: OrderedDictionary<HashableSynchronizedTable, [any SynchronizableTable]> =
                     [:]
                 for table in tables {
-                    func open<T>(_: some SynchronizableTable<T>) throws -> [String] {
+                    func open<T>(_: some SynchronizableTable<T>, _ db: borrowing SQLite.Connection) throws -> [String] {
                         try SQLite.Pragma.ForeignKey.List<T>
                             .order(by: \.table)
                             .select(\.table)
                             .fetch.all(db)
                     }
-                    let toTables = try open(table)
+                    let toTables = try open(table, db)
                     for toTable in toTables {
                         guard let toTableType = tablesByName[toTable]
                         else { continue }

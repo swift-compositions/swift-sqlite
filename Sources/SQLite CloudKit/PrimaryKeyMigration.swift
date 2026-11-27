@@ -3,36 +3,13 @@
         public import SQLite
         import CryptoKit
         public import Foundation
-        package import GRDB
         public import RFC_4122
         public import SQL
         import SQL_Macros
 
         extension SyncEngine {
             public static func migratePrimaryKeys<each T: PrimaryKeyedTable>(
-                _ connection: SQLite.Connection,
-                tables: repeat (each T).Type,
-                dropUniqueConstraints: Bool = false,
-                uuid uuidFunction: (any ScalarDatabaseFunction<(), IETF.RFC.`4122`.UUID>)? = nil,
-                randomUUID: () -> IETF.RFC.`4122`.UUID = systemRandomUUID
-            ) throws
-            where
-                repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible,
-                repeat (each T).TableColumns.PrimaryColumn: TableColumnExpression
-            {
-                try translatingErrors {
-                    try migratePrimaryKeys(
-                        connection.database,
-                        tables: repeat each tables,
-                        dropUniqueConstraints: dropUniqueConstraints,
-                        uuid: uuidFunction,
-                        randomUUID: randomUUID
-                    )
-                }
-            }
-
-            package static func migratePrimaryKeys<each T: PrimaryKeyedTable>(
-                _ db: GRDB.Database,
+                _ db: borrowing SQLite.Connection,
                 tables: repeat (each T).Type,
                 dropUniqueConstraints: Bool = false,
                 uuid uuidFunction: (any ScalarDatabaseFunction<(), IETF.RFC.`4122`.UUID>)? = nil,
@@ -112,7 +89,7 @@
 
         extension PrimaryKeyedTable where TableColumns.PrimaryColumn: TableColumnExpression {
             fileprivate static func migratePrimaryKeyToUUID(
-                db: Database,
+                db: borrowing SQLite.Connection,
                 dropUniqueConstraints: Bool,
                 uuidFunction: (any ScalarDatabaseFunction<(), IETF.RFC.`4122`.UUID>)? = nil,
                 migratedTableNames: [String],

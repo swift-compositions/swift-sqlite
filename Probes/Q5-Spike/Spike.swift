@@ -129,6 +129,12 @@ enum Variation: String, CaseIterable, Sendable {
     /// No continuation. The listener's pending `next` is a job that an executor holds. The poster runs that job to
     /// its hop back to the listener's isolation, and then enqueues its own job there.
     case heldJob = "5 held job: no continuation"
+    /// The mechanism of the test clock of pointfreeco/swift-clocks (branch clocks-2, 0ff28f7, TestClock.swift,
+    /// `sleep(until:tolerance:isolation:)` and `advance(to:)`). The poster enters the listener's isolation, stores a
+    /// continuation of its own there, and only then resumes the waiter. The listener's `next` resumes that
+    /// continuation when it is back on its isolation. The poster must get that isolation again to return, and the
+    /// listener holds it until its body is over.
+    case acknowledged = "6 acknowledgement inside the listener's isolation"
 }
 
 /// The state that the listener, the posters and the holding executor share.
@@ -153,8 +159,10 @@ final class Core: Sendable {
         case promised
         /// The listener's task is a job that the gate's executor holds.
         case held(UnownedJob)
-        /// Someone runs the held job now. It is not yet back in the queue of the listener's isolation.
-        case moving
+        /// Someone runs the held job now. It is not yet back in the queue of the listener's isolation. The number
+        /// tells one such run from the next: the listener can be back and parked again before the first run's
+        /// caller has returned.
+        case moving(Int)
     }
 
     struct State {
@@ -164,7 +172,15 @@ final class Core: Sendable {
         var listening = false
         var finished = false
         var waiter: Waiter?
+        /// The highest number that the listener took out of the buffer.
+        var taken = 0
+        /// The priority of the listener's task, as it was at its last `next`.
+        var priority = TaskPriority.medium
         var phase = Phase.idle
+        /// Variation 6: the waiter was resumed and its `next` is not yet back on the listener's isolation.
+        var transit = false
+        var acknowledgements: [CheckedContinuation<Void, Never>] = []
+        var runs = 0
         var arrivals: [CheckedContinuation<Void, Never>] = []
     }
 
@@ -181,24 +197,28 @@ final class HoldingExecutor: SerialExecutor, Sendable {
 
     func enqueue(_ job: consuming ExecutorJob) {
         let job = UnownedJob(job)
-        let runNow = core.state.withLock { state in
+        let run: Int? = core.state.withLock { state in
             if state.buffer.isEmpty && !state.finished {
                 state.phase = .held(job)
-                return false
+                return nil
             }
             // A value came in while the listener was on its way here. Do not hold the job.
-            state.phase = .moving
-            return true
+            state.runs += 1
+            state.phase = .moving(state.runs)
+            return state.runs
         }
-        if runNow { release(job) }
+        if let run { release(job, run: run) }
     }
 
     /// Runs the listener's task from its arrival at the gate to its hop back to its own isolation. When this
     /// returns, the listener's task is in the queue of its isolation. Only then may a poster enqueue its job.
-    func release(_ job: UnownedJob) {
+    func release(_ job: UnownedJob, run: Int) {
         core.resumer.store(currentThread(), ordering: .sequentiallyConsistent)
         job.runSynchronously(on: asUnownedSerialExecutor())
-        let arrivals = core.state.withLock { state in
+        let arrivals: [CheckedContinuation<Void, Never>] = core.state.withLock { state in
+            // The listener can have run its body and parked again already. Then the phase is its, not this run's,
+            // and it has let the waiting posters go itself.
+            guard case .moving(run) = state.phase else { return [] }
             state.phase = .idle
             defer { state.arrivals = [] }
             return state.arrivals
@@ -215,7 +235,11 @@ actor Gate {
 
     /// Runs when the executor lets the job go: on a poster's thread, or on the listener's own.
     func take() -> Int? {
-        executor.core.state.withLock { $0.buffer.isEmpty ? nil : $0.buffer.removeFirst() }
+        executor.core.state.withLock { state in
+            guard !state.buffer.isEmpty else { return nil }
+            state.taken = state.buffer.removeFirst()
+            return state.taken
+        }
     }
 }
 
@@ -254,33 +278,62 @@ final class Channel: AsyncSequence, Sendable {
     // MARK: The listener's side
 
     func next(isolation actor: isolated (any Actor)?) async -> Int? {
-        // A value that is already there is returned with no suspension: its body runs in the job that runs now.
-        let ready: Int?? = core.state.withLock { state in
-            state.isolation = actor
-            state.listening = true
-            if !state.buffer.isEmpty { return .some(state.buffer.removeFirst()) }
-            if state.finished { return .some(nil) }
-            if variation == .heldJob { state.phase = .promised }
-            return nil
-        }
-        if let ready { return ready }
+        let priority = Task.currentPriority
+        while true {
+            // A value that is already there is returned with no suspension: its body runs in the job that runs now.
+            var arrivals: [CheckedContinuation<Void, Never>] = []
+            let ready: Int?? = core.state.withLock { state in
+                state.isolation = actor
+                state.listening = true
+                state.priority = priority
+                if !state.buffer.isEmpty {
+                    state.taken = state.buffer.removeFirst()
+                    return .some(state.taken)
+                }
+                if state.finished { return .some(nil) }
+                if variation == .heldJob {
+                    // Nothing is left: the body has run for every value posted so far, in this job or before it.
+                    // Posters that wait for the listener's task to be back in its queue may go.
+                    state.phase = .promised
+                    arrivals = state.arrivals
+                    state.arrivals = []
+                }
+                return nil
+            }
+            for arrival in arrivals { arrival.resume() }
+            if let ready { return ready }
 
-        switch variation {
-        case .heldJob:
-            // No continuation: a call to another actor. Its executor holds the job until a value is posted.
-            return await gate.take()
-        case .isolatedChecked:
-            return await withCheckedContinuation(isolation: actor) { park(.checked($0)) }
-        case .isolatedUnsafe:
-            return await withUnsafeContinuation(isolation: actor) { park(.unsafe($0)) }
-        default:
-            return await withCheckedContinuation { park(.checked($0)) }
+            switch variation {
+            case .heldJob:
+                // No continuation: a call to another actor. Its executor holds the job until a value is posted.
+                if let value = await gate.take() { return value }
+            case .acknowledged:
+                let value = await withCheckedContinuation { park(.checked($0)) }
+                // Back on the listener's isolation. The posters that wait here can go on only when this job is
+                // over: after the body, at the next suspension of the loop.
+                let acknowledgements = core.state.withLock { state in
+                    state.transit = false
+                    defer { state.acknowledgements = [] }
+                    return state.acknowledgements
+                }
+                for acknowledgement in acknowledgements { acknowledgement.resume() }
+                return value
+            case .isolatedChecked:
+                return await withCheckedContinuation(isolation: actor) { park(.checked($0)) }
+            case .isolatedUnsafe:
+                return await withUnsafeContinuation(isolation: actor) { park(.unsafe($0)) }
+            default:
+                return await withCheckedContinuation { park(.checked($0)) }
+            }
         }
     }
 
     private func park(_ waiter: Core.Waiter) {
         let ready: Int?? = core.state.withLock { state in
-            if !state.buffer.isEmpty { return .some(state.buffer.removeFirst()) }
+            if !state.buffer.isEmpty {
+                state.taken = state.buffer.removeFirst()
+                return .some(state.taken)
+            }
             if state.finished { return .some(nil) }
             state.waiter = waiter
             return nil
@@ -289,17 +342,18 @@ final class Channel: AsyncSequence, Sendable {
     }
 
     func finish() {
-        let (waiter, job) = core.state.withLock { state -> (Core.Waiter?, UnownedJob?) in
+        let (waiter, job) = core.state.withLock { state -> (Core.Waiter?, (UnownedJob, Int)?) in
             state.finished = true
             defer { state.waiter = nil }
             if case .held(let job) = state.phase {
-                state.phase = .moving
-                return (state.waiter, job)
+                state.runs += 1
+                state.phase = .moving(state.runs)
+                return (state.waiter, (job, state.runs))
             }
             return (state.waiter, nil)
         }
         waiter?.resume(returning: nil)
-        if let job { gate.executor.release(job) }
+        if let (job, run) = job { gate.executor.release(job, run: run) }
     }
 
     // MARK: The poster's side
@@ -319,7 +373,7 @@ final class Channel: AsyncSequence, Sendable {
                 }
                 return (state.posted, state.listening ? state.isolation : nil)
             }
-            if let isolation { await job(on: isolation, from: #isolation) }
+            if let isolation { await job(on: isolation) }
             return number
 
         case .resumeThere, .resumeThereThenJob, .oneHop:
@@ -330,12 +384,46 @@ final class Channel: AsyncSequence, Sendable {
             }
             if let isolation {
                 await resume(on: isolation, thenYield: variation == .oneHop)
-                if variation == .resumeThereThenJob { await job(on: isolation, from: #isolation) }
+                if variation == .resumeThereThenJob { await job(on: isolation) }
             }
             return number
 
         case .heldJob:
             return await postToHeldJob()
+
+        case .acknowledged:
+            let (number, waiter, isolation) = core.state.withLock { state -> (Int, Core.Waiter?, (any Actor)?) in
+                state.posted += 1
+                let isolation = state.listening ? state.isolation : nil
+                if let waiter = state.waiter, isolation != nil {
+                    state.waiter = nil
+                    state.transit = true
+                    return (state.posted, waiter, isolation)
+                }
+                state.buffer.append(state.posted)
+                return (state.posted, nil, isolation)
+            }
+            if let isolation { await acknowledge(on: isolation, resuming: waiter, with: number) }
+            return number
+        }
+    }
+
+    /// Variation 6, on the listener's isolation. With a waiter: stores the acknowledgement, then resumes the waiter.
+    /// With no waiter: the listener is in a job on its isolation, or on its way back to it. In the first case that
+    /// job is over now, because this function runs on the same isolation. In the second, waits for the same
+    /// acknowledgement.
+    private func acknowledge(on actor: isolated any Actor, resuming waiter: Core.Waiter?, with number: Int) async {
+        await withCheckedContinuation { (acknowledgement: CheckedContinuation<Void, Never>) in
+            let wait = core.state.withLock { state in
+                guard waiter != nil || state.transit else { return false }
+                state.acknowledgements.append(acknowledgement)
+                return true
+            }
+            if let waiter {
+                core.resumer.store(currentThread(), ordering: .sequentiallyConsistent)
+                waiter.resume(returning: number)
+            }
+            if !wait { acknowledgement.resume() }
         }
     }
 
@@ -344,7 +432,8 @@ final class Channel: AsyncSequence, Sendable {
         let resumed: (Core.Waiter, Int)? = core.state.withLock { state in
             guard let waiter = state.waiter, !state.buffer.isEmpty else { return nil }
             state.waiter = nil
-            return (waiter, state.buffer.removeFirst())
+            state.taken = state.buffer.removeFirst()
+            return (waiter, state.taken)
         }
         if let (waiter, value) = resumed {
             core.resumer.store(currentThread(), ordering: .sequentiallyConsistent)
@@ -354,20 +443,24 @@ final class Channel: AsyncSequence, Sendable {
         if thenYield { await Task.yield() }
     }
 
-    /// The poster's job on the listener's isolation. When the poster is on that isolation already, a call to it does
-    /// not suspend, so the poster leaves it and comes back.
-    private nonisolated(nonsending) func job(on isolation: any Actor, from caller: (any Actor)?) async {
-        if caller === isolation {
-            await Task.yield()
-        } else {
-            await barrier(on: isolation)
+    /// The poster's job on the listener's isolation, and the wait for it. The job is a task of its own, at the
+    /// priority of the listener's task and with no link to the poster's task:
+    /// - a default actor runs its jobs by priority, so a job above the listener's priority would pass the listener;
+    /// - a poster that is on the listener's isolation already would not suspend on a call to it.
+    private nonisolated(nonsending) func job(on isolation: any Actor) async {
+        let priority = core.state.withLock { $0.priority }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            Task.detached(priority: priority) {
+                await barrier(on: isolation)
+                continuation.resume()
+            }
         }
     }
 
     private nonisolated(nonsending) func postToHeldJob() async -> Int {
         enum Action {
             case nothing
-            case release(UnownedJob, any Actor)
+            case release(UnownedJob, Int, any Actor)
             case arrival(any Actor)
             case job(any Actor)
         }
@@ -378,8 +471,9 @@ final class Channel: AsyncSequence, Sendable {
             guard state.listening, let isolation = state.isolation else { return (state.posted, .nothing) }
             switch state.phase {
             case .held(let job):
-                state.phase = .moving
-                return (state.posted, .release(job, isolation))
+                state.runs += 1
+                state.phase = .moving(state.runs)
+                return (state.posted, .release(job, state.runs, isolation))
             case .promised, .moving:
                 return (state.posted, .arrival(isolation))
             case .idle:
@@ -390,37 +484,40 @@ final class Channel: AsyncSequence, Sendable {
         switch action {
         case .nothing:
             break
-        case .release(let job, let isolation):
+        case .release(let job, let run, let isolation):
             // The listener's task runs here to its hop: after this line it is in its isolation's queue.
-            gate.executor.release(job)
-            await self.job(on: isolation, from: #isolation)
+            gate.executor.release(job, run: run)
+            await self.job(on: isolation)
         case .arrival(let isolation):
             // The listener's task is between its isolation and the gate, or another poster runs it now. Wait until
             // it is back in its isolation's queue.
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-                let held: UnownedJob?? = core.state.withLock { state in
+                let held: (UnownedJob, Int)?? = core.state.withLock { state in
+                    // The listener took this value already, in a job on its isolation that runs now or is over.
+                    if state.taken >= number { return .some(nil) }
                     switch state.phase {
                     case .idle:
                         return .some(nil)
                     case .held(let job):
-                        state.phase = .moving
+                        state.runs += 1
+                        state.phase = .moving(state.runs)
                         state.arrivals.append(continuation)
-                        return .some(job)
+                        return .some((job, state.runs))
                     case .promised, .moving:
                         state.arrivals.append(continuation)
                         return nil
                     }
                 }
                 switch held {
-                case .some(.some(let job)): gate.executor.release(job)
+                case .some(.some(let (job, run))): gate.executor.release(job, run: run)
                 case .some(.none): continuation.resume()
                 case .none: break
                 }
             }
-            await self.job(on: isolation, from: #isolation)
+            await self.job(on: isolation)
         case .job(let isolation):
             // The listener is in a job on its isolation, or its task is in that queue already.
-            await self.job(on: isolation, from: #isolation)
+            await self.job(on: isolation)
         }
         return number
     }
@@ -569,6 +666,9 @@ func breaks(_ configuration: Configuration, posts: Int) async -> Int {
     return broken
 }
 
+/// `SPIKE_VERBOSE=1` prints each configuration before it starts, to find one that does not end.
+let verbose = getenv("SPIKE_VERBOSE") != nil
+
 let priorities: [(TaskPriority, TaskPriority)] = [
     (.medium, .medium), (.low, .high), (.high, .low), (.background, .high), (.high, .background),
 ]
@@ -590,6 +690,10 @@ func matrix(posts: Int, only: Variation?) async {
                 var cells: [String] = []
                 for (listener, posters) in priorities {
                     for busy in [false, true] {
+                        if verbose {
+                            let line = "    start: \(isolation.rawValue) | \(poster.rawValue) | \(name(listener))/\(name(posters)) | \(busy ? "busy" : "quiet")\n"
+                            _ = line.withCString { write(2, $0, strlen($0)) }
+                        }
                         let broken = await breaks(
                             Configuration(
                                 variation: variation, isolation: isolation, poster: poster, listener: listener,

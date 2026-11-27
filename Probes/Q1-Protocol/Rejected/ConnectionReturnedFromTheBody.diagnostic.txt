@@ -1,0 +1,31 @@
+Rejected/ConnectionReturnedFromTheBody.swift:7:24: error: instance method 'write' requires that 'Database.Connection' conform to 'Copyable'
+ 5 | // `Value` is an ordinary generic parameter, copyable and escapable.
+ 6 | func connectionReturned<Database: Lent.Database>(_ database: Database) async throws {
+ 7 |     try await database.write { (connection: borrowing Database.Connection) throws(ISO.`9075`.Error) -> Database.Connection in
+   |                        `- error: instance method 'write' requires that 'Database.Connection' conform to 'Copyable'
+ 8 |         return connection
+ 9 |     }
+
+/home/user/swift-sqlite/Probes/Q1-Protocol/Sources/Lent Interface/Lent.swift:87:41: note: 'where Value: Copyable' is implicit here
+ 85 | 
+ 86 | extension Lent.Database {
+ 87 |     public nonisolated(nonsending) func write<Value>(
+    |                                         `- note: 'where Value: Copyable' is implicit here
+ 88 |         _ body: sending (borrowing Connection) throws(ISO.`9075`.Error) -> sending Value
+ 89 |     ) async throws(ISO.`9075`.Error) -> sending Value {
+
+Rejected/ConnectionReturnedFromTheBody.swift:7:24: error: instance method 'write' requires that 'Database.Connection' conform to 'Escapable'
+ 5 | // `Value` is an ordinary generic parameter, copyable and escapable.
+ 6 | func connectionReturned<Database: Lent.Database>(_ database: Database) async throws {
+ 7 |     try await database.write { (connection: borrowing Database.Connection) throws(ISO.`9075`.Error) -> Database.Connection in
+   |                        `- error: instance method 'write' requires that 'Database.Connection' conform to 'Escapable'
+ 8 |         return connection
+ 9 |     }
+
+/home/user/swift-sqlite/Probes/Q1-Protocol/Sources/Lent Interface/Lent.swift:87:41: note: 'where Value: Escapable' is implicit here
+ 85 | 
+ 86 | extension Lent.Database {
+ 87 |     public nonisolated(nonsending) func write<Value>(
+    |                                         `- note: 'where Value: Escapable' is implicit here
+ 88 |         _ body: sending (borrowing Connection) throws(ISO.`9075`.Error) -> sending Value
+ 89 |     ) async throws(ISO.`9075`.Error) -> sending Value {

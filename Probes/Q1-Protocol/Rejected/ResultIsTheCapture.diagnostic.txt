@@ -1,0 +1,11 @@
+Rejected/ResultIsTheCapture.swift:13:41: error: sending 'self.kept' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+11 |     func run<Value>(_ body: sending (Tally) -> sending Value) -> sending Value { body(kept) }
+12 | 
+13 |     func leak() -> sending Tally { kept }
+   |                                         |- error: sending 'self.kept' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+   |                                         `- note: 'self'-isolated 'self.kept' cannot be a 'sending' result. 'self'-isolated uses may race with caller uses
+14 | }
+15 | 
+
+[#RegionIsolation]: <https://docs.swift.org/compiler/documentation/diagnostics/region-isolation>
+[#SendingRisksDataRace]: <https://docs.swift.org/compiler/documentation/diagnostics/sending-risks-data-race>

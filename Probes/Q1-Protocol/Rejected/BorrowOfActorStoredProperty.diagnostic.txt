@@ -1,0 +1,13 @@
+Rejected/BorrowOfActorStoredProperty.swift:15:13: error: lifetime-dependent variable 'handle' escapes its scope
+10 | 
+11 | actor Engine {
+12 |     let log = Log()
+   |         `- note: it depends on the lifetime of variable 'log'
+13 | 
+14 |     func run<Value>(_ body: sending (borrowing Handle) -> sending Value) -> sending Value {
+15 |         let handle = Handle(log)
+   |             `- error: lifetime-dependent variable 'handle' escapes its scope
+16 |         return body(handle)
+   |                     `- note: this use of the lifetime-dependent value is out of scope
+17 |     }
+18 | }

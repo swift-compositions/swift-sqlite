@@ -1,0 +1,16 @@
+Rejected/CaptureUsedAfterTheCall.swift:9:37: error: sending value of non-Sendable type '@noescape @callee_guaranteed @substituted <τ_0_0, τ_0_1> (@in_guaranteed τ_0_0) -> (@sil_sending @out τ_0_1, @error ISO.`9075`.Error) for <(some Lent.Database).Connection, Int>' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+ 7 | func captureUsedAfterTheCall(_ database: some Lent.Database) async throws {
+ 8 |     let captured = Tally()
+ 9 |     let _: Int = try await database.write { _ throws(ISO.`9075`.Error) in
+   |                                     |- error: sending value of non-Sendable type '@noescape @callee_guaranteed @substituted <τ_0_0, τ_0_1> (@in_guaranteed τ_0_0) -> (@sil_sending @out τ_0_1, @error ISO.`9075`.Error) for <(some Lent.Database).Connection, Int>' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+   |                                     `- note: Passing value of non-Sendable type '@noescape @callee_guaranteed @substituted <τ_0_0, τ_0_1> (@in_guaranteed τ_0_0) -> (@sil_sending @out τ_0_1, @error ISO.`9075`.Error) for <(some Lent.Database).Connection, Int>' as a 'sending' argument to instance method 'write' risks causing races in between local and caller code
+10 |         captured.count += 1
+11 |         return captured.count
+12 |     }
+13 |     captured.count += 1
+   |     `- note: access can happen concurrently
+14 | }
+15 | 
+
+[#RegionIsolation]: <https://docs.swift.org/compiler/documentation/diagnostics/region-isolation>
+[#SendingRisksDataRace]: <https://docs.swift.org/compiler/documentation/diagnostics/sending-risks-data-race>

@@ -43,3 +43,94 @@ Linux 6.18.44-fc-v880 x86_64
 swiftlang/swift#92915, debug: 0 of 20000 resumptions went on off the actor's executor
 
 == ./spike matrix 4000
+build: debug; posts per configuration: 4000
+BREAKS 0 baseline: resume, then a job: 14342 breaks, 90 of 90 configurations broken
+  columns: listener/posters priority medium/medium, low/high, high/low, background/high, high/background; each quiet, then busy
+  main actor | 4 tasks, no isolation | 4 55 67 110 54 105 86 158 45 148
+  main actor | 4 tasks on another actor | 17 80 54 88 13 60 40 129 22 82
+  main actor | 4 tasks on the listener's isolation | 14 49 12 48 10 31 21 41 3 41
+  default actor | 4 tasks, no isolation | 5 115 1372 191 204 389 1037 338 121 223
+  default actor | 4 tasks on another actor | 19 82 61 143 24 83 99 351 65 91
+  default actor | 4 tasks on the listener's isolation | 786 116 448 189 132 11 655 468 167 12
+  custom executor | 4 tasks, no isolation | 299 169 237 238 168 109 419 303 171 125
+  custom executor | 4 tasks on another actor | 77 145 290 89 154 85 213 75 115 150
+  custom executor | 4 tasks on the listener's isolation | 196 44 73 67 42 50 250 183 68 54
+BREAKS 1a resume on the listener's isolation: 233258 breaks, 90 of 90 configurations broken
+  columns: listener/posters priority medium/medium, low/high, high/low, background/high, high/background; each quiet, then busy
+  main actor | 4 tasks, no isolation | 1555 1723 2364 1689 734 2045 2404 2281 1130 1972
+  main actor | 4 tasks on another actor | 1224 1650 1494 2035 886 1684 2005 2329 1275 1854
+  main actor | 4 tasks on the listener's isolation | 4000 4000 4000 4000 4000 4000 4000 4000 4000 4000
+  default actor | 4 tasks, no isolation | 2999 2800 3987 4000 3626 833 3991 4000 2807 714
+  default actor | 4 tasks on another actor | 1148 1420 1222 3250 830 749 2126 3638 1016 753
+  default actor | 4 tasks on the listener's isolation | 4000 4000 4000 4000 4000 4000 4000 4000 4000 4000
+  custom executor | 4 tasks, no isolation | 1559 1577 1432 1725 1015 1336 2400 1779 1138 1532
+  custom executor | 4 tasks on another actor | 1481 1835 2143 2424 1587 2197 698 2352 493 2313
+  custom executor | 4 tasks on the listener's isolation | 4000 4000 4000 4000 4000 4000 4000 4000 4000 4000
+BREAKS 1b resume on the listener's isolation, then a job: 4431 breaks, 90 of 90 configurations broken
+  columns: listener/posters priority medium/medium, low/high, high/low, background/high, high/background; each quiet, then busy
+  main actor | 4 tasks, no isolation | 4 108 14 24 18 46 42 28 25 47
+  main actor | 4 tasks on another actor | 26 5 8 8 8 10 3 25 6 20
+  main actor | 4 tasks on the listener's isolation | 28 88 9 38 11 56 5 40 8 104
+  default actor | 4 tasks, no isolation | 29 61 295 91 118 23 301 264 181 39
+  default actor | 4 tasks on another actor | 2 23 2 19 1 1 62 93 5 11
+  default actor | 4 tasks on the listener's isolation | 33 83 121 150 12 10 233 177 17 9
+  custom executor | 4 tasks, no isolation | 82 177 32 46 41 46 51 48 49 47
+  custom executor | 4 tasks on another actor | 39 17 5 15 4 11 23 44 5 19
+  custom executor | 4 tasks on the listener's isolation | 43 41 29 18 14 26 36 24 36 35
+BREAKS 2a withCheckedContinuation(isolation:): 9931 breaks, 89 of 90 configurations broken
+  columns: listener/posters priority medium/medium, low/high, high/low, background/high, high/background; each quiet, then busy
+  main actor | 4 tasks, no isolation | 19 110 54 97 103 133 81 105 126 151
+  main actor | 4 tasks on another actor | 50 65 35 82 35 76 42 130 25 91
+  main actor | 4 tasks on the listener's isolation | 31 46 13 22 22 37 10 58 11 37
+  default actor | 4 tasks, no isolation | 38 271 215 204 171 292 219 499 190 342
+  default actor | 4 tasks on another actor | 44 122 105 154 17 43 84 445 21 86
+  default actor | 4 tasks on the listener's isolation | 57 108 178 137 17 0 230 360 32 9
+  custom executor | 4 tasks, no isolation | 97 281 145 235 211 203 162 228 173 182
+  custom executor | 4 tasks on another actor | 99 167 40 107 35 108 79 163 44 134
+  custom executor | 4 tasks on the listener's isolation | 42 59 41 37 26 34 58 86 33 35
+BREAKS 2b withUnsafeContinuation(isolation:): 11133 breaks, 90 of 90 configurations broken
+  columns: listener/posters priority medium/medium, low/high, high/low, background/high, high/background; each quiet, then busy
+  main actor | 4 tasks, no isolation | 13 104 118 151 144 86 104 188 113 144
+  main actor | 4 tasks on another actor | 50 82 26 98 15 77 42 127 20 85
+  main actor | 4 tasks on the listener's isolation | 24 58 21 71 5 39 18 34 7 38
+  default actor | 4 tasks, no isolation | 429 490 178 224 236 253 249 579 204 376
+  default actor | 4 tasks on another actor | 49 191 89 131 18 188 68 380 12 80
+  default actor | 4 tasks on the listener's isolation | 34 119 142 117 41 3 248 314 30 7
+  custom executor | 4 tasks, no isolation | 141 282 155 238 164 196 196 350 176 190
+  custom executor | 4 tasks on another actor | 68 181 53 132 28 113 80 213 31 113
+  custom executor | 4 tasks on the listener's isolation | 65 63 59 41 29 39 55 40 28 33
+BREAKS 3 one hop: resume there, and yield there: 59360 breaks, 90 of 90 configurations broken
+  columns: listener/posters priority medium/medium, low/high, high/low, background/high, high/background; each quiet, then busy
+  main actor | 4 tasks, no isolation | 50 112 136 473 32 475 198 677 53 314
+  main actor | 4 tasks on another actor | 46 151 144 506 41 291 181 573 36 321
+  main actor | 4 tasks on the listener's isolation | 129 361 372 835 155 587 509 1191 156 534
+  default actor | 4 tasks, no isolation | 61 167 3538 2642 1751 49 3859 3624 2664 32
+  default actor | 4 tasks on another actor | 49 110 737 1602 142 37 686 3245 149 25
+  default actor | 4 tasks on the listener's isolation | 120 194 3643 2612 559 57 3659 3586 431 95
+  custom executor | 4 tasks, no isolation | 112 192 284 254 168 223 319 437 176 378
+  custom executor | 4 tasks on another actor | 54 222 115 483 45 364 146 677 42 252
+  custom executor | 4 tasks on the listener's isolation | 191 494 462 507 240 549 520 893 307 490
+HOLDS  5 held job: no continuation: 0 breaks, 0 of 90 configurations broken
+  columns: listener/posters priority medium/medium, low/high, high/low, background/high, high/background; each quiet, then busy
+  main actor | 4 tasks, no isolation | 0 0 0 0 0 0 0 0 0 0
+  main actor | 4 tasks on another actor | 0 0 0 0 0 0 0 0 0 0
+  main actor | 4 tasks on the listener's isolation | 0 0 0 0 0 0 0 0 0 0
+  default actor | 4 tasks, no isolation | 0 0 0 0 0 0 0 0 0 0
+  default actor | 4 tasks on another actor | 0 0 0 0 0 0 0 0 0 0
+  default actor | 4 tasks on the listener's isolation | 0 0 0 0 0 0 0 0 0 0
+  custom executor | 4 tasks, no isolation | 0 0 0 0 0 0 0 0 0 0
+  custom executor | 4 tasks on another actor | 0 0 0 0 0 0 0 0 0 0
+  custom executor | 4 tasks on the listener's isolation | 0 0 0 0 0 0 0 0 0 0
+HOLDS  6 acknowledgement inside the listener's isolation: 0 breaks, 0 of 90 configurations broken
+  columns: listener/posters priority medium/medium, low/high, high/low, background/high, high/background; each quiet, then busy
+  main actor | 4 tasks, no isolation | 0 0 0 0 0 0 0 0 0 0
+  main actor | 4 tasks on another actor | 0 0 0 0 0 0 0 0 0 0
+  main actor | 4 tasks on the listener's isolation | 0 0 0 0 0 0 0 0 0 0
+  default actor | 4 tasks, no isolation | 0 0 0 0 0 0 0 0 0 0
+  default actor | 4 tasks on another actor | 0 0 0 0 0 0 0 0 0 0
+  default actor | 4 tasks on the listener's isolation | 0 0 0 0 0 0 0 0 0 0
+  custom executor | 4 tasks, no isolation | 0 0 0 0 0 0 0 0 0 0
+  custom executor | 4 tasks on another actor | 0 0 0 0 0 0 0 0 0 0
+  custom executor | 4 tasks on the listener's isolation | 0 0 0 0 0 0 0 0 0 0
+
+== ./spike matrix 20000 5

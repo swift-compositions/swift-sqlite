@@ -19,12 +19,12 @@
                 let database: SQLite.Database
                 let engine: SyncEngine
 
-                init(mock: SyncEngine.Mock) throws {
+                init(mock: SyncEngine.Mock) async throws {
                     database = try SQLite.Database()
-                    try database.write {
+                    try await database.write {
                         try #sql("CREATE TABLE notes (id TEXT PRIMARY KEY NOT NULL, body TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '') STRICT").execute($0)
                     }
-                    engine = try SyncEngine(for: database, tables: Note.self, mock: mock)
+                    engine = try await SyncEngine(for: database, tables: Note.self, mock: mock)
                 }
 
                 func start() async throws {
@@ -44,7 +44,8 @@
 
             @Test func `a deletion reaches every device, not only the first to fetch`() async throws {
                 let mock = SyncEngine.Mock()
-                let devices = try (0..<3).map { _ in try Device(mock: mock) }
+                var devices: [Device] = []
+                for _ in 0..<3 { devices.append(try await Device(mock: mock)) }
                 for device in devices { try await device.start() }
                 try await devices[0].database.write {
                     try #sql("INSERT INTO notes (id, body) VALUES ('a', 'one'), ('b', 'two')").execute($0)
@@ -62,8 +63,8 @@
 
             @Test func `more changes than one batch holds all reach the cloud in one send`() async throws {
                 let mock = SyncEngine.Mock()
-                let device = try Device(mock: mock)
-                let other = try Device(mock: mock)
+                let device = try await Device(mock: mock)
+                let other = try await Device(mock: mock)
                 try await device.start()
                 try await other.start()
                 try await device.database.write { db in

@@ -1,6 +1,5 @@
 #if CloudKit && canImport(CloudKit)
     import CloudKit
-    import GRDB
     import SQL
     import SQLite
     import SQLite_CloudKit
@@ -11,6 +10,33 @@
     extension CloudKitTestBase {
         @MainActor
         final class `Attached metadatabase`: CloudKitTestBase, @unchecked Sendable {
+            init() async throws {
+                try await super.init(attachMetadatabase: true)
+            }
+
+            /// `attachMetadatabase` in `prepareDatabase` runs on every connection the driver opens: the writer, each
+            /// reader, and the connection of the synchronous read.
+            @Test func `every connection of the database sees the metadata`() async throws {
+                try await userDatabase.userWrite { db in
+                    try db.seed {
+                        RemindersList(id: 1, title: "Personal")
+                    }
+                }
+                try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+                let database = userDatabase.sqliteDatabase
+                let count = SyncMetadata.count()
+
+                let onWriter = try await database.write { try count.fetch.one($0) }
+                let onReader = try await database.read { try count.fetch.one($0) }
+                // In a synchronous function, so that the synchronous read is the one called.
+                func read() throws -> Int? { try database.read { try count.fetch.one($0) } }
+                let synchronous = try read()
+
+                #expect(onWriter == 1)
+                #expect(onReader == 1)
+                #expect(synchronous == 1)
+            }
+
             @Test func `basics`() async throws {
                 let remindersList = RemindersList(id: 1, title: "Personal")
                 try await userDatabase.userWrite { db in

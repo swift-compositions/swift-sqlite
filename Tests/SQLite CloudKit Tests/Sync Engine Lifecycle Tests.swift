@@ -1,7 +1,6 @@
 #if CloudKit && canImport(CloudKit)
     import CloudKit
     import Foundation
-    import GRDB
     import SQL
     import SQLite
     import SQLite_CloudKit
@@ -25,7 +24,7 @@
 
                     try await Task.sleep(for: .seconds(1))
 
-                    await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                         SyncMetadata.all
                     } matches: {
                         """
@@ -179,7 +178,7 @@
                     }
                     try await Task.sleep(for: .seconds(0.5))
 
-                    await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                         PendingRecordZoneChange.all
                     } matches: {
                         """
@@ -232,7 +231,7 @@
                         )
                         """
                     }
-                    await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                         PendingRecordZoneChange.all
                     } matches: {
                         """
@@ -280,7 +279,7 @@
                     }
 
                     try await Task.sleep(for: .seconds(1))
-                    await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                         SyncMetadata.all
                     } matches: {
                         """
@@ -586,7 +585,7 @@
                     }
                     try await Task.sleep(for: .seconds(1))
 
-                    await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                         SyncMetadata.all
                     } matches: {
                         """
@@ -647,7 +646,7 @@
                     try await syncEngine.processPendingDatabaseChanges(scope: .private)
                     try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                    await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                    await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                         SyncMetadata.all
                     } matches: {
                         """

@@ -2,7 +2,6 @@
     import Byte
     import CloudKit
     import Foundation
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -122,7 +121,7 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.all
                 } matches: {
                     """
@@ -416,7 +415,7 @@
                     try #expect(RemindersList.find(1).fetch.one(db) == RemindersList(id: 1, title: "My Stuff"))
                 }
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.all
                 } matches: {
                     """
@@ -482,7 +481,7 @@
 
             @Test func `running with the new schema when the old schema saves a record and the new schema updates it`() async throws {
                 syncEngine.stop()
-                try syncEngine.tearDownSyncEngine()
+                try await syncEngine.tearDownSyncEngine()
 
                 try await userDatabase.userWrite { db in
                     try #sql(
@@ -519,7 +518,7 @@
                     )
                 }
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.all
                 } matches: {
                     """
@@ -564,7 +563,7 @@
                 }
                 try await newSyncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.all
                 } matches: {
                     """
@@ -846,7 +845,7 @@
                     )
                 )
                 try await syncEngine.modifyRecords(scope: .private, saving: [customRecord]).notify()
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.all
                 } matches: {
                     """
@@ -864,7 +863,7 @@
                     )
                 )
                 try await syncEngine.modifyRecords(scope: .private, saving: [customRecord]).notify()
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.all
                 } matches: {
                     """

@@ -9,6 +9,9 @@
         import SQL
         import SQL_Macros
 
+        /// A live sync engine was given a user database in memory.
+        struct InMemoryDatabase: Swift.Error {}
+
         func defaultMetadatabase(
             logger: Logger,
             url: URL,

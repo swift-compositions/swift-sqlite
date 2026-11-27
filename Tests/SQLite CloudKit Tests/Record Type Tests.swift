@@ -2,7 +2,6 @@
     import Cardinal
     import CloudKit
     import Foundation
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -340,13 +339,13 @@
                     try #expect(StateSerialization.all.fetch.count(db) == 0)
                 }
 
-                try syncEngine.tearDownSyncEngine()
+                try await syncEngine.tearDownSyncEngine()
                 try await syncEngine.metadatabase.read { db in
                     try #expect(SyncMetadata.all.fetch.count(db) == 0)
                     try #expect(RecordType.all.fetch.count(db) == 0)
                     try #expect(StateSerialization.all.fetch.count(db) == 0)
                 }
-                try syncEngine.setUpSyncEngine()
+                try await syncEngine.setUpSyncEngine()
             }
 
             @Test func `setting up again yields the same record types`() async throws {
@@ -354,8 +353,8 @@
                     try RecordType.all.fetch.all(db)
                 }
                 syncEngine.stop()
-                try syncEngine.tearDownSyncEngine()
-                try syncEngine.setUpSyncEngine()
+                try await syncEngine.tearDownSyncEngine()
+                try await syncEngine.setUpSyncEngine()
                 try await syncEngine.start()
                 try await syncEngine.processPendingDatabaseChanges(scope: .private)
                 let recordTypesAfterReSetup = try await syncEngine.metadatabase.read { db in
@@ -369,7 +368,7 @@
                     try RecordType.order(by: \.tableName).fetch.all(db)
                 }
                 syncEngine.stop()
-                try syncEngine.tearDownSyncEngine()
+                try await syncEngine.tearDownSyncEngine()
                 try await userDatabase.userWrite { db in
                     try #sql(
                         """
@@ -378,7 +377,7 @@
                     )
                     .execute(db)
                 }
-                try syncEngine.setUpSyncEngine()
+                try await syncEngine.setUpSyncEngine()
                 try await syncEngine.start()
                 try await syncEngine.processPendingDatabaseChanges(scope: .private)
 
@@ -464,7 +463,7 @@
                     try RecordType.order(by: \.tableName).fetch.all(db)
                 }
                 syncEngine.stop()
-                try syncEngine.tearDownSyncEngine()
+                try await syncEngine.tearDownSyncEngine()
 
                 try await userDatabase.userWrite { db in
                     try #sql(
@@ -492,7 +491,7 @@
                     }
                     #expect(recordTypesAfterMigration == recordTypes)
                     relaunchedSyncEngine.stop()
-                    try relaunchedSyncEngine.tearDownSyncEngine()
+                    try await relaunchedSyncEngine.tearDownSyncEngine()
                     await snapshot(as: .state) {
                         container
                     } matches: {

@@ -1,16 +1,18 @@
 #if CloudKit && canImport(CloudKit)
     import CloudKit
     import Foundation
-    import GRDB
     import SQLite
+    import Path
     import SQLite_CloudKit
     import Testing
 
     @MainActor
     @Suite(.timeLimit(.minutes(5))) struct `Unattached sync engine` {
         @Test func `starts on a database without an attached metadatabase`() async throws {
-            let database = try DatabasePool(
-                path: "\(NSTemporaryDirectory())\(ProcessInfo.processInfo.globallyUniqueString)"
+            let database = try SQLite.Database(
+                path: try Path::Path(
+                    validating: "\(NSTemporaryDirectory())\(ProcessInfo.processInfo.globallyUniqueString)"
+                )
             )
             _ = try await SyncEngine(
                 container: MockCloudContainer(

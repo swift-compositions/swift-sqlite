@@ -1,12 +1,13 @@
 #if CloudKit && canImport(CloudKit)
     import CloudKit
     import Foundation
-    import GRDB
+    import ISO_9075_Call_Level_Interface
     import Path
     import SQL
     import SQL_Macros
     import SQLite
-    import SQLite_CloudKit
+    @testable import SQLite_CloudKit
+    import SQLite_Test_Support
     import Testing
     import Tests_Inline_Snapshot
 
@@ -28,7 +29,7 @@
                         privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
                         sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
                     ),
-                    userDatabase: UserDatabase(database: DatabaseQueue()),
+                    userDatabase: UserDatabase(database: try SQLite.Database()),
                     tables: []
                 )
 
@@ -50,7 +51,7 @@
                             privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
                             sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
                         ),
-                        userDatabase: UserDatabase(database: DatabaseQueue()),
+                        userDatabase: UserDatabase(database: try SQLite.Database()),
                         tables: []
                     )
                 }
@@ -79,31 +80,6 @@
                 #expect(secondCount == 0)
             }
 
-            @Test(arguments: [false, true])
-            func `the metadatabase inherits the suspension notification configuration`(
-                _ observesSuspensionNotifications: Bool
-            ) async throws {
-                var configuration = Configuration()
-                configuration.observesSuspensionNotifications = observesSuspensionNotifications
-                let syncEngine = try await SyncEngine(
-                    container: MockCloudContainer(
-                        containerIdentifier: "test",
-                        privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
-                        sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
-                    ),
-                    userDatabase: UserDatabase(
-                        database: try DatabaseQueue(configuration: configuration)
-                    ),
-                    tables: [],
-                    startImmediately: false
-                )
-
-                #expect(
-                    syncEngine.metadatabase.configuration.observesSuspensionNotifications
-                        == observesSuspensionNotifications
-                )
-            }
-
             @Test func `an in-memory user database is rejected in the live context`() async throws {
                 let error = await #expect(throws: (any Swift.Error).self) {
                     try await SyncEngine(
@@ -112,7 +88,7 @@
                             privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
                             sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
                         ),
-                        userDatabase: UserDatabase(database: DatabaseQueue()),
+                        userDatabase: UserDatabase(database: try SQLite.Database()),
                         tables: [],
                         context: .live
                     )
@@ -128,13 +104,13 @@
 
             @Test func `a metadatabase attached for another container is a schema error`() async throws {
                 let error = await #expect(throws: SyncEngine.SchemaError.self) {
-                    var configuration = Configuration()
-                    configuration.prepareDatabase { db in
+                    var configuration = SQLite.Configuration()
+                    configuration.prepareDatabase { (db: borrowing SQLite.Connection) throws(ISO.`9075`.Error) in
                         try db.attachMetadatabase(containerIdentifier: "iCloud.org.swiftinstitute")
                     }
                     let path = "/tmp/\(ProcessInfo.processInfo.globallyUniqueString).sqlite"
-                    let database = try DatabasePool(
-                        path: path,
+                    let database = try SQLite.Database(
+                        path: try Path::Path(validating: path),
                         configuration: configuration
                     )
                     _ = try await SyncEngine(
@@ -186,8 +162,8 @@
         }
     }
 
-    @Test func `a sync engine for a temporary database in the test context`() throws {
-        _ = try SyncEngine(
+    @Test func `a sync engine for a temporary database in the test context`() async throws {
+        _ = try await SyncEngine(
             for: SQLite.Database(
                 path: Path::Path(
                     validating: URL.temporaryDirectory
@@ -199,7 +175,7 @@
         )
     }
 
-    @Test func `a sync engine for an in-memory database in the preview context`() throws {
-        _ = try SyncEngine(for: SQLite.Database(), context: .preview)
+    @Test func `a sync engine for an in-memory database in the preview context`() async throws {
+        _ = try await SyncEngine(for: SQLite.Database(), context: .preview)
     }
 #endif

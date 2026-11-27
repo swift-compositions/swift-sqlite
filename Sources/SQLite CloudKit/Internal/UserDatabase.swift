@@ -79,11 +79,12 @@
         }
 
         extension ISO.`9075`.Failure where Thrown == any Swift.Error {
-            /// The error itself: the database's, or the one the body threw.
+            /// The error itself: the database's, or the one the body threw. A body that ran a transaction of its own
+            /// throws that transaction's failure, which is unwrapped in turn.
             package var unwrapped: any Swift.Error {
                 switch self {
                 case .database(let error): error
-                case .body(let error): error
+                case .body(let error): (error as? Self)?.unwrapped ?? error
                 }
             }
         }

@@ -1,6 +1,5 @@
 #if CloudKit && canImport(CloudKit)
     import CloudKit
-    import GRDB
     import SQL
     import SQLite
     import SQLite_CloudKit
@@ -62,7 +61,7 @@
                     """
                 }
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.order(by: \.recordName).select(\.recordName)
                 } matches: {
                     """

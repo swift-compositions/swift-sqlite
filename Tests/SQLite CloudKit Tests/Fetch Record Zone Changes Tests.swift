@@ -1,7 +1,6 @@
 #if CloudKit && canImport(CloudKit)
     import Cardinal
     import CloudKit
-    import GRDB
     import SQL
     import SQLite
     import SQLite_CloudKit
@@ -158,7 +157,7 @@
                     └──────────────────────┘
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.order(by: \.recordName).select { ($0.recordName, $0.parentRecordName) }
                 } matches: {
                     """
@@ -245,7 +244,7 @@
                     └─────────────────────┘
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.order(by: \.recordName).select(\.recordName)
                 } matches: {
                     """
@@ -754,12 +753,12 @@
             }
 
             @Test func `an invalid record name is rejected`() async throws {
-                let error = await #expect(throws: DatabaseError.self) {
+                let error = await #expect(throws: ISO.`9075`.Error.self) {
                     try await self.userDatabase.userWrite { db in
                         try Tag.insert { Tag(title: "_tag") }.execute(db)
                     }
                 }
-                #expect(error?.message == SyncEngine.invalidRecordNameError)
+                #expect(error.map { SQLite.Error($0) }?.message == SyncEngine.invalidRecordNameError)
             }
 
             @Test func `syncing an invalid record ID`() async throws {

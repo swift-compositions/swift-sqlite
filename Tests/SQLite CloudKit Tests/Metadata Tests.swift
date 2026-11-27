@@ -1,7 +1,6 @@
 #if CloudKit && canImport(CloudKit)
     import CloudKit
     import Foundation
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -50,7 +49,7 @@
                     └───────────────────────┘
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.select { ($0.recordName, $0.parentRecordName) }
                 } matches: {
                     """
@@ -173,7 +172,7 @@
                     """
                 }
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.order(by: \.recordName).select { ($0.recordName, $0.parentRecordName) }
                 } matches: {
                     """
@@ -205,7 +204,7 @@
 
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.order(by: \.recordName)
                 } matches: {
                     """

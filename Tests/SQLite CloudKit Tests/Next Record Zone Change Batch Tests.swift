@@ -1,6 +1,5 @@
 #if CloudKit && canImport(CloudKit)
     import CloudKit
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -77,7 +76,7 @@
                 record.setValue(1, forKey: "id", at: now)
                 try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.select(\.recordName)
                 } matches: {
                     """
@@ -89,7 +88,7 @@
 
                 try await syncEngine.modifyRecords(scope: .private, deleting: [record.recordID]).notify()
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.select(\.recordName)
                 } matches: {
                     """

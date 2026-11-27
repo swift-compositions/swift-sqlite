@@ -1,7 +1,7 @@
 #if CloudKit && canImport(CloudKit)
     import CloudKit
     import Foundation
-    import GRDB
+    import ISO_9075_Call_Level_Interface
     import RFC_4122
     import SQL
     import SQL_Macros
@@ -37,9 +37,9 @@
         let database: SQLite.Database
         let incrementingUUID = IncrementingUUID()
 
-        init() throws {
+        init() async throws {
             database = try SQLite.Database()
-            try database.writeWithoutTransaction { db in
+            try await database.writeWithoutTransaction { db in
                 db.add(function: $uuid)
                 db.add(function: $customUUID)
             }
@@ -55,8 +55,8 @@
             incrementingUUID()
         }
 
-        @Test func `migrates integer primary keys, foreign keys and missing primary keys to UUIDs`() throws {
-            try database.write { db in
+        @Test func `migrates integer primary keys, foreign keys and missing primary keys to UUIDs`() async throws {
+            try await database.write { db in
                 try #sql(
                     """
                     CREATE TABLE "parents" (
@@ -87,9 +87,9 @@
                 try seed(db)
             }
 
-            try migrate()
+            try await migrate()
 
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 SQLiteSchema.userObjects
             } matches: {
                 #"""
@@ -117,7 +117,7 @@
                 └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Parent.all
             } matches: {
                 """
@@ -139,7 +139,7 @@
                 └─────────────────────────────────────────────┘
                 """
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Child.all
             } matches: {
                 """
@@ -164,7 +164,7 @@
                 └──────────────────────────────────────────────────┘
                 """
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Tag.all
             } matches: {
                 """
@@ -183,8 +183,8 @@
             }
         }
 
-        @Test func `preserves the rowid`() throws {
-            try database.write { db in
+        @Test func `preserves the rowid`() async throws {
+            try await database.write { db in
                 try #sql(
                     """
                     CREATE TABLE "parents" (
@@ -202,9 +202,9 @@
                 .execute(db)
             }
 
-            try migrate(tables: Parent.self)
+            try await migrate(tables: Parent.self)
 
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Parent.select { ($0.rowid, $0) }
             } matches: {
                 """
@@ -223,8 +223,8 @@
             }
         }
 
-        @Test func `rejects a primary key that is already a UUID`() throws {
-            try database.write { db in
+        @Test func `rejects a primary key that is already a UUID`() async throws {
+            try await database.write { db in
                 try #sql(
                     """
                     CREATE TABLE "parents" (
@@ -236,10 +236,10 @@
                 .execute(db)
             }
 
-            let error = #expect(throws: (any Swift.Error).self) {
-                try migrate(tables: Parent.self)
+            let error = await #expect(throws: (any Swift.Error).self) {
+                try await migrate(tables: Parent.self)
             }
-            snapshot(as: .state) {
+            await snapshot(as: .state) {
                 error?.localizedDescription
             } matches: {
                 """
@@ -247,7 +247,7 @@
                 """
             }
 
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 SQLiteSchema.userObjects
             } matches: {
                 #"""
@@ -263,8 +263,8 @@
             }
         }
 
-        @Test func `drops unique constraints`() throws {
-            try database.write { db in
+        @Test func `drops unique constraints`() async throws {
+            try await database.write { db in
                 try #sql(
                     """
                     CREATE TABLE "users" (
@@ -288,7 +288,7 @@
                 .execute(db)
             }
 
-            try database.writeWithoutTransaction { db in
+            try await database.writeWithoutTransaction { db in
                 try #sql("PRAGMA foreign_keys = OFF").execute(db)
                 try db.transaction {
                     try SyncEngine.migratePrimaryKeys(
@@ -303,7 +303,7 @@
                 try #sql("PRAGMA foreign_keys = ON").execute(db)
             }
 
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 SQLiteSchema.userObjects
             } matches: {
                 #"""
@@ -331,8 +331,8 @@
             let unique: IETF.RFC.`4122`.UUID
             var title = ""
         }
-        @Test func `migrates a primary key named unique`() throws {
-            try database.write { db in
+        @Test func `migrates a primary key named unique`() async throws {
+            try await database.write { db in
                 try #sql(
                     """
                     CREATE TABLE "users" (
@@ -345,7 +345,7 @@
                 .execute(db)
             }
 
-            try database.writeWithoutTransaction { db in
+            try await database.writeWithoutTransaction { db in
                 try #sql("PRAGMA foreign_keys = OFF").execute(db)
                 try db.transaction {
                     try SyncEngine.migratePrimaryKeys(
@@ -359,7 +359,7 @@
                 try #sql("PRAGMA foreign_keys = ON").execute(db)
             }
 
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 SQLiteSchema.userObjects
             } matches: {
                 #"""
@@ -375,8 +375,8 @@
             }
         }
 
-        @Test func `preserves column constraints`() throws {
-            try database.write { db in
+        @Test func `preserves column constraints`() async throws {
+            try await database.write { db in
                 try #sql(
                     """
                     CREATE TABLE "parents" (
@@ -408,9 +408,9 @@
                 try seed(db)
             }
 
-            try migrate()
+            try await migrate()
 
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 SQLiteSchema.userObjects
             } matches: {
                 #"""
@@ -438,7 +438,7 @@
                 └───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Parent.all
             } matches: {
                 """
@@ -460,7 +460,7 @@
                 └─────────────────────────────────────────────┘
                 """
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Child.all
             } matches: {
                 """
@@ -485,7 +485,7 @@
                 └──────────────────────────────────────────────────┘
                 """
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Tag.select(\.title)
             } matches: {
                 """
@@ -497,8 +497,8 @@
             }
         }
 
-        @Test func `preserves top-level constraints`() throws {
-            try database.write { db in
+        @Test func `preserves top-level constraints`() async throws {
+            try await database.write { db in
                 try #sql(
                     """
                     CREATE TABLE "parents" (
@@ -535,9 +535,9 @@
                 try seed(db)
             }
 
-            try migrate()
+            try await migrate()
 
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 SQLiteSchema.userObjects
             } matches: {
                 #"""
@@ -565,7 +565,7 @@
                 └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Parent.all
             } matches: {
                 """
@@ -587,7 +587,7 @@
                 └─────────────────────────────────────────────┘
                 """
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Child.all
             } matches: {
                 """
@@ -612,7 +612,7 @@
                 └──────────────────────────────────────────────────┘
                 """
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Tag.select(\.title)
             } matches: {
                 """
@@ -624,8 +624,8 @@
             }
         }
 
-        @Test func `preserves comments and newlines`() throws {
-            try database.write { db in
+        @Test func `preserves comments and newlines`() async throws {
+            try await database.write { db in
                 try #sql(
                     """
                     -- Comment
@@ -669,9 +669,9 @@
                 try seed(db)
             }
 
-            try migrate()
+            try await migrate()
 
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 SQLiteSchema.userObjects
             } matches: {
                 #"""
@@ -699,7 +699,7 @@
                 └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Parent.all
             } matches: {
                 """
@@ -721,7 +721,7 @@
                 └─────────────────────────────────────────────┘
                 """
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Child.all
             } matches: {
                 """
@@ -746,7 +746,7 @@
                 └──────────────────────────────────────────────────┘
                 """
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Tag.select(\.title)
             } matches: {
                 """
@@ -758,8 +758,8 @@
             }
         }
 
-        @Test func `rejects a non-integer primary key`() throws {
-            try database.write { db in
+        @Test func `rejects a non-integer primary key`() async throws {
+            try await database.write { db in
                 try #sql(
                     """
                     CREATE TABLE "phoneNumbers" (
@@ -778,17 +778,17 @@
                 .execute(db)
             }
 
-            let error = #expect(throws: (any Swift.Error).self) {
-                try migrate(tables: PhoneNumber.self)
+            let error = await #expect(throws: (any Swift.Error).self) {
+                try await migrate(tables: PhoneNumber.self)
             }
-            snapshot(as: .state) {
+            await snapshot(as: .state) {
                 error?.localizedDescription
             } matches: {
                 """
                 "Invalid primary key. The table must have either no primary key or a single integer primary key to migrate."
                 """
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 SQLiteSchema.userObjects
             } matches: {
                 #"""
@@ -802,7 +802,7 @@
                 └─────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 PhoneNumber.all
             } matches: {
                 """
@@ -815,8 +815,8 @@
             }
         }
 
-        @Test func `rejects a compound primary key`() throws {
-            try database.write { db in
+        @Test func `rejects a compound primary key`() async throws {
+            try await database.write { db in
                 try #sql(
                     """
                     CREATE TABLE "parents" (
@@ -830,10 +830,10 @@
                 .execute(db)
             }
 
-            let error = #expect(throws: (any Swift.Error).self) {
-                try migrate(tables: Parent.self)
+            let error = await #expect(throws: (any Swift.Error).self) {
+                try await migrate(tables: Parent.self)
             }
-            snapshot(as: .state) {
+            await snapshot(as: .state) {
                 error?.localizedDescription
             } matches: {
                 """
@@ -842,8 +842,8 @@
             }
         }
 
-        @Test func `adds a primary key with a custom name`() throws {
-            try database.write { db in
+        @Test func `adds a primary key with a custom name`() async throws {
+            try await database.write { db in
                 try #sql(
                     """
                     CREATE TABLE "users" (
@@ -862,9 +862,9 @@
                 .execute(db)
             }
 
-            try migrate(tables: User.self)
+            try await migrate(tables: User.self)
 
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 SQLiteSchema.userObjects
             } matches: {
                 #"""
@@ -878,7 +878,7 @@
                 └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 User.select(\.name)
             } matches: {
                 """
@@ -891,8 +891,8 @@
             }
         }
 
-        @Test func `recreates indices and triggers`() throws {
-            try database.write { db in
+        @Test func `recreates indices and triggers`() async throws {
+            try await database.write { db in
                 try #sql(
                     """
                     CREATE TABLE "parents" (
@@ -918,9 +918,9 @@
                 .execute(db)
             }
 
-            try migrate(tables: Parent.self)
+            try await migrate(tables: Parent.self)
 
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 SQLiteSchema.userObjects
             } matches: {
                 #"""
@@ -950,8 +950,8 @@
             }
         }
 
-        @Test func `migrates lowercase unquoted schemas`() throws {
-            try database.write { db in
+        @Test func `migrates lowercase unquoted schemas`() async throws {
+            try await database.write { db in
                 try #sql(
                     """
                     create table parents (
@@ -982,9 +982,9 @@
                 try seed(db)
             }
 
-            try migrate()
+            try await migrate()
 
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 SQLiteSchema.userObjects
             } matches: {
                 #"""
@@ -1012,7 +1012,7 @@
                 └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
                 """#
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Parent.all
             } matches: {
                 """
@@ -1034,7 +1034,7 @@
                 └─────────────────────────────────────────────┘
                 """
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Child.all
             } matches: {
                 """
@@ -1059,7 +1059,7 @@
                 └──────────────────────────────────────────────────┘
                 """
             }
-            snapshot(as: .rows(in: database, drawing: State.draw)) {
+            await snapshot(as: .rows(in: database, drawing: State.draw)) {
                 Tag.all
             } matches: {
                 """
@@ -1078,7 +1078,7 @@
             }
         }
 
-        private func seed(_ db: SQLite.Connection) throws {
+        private func seed(_ db: borrowing SQLite.Connection) throws {
             try #sql(
                 """
                 INSERT INTO "parents"
@@ -1108,28 +1108,33 @@
             .execute(db)
         }
 
-        private func migrate() throws {
-            try migrate(tables: Parent.self, Child.self, Tag.self)
+        private func migrate() async throws {
+            try await migrate(tables: Parent.self, Child.self, Tag.self)
         }
 
         private func migrate<each T: PrimaryKeyedTable>(
             tables: repeat (each T).Type
-        ) throws
+        ) async throws
         where
             repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible,
             repeat (each T).TableColumns.PrimaryColumn: TableColumnExpression
         {
-            try database.writeWithoutTransaction { db in
-                try #sql("PRAGMA foreign_keys = OFF").execute(db)
-                try db.transaction {
-                    try SyncEngine.migratePrimaryKeys(
-                        db,
-                        tables: repeat each tables,
-                        uuid: $uuid
-                    )
-                    return .commit
+            do throws(ISO.`9075`.Failure<any Swift.Error>) {
+                try await database.writeWithoutTransaction { db in
+                    try #sql("PRAGMA foreign_keys = OFF").execute(db)
+                    try db.transaction {
+                        try SyncEngine.migratePrimaryKeys(
+                            db,
+                            tables: repeat each tables,
+                            uuid: $uuid
+                        )
+                        return .commit
+                    }
+                    try #sql("PRAGMA foreign_keys = ON").execute(db)
                 }
-                try #sql("PRAGMA foreign_keys = ON").execute(db)
+            } catch {
+                // What the migration threw, as it was thrown.
+                throw error.unwrapped
             }
         }
     }

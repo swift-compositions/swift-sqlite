@@ -1,7 +1,7 @@
 #if CloudKit && canImport(CloudKit)
     import Cardinal
     import CloudKit
-    import GRDB
+    import ISO_9075_Call_Level_Interface
     import SQL
     import SQLite
     import SQLite_CloudKit
@@ -47,12 +47,16 @@
                     )
 
                 try await self.userDatabase.userWrite { db in
-                    let error = #expect(throws: DatabaseError.self) {
+                    var error: ISO.`9075`.Error?
+                    do {
                         try db.seed {
                             Reminder(id: 1, title: "Get milk", remindersListID: 1)
                         }
+                    } catch let thrown {
+                        error = thrown as? ISO.`9075`.Error
                     }
-                    #expect(error?.message == SyncEngine.writePermissionError)
+                    #expect(error != nil)
+                    #expect(error.map { SQLite.Error($0) }?.message == SyncEngine.writePermissionError)
                     try #expect(Reminder.all.fetch.count(db) == 0)
                 }
                 await snapshot(as: .state) {
@@ -146,10 +150,14 @@
                     )
 
                 try await self.userDatabase.userWrite { db in
-                    let error = #expect(throws: DatabaseError.self) {
+                    var error: ISO.`9075`.Error?
+                    do {
                         try Reminder.find(1).delete().execute(db)
+                    } catch let thrown {
+                        error = thrown as? ISO.`9075`.Error
                     }
-                    #expect(error?.message == SyncEngine.writePermissionError)
+                    #expect(error != nil)
+                    #expect(error.map { SQLite.Error($0) }?.message == SyncEngine.writePermissionError)
                     try #expect(Reminder.count().fetch.one(db) == 1)
                 }
                 await snapshot(as: .state) {
@@ -254,10 +262,14 @@
                     )
 
                 try await self.userDatabase.userWrite { db in
-                    let error = #expect(throws: DatabaseError.self) {
+                    var error: ISO.`9075`.Error?
+                    do {
                         try Reminder.update { $0.isCompleted = true }.execute(db)
+                    } catch let thrown {
+                        error = thrown as? ISO.`9075`.Error
                     }
-                    #expect(error?.message == SyncEngine.writePermissionError)
+                    #expect(error != nil)
+                    #expect(error.map { SQLite.Error($0) }?.message == SyncEngine.writePermissionError)
                     try #expect(Reminder.where(\.isCompleted).fetch.count(db) == 0)
                 }
                 await snapshot(as: .state) {

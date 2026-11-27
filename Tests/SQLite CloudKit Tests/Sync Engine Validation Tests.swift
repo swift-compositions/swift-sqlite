@@ -1,7 +1,7 @@
 #if CloudKit && canImport(CloudKit)
     import CloudKit
     import Foundation
-    import GRDB
+    import Path
     import RFC_4122
     import SQL
     import SQL_Macros
@@ -39,7 +39,7 @@
         @Test func `rejects a table name containing a colon`() async throws {
             let error = try #require(
                 await #expect(throws: (any Swift.Error).self) {
-                    let database = try DatabaseQueue()
+                    let database = try SQLite.Database()
                     _ = try await SyncEngine(
                         container: MockCloudContainer(
                             containerIdentifier: "deadbeef",
@@ -73,7 +73,7 @@
         @Test func `rejects a foreign key with no action on delete`() async throws {
             let error = try #require(
                 await #expect(throws: (any Swift.Error).self) {
-                    let database = try DatabaseQueue()
+                    let database = try SQLite.Database()
                     try await database.write { db in
                         try #sql(
                             """
@@ -134,7 +134,7 @@
         @Test func `rejects a foreign key that restricts deletes`() async throws {
             let error = try #require(
                 await #expect(throws: (any Swift.Error).self) {
-                    let database = try DatabaseQueue()
+                    let database = try SQLite.Database()
                     try await database.write { db in
                         try #sql(
                             """
@@ -195,7 +195,7 @@
         @Test func `rejects a foreign key to a table that is not synchronized`() async throws {
             let error = try #require(
                 await #expect(throws: (any Swift.Error).self) {
-                    let database = try DatabaseQueue()
+                    let database = try SQLite.Database()
                     try await database.write { db in
                         try #sql(
                             """
@@ -253,10 +253,12 @@
         }
 
         @Test func `does not validate triggers on tables that are not synchronized`() async throws {
-            let database = try DatabaseQueue(
-                path: URL.temporaryDirectory
-                    .appending(path: "\(ProcessInfo.processInfo.globallyUniqueString).sqlite")
-                    .path()
+            let database = try SQLite.Database(
+                path: try Path::Path(
+                    validating: URL.temporaryDirectory
+                        .appending(path: "\(ProcessInfo.processInfo.globallyUniqueString).sqlite")
+                        .path()
+                )
             )
             try await database.write { db in
                 try #sql(
@@ -303,7 +305,7 @@
         @Test func `rejects a uniqueness constraint on a synchronized table`() async throws {
             let error = try #require(
                 await #expect(throws: (any Swift.Error).self) {
-                    let database = try DatabaseQueue()
+                    let database = try SQLite.Database()
                     try await database.write { db in
                         try #sql(
                             """
@@ -349,7 +351,7 @@
         @Test func `rejects a table that references itself`() async throws {
             let error = try #require(
                 await #expect(throws: (any Swift.Error).self) {
-                    let database = try DatabaseQueue()
+                    let database = try SQLite.Database()
                     try await database.write { db in
                         try #sql(
                             """

@@ -2,7 +2,6 @@
     import Cardinal
     import CloudKit
     import Foundation
-    import GRDB
     import SQL
     import SQLite
     import SQLite_CloudKit
@@ -481,7 +480,7 @@
                     """
                 }
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.order(by: \.recordName)
                 } matches: {
                     """
@@ -565,7 +564,7 @@
                 }
 
                 try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.all
                 } matches: {
                     """
@@ -822,7 +821,7 @@
 
                 let _ = try await syncEngine.share(record: remindersList, configure: { _ in })
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.select { ($0.share, $0.userModificationTime) }
                 } matches: {
                     """
@@ -888,7 +887,7 @@
 
                 let _ = try await syncEngine.share(record: remindersList, configure: { _ in })
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.select { ($0.share, $0.userModificationTime) }
                 } matches: {
                     """
@@ -974,7 +973,7 @@
                     }
                 )
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.select(\.share)
                 } matches: {
                     """
@@ -1174,7 +1173,7 @@
                         )
                     )
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.select(\.share)
                 } matches: {
                     """
@@ -1265,7 +1264,7 @@
 
                 try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.all
                 } matches: {
                     """
@@ -1595,7 +1594,7 @@
                     (No results)
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.all
                 } matches: {
                     """
@@ -1719,7 +1718,7 @@
                     (No results)
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.all
                 } matches: {
                     """
@@ -1836,7 +1835,7 @@
                     (No results)
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.all
                 } matches: {
                     """
@@ -1942,7 +1941,7 @@
                     └──────────────────┘
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.order { ($0.recordType, $0.recordName) }
                 } matches: {
                     """
@@ -2251,7 +2250,7 @@
                     └──────────────────┘
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.order { ($0.recordType, $0.recordName) }
                 } matches: {
                     """
@@ -2560,7 +2559,7 @@
                     └──────────────────┘
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.order { ($0.recordType, $0.recordName) }
                 } matches: {
                     """
@@ -2847,7 +2846,7 @@
                     (No results)
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.order { ($0.recordType, $0.recordName) }
                 } matches: {
                     """
@@ -3094,7 +3093,7 @@
                     └──────────────────┘
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.order { ($0.recordType, $0.recordName) }
                 } matches: {
                     """
@@ -3313,7 +3312,7 @@
                     .modifyRecords(scope: .private, deleting: [sharedRecord.share.recordID])
                     .notify()
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.select(\.share)
                 } matches: {
                     """

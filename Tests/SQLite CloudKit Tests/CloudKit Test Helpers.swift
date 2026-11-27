@@ -1,7 +1,7 @@
 #if CloudKit && canImport(CloudKit)
     import Synchronization
     import CloudKit
-    import GRDB
+    import ISO_9075_Call_Level_Interface
     import SQL
     import SQLite
     import SQLite_CloudKit
@@ -144,23 +144,17 @@
     }
 
     extension UserDatabase {
+        /// A write as the app makes it: the sync engine's triggers see it and queue it for CloudKit.
         func userWrite<T: Sendable>(
-            _ updates: @Sendable (Database) throws -> T
+            _ updates: @Sendable (borrowing SQLite.Connection) throws -> T
         ) async throws -> T {
-            try await database.write { db in
-                try $_isSynchronizingChanges.withValue(false) {
-                    try updates(db)
-                }
-            }
-        }
-
-        @_disfavoredOverload
-        func userWrite<T>(
-            _ updates: (Database) throws -> T
-        ) throws -> T {
-            try database.write { db in
-                try $_isSynchronizingChanges.withValue(false) {
-                    try updates(db)
+            try await $_isSynchronizingChanges.withValue(false) {
+                do throws(ISO.`9075`.Failure<any Swift.Error>) {
+                    return try await database.write { (connection: borrowing SQLite.Connection) throws -> T in
+                        try updates(connection)
+                    }
+                } catch {
+                    throw error.unwrapped
                 }
             }
         }

@@ -2,8 +2,8 @@
     import CloudKit
     import Byte
     import Foundation
+    import ISO_9075_Call_Level_Interface
     import Path
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -91,9 +91,9 @@
     func cloudKitTestDatabase(
         containerIdentifier: String,
         attachMetadatabase: Bool
-    ) throws -> SQLite.Database {
+    ) async throws -> SQLite.Database {
         var configuration = SQLite.Configuration()
-        configuration.prepareDatabase { db in
+        configuration.prepareDatabase { (db: borrowing SQLite.Connection) throws(ISO.`9075`.Error) in
             if attachMetadatabase {
                 try db.attachMetadatabase(containerIdentifier: containerIdentifier)
             }
@@ -102,7 +102,7 @@
             path: "\(ProcessInfo.processInfo.globallyUniqueString).sqlite"
         )
         let database = try SQLite.Database(path: try Path::Path(validating: url.path()), configuration: configuration)
-        try database.write { db in
+        try await database.write { db in
             try #sql(
                 """
                 CREATE TABLE "remindersLists" (

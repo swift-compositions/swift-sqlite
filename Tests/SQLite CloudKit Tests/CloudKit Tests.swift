@@ -1,6 +1,5 @@
 #if CloudKit && canImport(CloudKit)
     import CloudKit
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -329,8 +328,8 @@
             }
 
             @Test func `tears down and sets up again`() async throws {
-                try syncEngine.tearDownSyncEngine()
-                try syncEngine.setUpSyncEngine()
+                try await syncEngine.tearDownSyncEngine()
+                try await syncEngine.setUpSyncEngine()
                 try await syncEngine.start()
 
                 try await userDatabase.userWrite { db in
@@ -340,7 +339,7 @@
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.select(\.recordName)
                 } matches: {
                     """
@@ -386,7 +385,7 @@
                     """,
                     as: String.self
                 )
-                let snapshotValue1 = try { try userDatabase.write { try query.fetch.all($0) } }()
+                let snapshotValue1 = try await userDatabase.write { try query.fetch.all($0) }
                 await snapshot(as: .state) {
                     snapshotValue1
                 } matches: {
@@ -402,7 +401,7 @@
                     ]
                     """
                 }
-                try syncEngine.tearDownSyncEngine()
+                try await syncEngine.tearDownSyncEngine()
 
                 let snapshotValue2 = try { try userDatabase.read { try query.fetch.all($0) } }()
                 await snapshot(as: .state) {
@@ -413,7 +412,7 @@
                     """
                 }
 
-                try syncEngine.setUpSyncEngine()
+                try await syncEngine.setUpSyncEngine()
             }
 
             @Test func `inserts, updates and deletes`() async throws {
@@ -535,7 +534,7 @@
                     └─────────────────┘
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.select(\.userModificationTime)
                 } matches: {
                     """
@@ -670,7 +669,7 @@
                     (No results)
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.select(\.userModificationTime)
                 } matches: {
                     """
@@ -727,7 +726,7 @@
                     (No results)
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.all
                 } matches: {
                     """

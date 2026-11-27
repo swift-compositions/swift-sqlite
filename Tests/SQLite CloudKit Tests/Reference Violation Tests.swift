@@ -1,7 +1,6 @@
 #if CloudKit && canImport(CloudKit)
     import Cardinal
     import CloudKit
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -27,8 +26,8 @@
                     scope: .private,
                     deleting: [RemindersList.recordID(for: 2)]
                 )
-                try withTime(advancedBy: 1) {
-                    try userDatabase.userWrite { db in
+                try await withTime(advancedBy: 1) {
+                    try await userDatabase.userWrite { db in
                         try Reminder.find(1).update { $0.remindersListID = 2 }.execute(db)
                     }
                 }

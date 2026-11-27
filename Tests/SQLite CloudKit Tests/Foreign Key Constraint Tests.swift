@@ -1,7 +1,6 @@
 #if CloudKit && canImport(CloudKit)
     import Cardinal
     import CloudKit
-    import GRDB
     import SQL
     import SQLite
     import SQLite_CloudKit
@@ -157,7 +156,7 @@
                     (No results)
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     UnsyncedRecordID.all
                 } matches: {
                     """
@@ -204,7 +203,7 @@
                     (No results)
                     """
                 }
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     UnsyncedRecordID.all
                 } matches: {
                     """
@@ -386,7 +385,7 @@
                         syncEngine: relaunchedSyncEngine.private
                     )
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.order(by: \.recordName).select { ($0.recordName, $0.parentRecordName) }
                 } matches: {
                     """
@@ -537,7 +536,7 @@
 
                 await modifications.notify()
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.order(by: \.recordName).select { ($0.recordName, $0.parentRecordName) }
                 } matches: {
                     """
@@ -663,7 +662,7 @@
                 await modifications.notify()
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.select { ($0.recordName, $0.parentRecordName) }
                 } matches: {
                     """
@@ -745,7 +744,7 @@
                 await modifications.notify()
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.select { ($0.recordName, $0.parentRecordName) }
                 } matches: {
                     """
@@ -863,7 +862,7 @@
                     }
                 }
                 try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-                await snapshot(as: .rows(in: SQLite.Database(syncEngine.metadatabase), drawing: State.draw)) {
+                await snapshot(as: .rows(in: syncEngine.metadatabase.database, drawing: State.draw)) {
                     SyncMetadata.all
                 } matches: {
                     """

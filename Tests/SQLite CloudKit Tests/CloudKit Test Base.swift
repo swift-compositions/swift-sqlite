@@ -2,7 +2,6 @@
     import Synchronization
     import CloudKit
     import Foundation
-    import GRDB
     import OSLog
     import RFC_4122
     import SQL
@@ -38,10 +37,10 @@
             let dataManager = InMemoryDataManager()
             dataManager.register()
             let userDatabase = UserDatabase(
-                database: try cloudKitTestDatabase(
+                database: try await cloudKitTestDatabase(
                     containerIdentifier: containerIdentifier,
                     attachMetadatabase: attachMetadatabase
-                ).writer
+                )
             )
             try await prepareDatabase(userDatabase)
             let privateDatabase = MockCloudDatabase(databaseScope: .private, dataManager: dataManager)
@@ -239,7 +238,7 @@
             uuid: @escaping @Sendable () -> IETF.RFC.`4122`.UUID = IncrementingUUID().callAsFunction,
             clock: ManualClock = ManualClock()
         ) async throws {
-            try self.init(
+            try await self.init(
                 container: container,
                 defaultZone: Self.defaultTestZone,
                 defaultSyncEngines: { _, syncEngine in
@@ -268,7 +267,7 @@
                 uuid: uuid,
                 clock: clock
             )
-            try setUpSyncEngine()
+            try await setUpSyncEngine()
             if startImmediately {
                 try await start()
             }

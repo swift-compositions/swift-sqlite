@@ -104,7 +104,7 @@
             @Test func `starts a sync engine and sends what it writes`() async throws {
                 let mock = SyncEngine.Mock()
                 let database = try await Item.database()
-                let engine = try SyncEngine(for: database, tables: Item.self, mock: mock)
+                let engine = try await SyncEngine(for: database, tables: Item.self, mock: mock)
                 try await engine.start()
                 await engine.receive(.signIn(currentUser: CKRecord.ID(recordName: "_user")))
                 try await database.write { connection in

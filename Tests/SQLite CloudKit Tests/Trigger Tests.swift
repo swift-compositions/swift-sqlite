@@ -1,6 +1,5 @@
 #if CloudKit && canImport(CloudKit)
     import CloudKit
-    import GRDB
     import SQL
     import SQL_Macros
     import SQLite
@@ -93,7 +92,7 @@
                     """#
                 }
 
-                try syncEngine.tearDownSyncEngine()
+                try await syncEngine.tearDownSyncEngine()
                 let triggersAfterTearDown = try await userDatabase.userWrite { db in
                     try #sql("SELECT sql FROM sqlite_temp_master", as: String?.self).fetch.all(db)
                 }
@@ -105,7 +104,7 @@
                     """
                 }
 
-                try syncEngine.setUpSyncEngine()
+                try await syncEngine.setUpSyncEngine()
                 try await syncEngine.start()
                 let triggersAfterReSetUp = try await userDatabase.userWrite { db in
                     try #sql("SELECT sql FROM sqlite_temp_master ORDER BY sql", as: String?.self).fetch.all(db)

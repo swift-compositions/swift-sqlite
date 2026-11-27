@@ -296,6 +296,11 @@
                 self.now = now
                 self.uuid = uuid
                 self.clock = clock
+                // A live engine keeps what CloudKit told it: a database in memory would lose that at each launch.
+                guard !userDatabase.path.isEmpty || context != .live
+                else {
+                    throw InMemoryDatabase()
+                }
                 let metadatabase = try defaultMetadatabase(
                     logger: logger,
                     url: try await URL.metadatabase(
@@ -2264,35 +2269,40 @@
         extension SQLite.Connection {
             /// Attaches the sync engine's metadatabase to this connection, as sqlite-data's `attachMetadatabase`: call it
             /// from ``SQLite/Configuration/prepareDatabase(_:)`` to query `SyncMetadata` alongside the synced tables.
+            ///
+            /// With no CloudKit container to name the metadatabase by, it throws `ISO.9075.Error.connection` with
+            /// the reason.
             public borrowing func attachMetadatabase(
                 containerIdentifier: String? = nil,
                 context: SyncEngine.Context = .live
-            ) throws {
+            ) throws(ISO.`9075`.Error) {
                 let containerIdentifier =
                     containerIdentifier
                     ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
                     ?? (context != .live ? "container" : nil)
 
                 guard let containerIdentifier else {
-                    throw SyncEngine.SchemaError.noCloudKitContainer
+                    throw .connection(SyncEngine.SchemaError.noCloudKitContainer.debugDescription)
                 }
 
                 let databasePath = try SQLite.Pragma.Database.List.select(\.file).fetch.one(self)
                 guard let databasePath else {
-                    throw SyncEngine.SchemaError(
-                        reason: .unknown,
-                        debugDescription: """
-                            Expected to load a database path from the connection, but failed to do so.
-                            """
-                    )
+                    throw .connection("Expected to load a database path from the connection, but failed to do so.")
                 }
-                let url = try URL.metadatabase(
-                    databasePath: databasePath,
-                    containerIdentifier: containerIdentifier
-                )
-                let path = url.path(percentEncoded: false)
-                // The file exists, in WAL mode, before it is attached: a read-only connection can make neither.
-                try SQLite.Database(path: try Path::Path(validating: path)).close()
+                let path: String
+                do {
+                    path = try URL.metadatabase(
+                        databasePath: databasePath,
+                        containerIdentifier: containerIdentifier
+                    )
+                    .path(percentEncoded: false)
+                    // The file exists, in WAL mode, before it is attached: a read-only connection can make neither.
+                    try SQLite.Database(path: try Path::Path(validating: path)).close()
+                } catch let error as SQLite.Error {
+                    throw ISO.`9075`.Error(error)
+                } catch {
+                    throw .connection("\(error)")
+                }
                 try #sql(
                     """
                     ATTACH DATABASE \(bind: path) AS \(quote: .sqliteCloudKitSchemaName)

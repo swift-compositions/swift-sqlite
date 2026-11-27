@@ -4,6 +4,9 @@
 //   ./cases busy 20000          case 1: a listener that is between two `next` calls when a post happens
 //   ./cases stuck               case 1: a listener that never reads again
 //   ./cases many 20000          case 3: several listeners for one post, one after another against together
+//   ./cases own 20000           a loop body that awaits a post on the same hub
+//   ./cases cross               two listeners whose bodies post at the same time
+//   ./cases cancel 2000         a listener that is cancelled while posts wait for it
 //
 // Case 2, a listener on no actor, is a compile-time question: see Isolation/.
 //
@@ -27,6 +30,20 @@ enum Busy: String, Sendable, CaseIterable {
     case latest = "the post does not wait for a busy listener"
     /// The post returns only after the busy listener has come back and handled the number, or a later one.
     case waits = "the post waits for a busy listener"
+}
+
+/// Which listeners a waiting post does not wait for.
+enum Exempt: String, Sendable, CaseIterable {
+    /// Only the listener whose loop body made the post.
+    case own = "the post does not wait for the posting task's own listener"
+    /// Every listener whose loop body is inside a post now.
+    case posting = "the post does not wait for a listener that is inside a post"
+}
+
+/// The identity of the current task, to know a listener's own post. An address: it is valid as an identity only
+/// while that task lives, and the listener's task lives while its loop runs.
+func currentTask() -> UInt {
+    withUnsafeCurrentTask { task in task.map { unsafeBitCast($0, to: UInt.self) } ?? 0 }
 }
 
 enum Fanout: String, Sendable, CaseIterable {
@@ -61,6 +78,10 @@ final class Subscription: Sendable {
         var acknowledgements: [(need: Int, continuation: CheckedContinuation<Void, Never>)] = []
         var gone = false
         var finished = false
+        /// The task that iterates: the one that called `next` last.
+        var task: UInt = 0
+        /// How many posts the listener's body is inside now.
+        var posting = 0
     }
 
     /// The listener's actor, known from `follow()` on.
@@ -79,9 +100,18 @@ final class Subscription: Sendable {
             return nil
         }
 
-        let value: Int? = await withCheckedContinuation { continuation in
+        // A cancelled listener is a listener that is gone: nothing may wait for it.
+        if Task.isCancelled {
+            leave()
+            return nil
+        }
+        let task = currentTask()
+
+        let value: Int? = await withTaskCancellationHandler {
+          await withCheckedContinuation { continuation in
             var released: [CheckedContinuation<Void, Never>] = []
             let ready: Int?? = state.withLock { state in
+                state.task = task
                 if let latest = state.latest {
                     // Taken with no suspension: the body for it runs in the job that runs now.
                     state.latest = nil
@@ -95,6 +125,10 @@ final class Subscription: Sendable {
             }
             for acknowledgement in released { acknowledgement.resume() }
             if let ready { continuation.resume(returning: ready) }
+          }
+        } onCancel: {
+            // Cancelled while it waits for a number: the waiter gets `nil`, and the posts that wait go on.
+            leave()
         }
 
         // Back on the listener's actor, which the listener keeps until its body suspends or asks for the next number.
@@ -129,6 +163,27 @@ final class Subscription: Sendable {
 
     // The poster's side.
 
+    /// Whether `task` is the task of this listener's loop.
+    func isListener(_ task: UInt) -> Bool {
+        task != 0 && state.withLock { $0.task == task && !$0.gone && !$0.finished }
+    }
+
+    /// The listener's body enters a post. With `Exempt.posting`, the posts that wait for this listener go on: it
+    /// cannot read while it is inside a post.
+    func enterPost(_ exempt: Exempt) {
+        let released: [CheckedContinuation<Void, Never>] = state.withLock { state in
+            state.posting += 1
+            guard exempt == .posting else { return [] }
+            defer { state.acknowledgements.removeAll { $0.need > 0 } }
+            return state.acknowledgements.filter { $0.need > 0 }.map(\.continuation)
+        }
+        for acknowledgement in released { acknowledgement.resume() }
+    }
+
+    func leavePost() {
+        state.withLock { $0.posting -= 1 }
+    }
+
     /// Synchronous, and called in the order of the numbers.
     func publish(_ number: Int) -> Published {
         state.withLock { state in
@@ -144,11 +199,23 @@ final class Subscription: Sendable {
     }
 
     /// Runs on the listener's actor, and returns on it. So it returns when no job of the listener runs there.
-    func settle(_ published: Published, _ number: Int, _ busy: Busy, on actor: isolated any Actor) async {
+    func settle(
+        _ published: Published, _ number: Int, _ busy: Busy, own: Bool = false, exempt: Exempt = .own,
+        on actor: isolated any Actor
+    ) async {
         await withCheckedContinuation { (acknowledgement: CheckedContinuation<Void, Never>) in
             var waiter: CheckedContinuation<Int?, Never>?
+            var answer: Int? = number
             let wait: Bool = state.withLock { state in
-                if state.gone || state.finished { return false }
+                if state.gone || state.finished {
+                    // The listener left, or was cancelled, after `publish` took its waiter out. That waiter must
+                    // still be resumed, by the one that holds it: here.
+                    if case .waiter(let continuation) = published {
+                        waiter = continuation
+                        answer = nil
+                    }
+                    return false
+                }
                 switch published {
                 case .nobody:
                     return false
@@ -168,11 +235,14 @@ final class Subscription: Sendable {
                     }
                     // The listener is busy: its body has suspended, or it has not asked for a first number.
                     guard busy == .waits else { return false }
+                    // The post came from this listener's own body: it cannot read before the post returns.
+                    if own { return false }
+                    if exempt == .posting && state.posting > 0 { return false }
                     state.acknowledgements.append((number, acknowledgement))
                     return true
                 }
             }
-            waiter?.resume(returning: number)
+            waiter?.resume(returning: answer)
             if !wait { acknowledgement.resume() }
         }
     }
@@ -204,20 +274,30 @@ final class Hub: Sendable {
     }
 
     /// Posts the next number to every listener, and waits for them. Returns the number.
-    nonisolated(nonsending) func post(_ busy: Busy, _ fanout: Fanout = .sequential) async -> Int {
+    nonisolated(nonsending) func post(_ busy: Busy, _ fanout: Fanout = .sequential, exempt: Exempt = .own) async -> Int {
+        let task = currentTask()
         let (number, published) = state.withLock { state in
             state.posted += 1
             return (state.posted, state.subscriptions.map { ($0, $0.publish(state.posted)) })
         }
+        // The listeners whose loop body is this very task. They get the number as their latest, on their next read.
+        let own = published.map(\.0).filter { $0.isListener(task) }
+        for subscription in own { subscription.enterPost(exempt) }
+        defer { for subscription in own { subscription.leavePost() } }
+
         switch fanout {
         case .sequential:
             for (subscription, published) in published {
-                await subscription.settle(published, number, busy, on: subscription.isolation)
+                let isOwn = own.contains { $0 === subscription }
+                await subscription.settle(published, number, busy, own: isOwn, exempt: exempt, on: subscription.isolation)
             }
         case .together:
             await withTaskGroup(of: Void.self) { group in
                 for (subscription, published) in published {
-                    group.addTask { await subscription.settle(published, number, busy, on: subscription.isolation) }
+                    let isOwn = own.contains { $0 === subscription }
+                    group.addTask {
+                        await subscription.settle(published, number, busy, own: isOwn, exempt: exempt, on: subscription.isolation)
+                    }
                 }
             }
         }
@@ -317,6 +397,39 @@ enum Body: String, Sendable, CaseIterable {
     case synchronous = "synchronous body"
     /// `record(number)`, and then a suspension for two numbers of three: the listener is busy.
     case suspends = "body that suspends"
+    /// `record(number)`, and for one number of five the body awaits a post on the same hub.
+    case posts = "body that posts"
+}
+
+/// What a body that posts needs.
+final class Reaction: Sendable {
+    let hub: Hub
+    let exempt: Exempt
+    /// The body posts only while the hub has posted fewer numbers than this.
+    let limit: Int
+    private let probes = Mutex<[Probe]>([])
+    private let early = Atomic<Int>(0)
+    private let made = Atomic<Int>(0)
+
+    init(hub: Hub, exempt: Exempt, limit: Int) {
+        self.hub = hub
+        self.exempt = exempt
+        self.limit = limit
+    }
+
+    func add(_ probe: Probe) { probes.withLock { $0.append(probe) } }
+
+    /// Posts from a loop body. When the post returns, every other listener must have handled its number.
+    nonisolated(nonsending) func post(from own: Probe) async {
+        guard hub.posted < limit else { return }
+        let number = await hub.post(.waits, .together, exempt: exempt)
+        made.add(1, ordering: .sequentiallyConsistent)
+        let others = probes.withLock { $0.filter { $0 !== own } }
+        if others.contains(where: { $0.last < number }) { early.add(1, ordering: .sequentiallyConsistent) }
+    }
+
+    var earlyPosts: Int { early.load(ordering: .sequentiallyConsistent) }
+    var posts: Int { made.load(ordering: .sequentiallyConsistent) }
 }
 
 /// What one listener saw.
@@ -324,6 +437,12 @@ final class Probe: Sendable {
     private let seen = Atomic<Int>(0)
     private let disorder = Atomic<Int>(0)
     private let handled = Atomic<Int>(0)
+    let reaction: Reaction?
+
+    init(reaction: Reaction? = nil) {
+        self.reaction = reaction
+        reaction?.add(self)
+    }
 
     var last: Int { seen.load(ordering: .sequentiallyConsistent) }
     /// Numbers that came after a higher number.
@@ -336,6 +455,7 @@ final class Probe: Sendable {
         seen.store(number, ordering: .sequentiallyConsistent)
         handled.add(1, ordering: .sequentiallyConsistent)
         if body == .suspends && number % 3 != 0 { await Task.yield() }
+        if body == .posts && number % 5 == 0 { await reaction?.post(from: self) }
     }
 }
 
@@ -685,6 +805,200 @@ func manyMatrix(posts: Int) async {
     }
 }
 
+// MARK: - A loop body that awaits a post on the same hub
+
+/// `posting` listeners whose body posts, `quiet` listeners whose body does not, and 4 posters outside. Every post
+/// waits for a busy listener, and all handshakes go together. Returns nil when it did not end in `limit` seconds.
+func reacting(posting: Int, quiet: Int, _ exempt: Exempt, posts: Int, limit: Double) async -> String {
+    let hub = Hub()
+    let reaction = Reaction(hub: hub, exempt: exempt, limit: posts)
+    let listeners = Listeners()
+    let kinds = Isolation.allCases
+    let levels: [TaskPriority] = [.low, .high, .background, .medium]
+    let probes = Mutex<[Probe]>([])
+    let tasks = Mutex<[Task<Void, Never>]>([])
+    for index in 0..<(posting + quiet) {
+        let probe = Probe(reaction: reaction)
+        probes.withLock { $0.append(probe) }
+        let body: Body = index < posting ? .posts : .synchronous
+        let task = listeners.start(kinds[index % kinds.count], hub, probe, body, priority: levels[index % levels.count])
+        tasks.withLock { $0.append(task) }
+        while hub.listeners < index + 1 { await Task.yield() }
+    }
+    let all = probes.withLock { $0 }
+    let outside = Atomic<Int>(0)
+    let early = Atomic<Int>(0)
+
+    let (ended, run) = await ends(within: limit) {
+        await withTaskGroup(of: Void.self) { group in
+            for priority in [TaskPriority.high, .medium, .low, .background] {
+                group.addTask(priority: priority) {
+                    while hub.posted < posts {
+                        let number = await hub.post(.waits, .together, exempt: exempt)
+                        outside.add(1, ordering: .sequentiallyConsistent)
+                        if all.contains(where: { $0.last < number }) { early.add(1, ordering: .sequentiallyConsistent) }
+                    }
+                }
+            }
+        }
+    }
+    guard ended else {
+        _ = run
+        return "DID NOT END within \(Int(limit)) s: \(hub.posted) numbers posted, then every task waits"
+    }
+    let last = hub.posted
+    let deadline = seconds() + 5
+    while all.contains(where: { $0.last < last }) && seconds() < deadline { await Task.yield() }
+    let notLast = all.filter { $0.last < last }.count
+    let outOfOrder = all.reduce(0) { $0 + $1.outOfOrder }
+    hub.finish()
+    for task in tasks.withLock({ $0 }) { await task.value }
+    return "ended; \(outside.load(ordering: .sequentiallyConsistent)) posts from outside, \(early.load(ordering: .sequentiallyConsistent)) of them returned before every listener had handled their number; "
+        + "\(reaction.posts) posts from loop bodies, \(reaction.earlyPosts) of them returned before every other listener had handled their number; "
+        + "\(outOfOrder) numbers out of order; \(notLast) listeners without the last number"
+}
+
+func ownMatrix(posts: Int) async {
+    print("build: \(build); about \(posts) numbers per line; every post waits for a busy listener; all handshakes together")
+    for exempt in Exempt.allCases {
+        print("\(exempt.rawValue):")
+        print("  1 listener whose body posts, 2 that do not: \(await reacting(posting: 1, quiet: 2, exempt, posts: posts, limit: 120))")
+        print("  1 listener whose body posts, 7 that do not: \(await reacting(posting: 1, quiet: 7, exempt, posts: posts, limit: 120))")
+        print("  1 listener whose body posts, alone: \(await reacting(posting: 1, quiet: 0, exempt, posts: posts, limit: 120))")
+    }
+}
+
+func cross(posts: Int) async {
+    print("build: \(build); about \(posts) numbers per line; every post waits for a busy listener; all handshakes together")
+    for exempt in Exempt.allCases {
+        print("\(exempt.rawValue):")
+        print("  2 listeners whose bodies post, 1 that does not: \(await reacting(posting: 2, quiet: 1, exempt, posts: posts, limit: 20))")
+        print("  3 listeners whose bodies post: \(await reacting(posting: 3, quiet: 0, exempt, posts: posts, limit: 20))")
+    }
+}
+
+// MARK: - A listener that is cancelled while posts wait for it
+
+actor Cancelled {
+    enum Waits: Sendable {
+        /// The body does not suspend: the listener waits in `next`.
+        case inNext
+        /// After number 1 the body sleeps. A sleep ends when its task is cancelled.
+        case inASleep
+        /// After number 1 the body waits at a gate, which does not know about cancellation.
+        case atAGate(Gate)
+        /// The body suspends for a moment after each number.
+        case forAMoment
+    }
+
+    func listen(_ hub: Hub, _ probe: Probe, _ waits: Waits) async {
+        for await number in hub.follow() {
+            await probe.handle(number, .synchronous)
+            switch waits {
+            case .inNext: break
+            case .inASleep: if number == 1 { try? await Task.sleep(for: .seconds(30)) }
+            case .atAGate(let gate): if number == 1 { await gate.wait() }
+            case .forAMoment: await Task.yield()
+            }
+        }
+    }
+}
+
+func cancel(rounds: Int) async {
+    print("build: \(build); every post waits for a busy listener; all handshakes together")
+
+    // The listener waits in `next`, with no post in progress.
+    do {
+        let hub = Hub()
+        let probe = Probe()
+        let actor = Cancelled()
+        let listener = Task.detached { await actor.listen(hub, probe, .inNext) }
+        while hub.listeners < 1 { await Task.yield() }
+        _ = await hub.post(.waits, .together)
+        listener.cancel()
+        let (ended, _) = await ends(within: 2) { await listener.value }
+        let (returned, _) = await ends(within: 2) { for _ in 0..<1000 { _ = await hub.post(.waits, .together) } }
+        print("cancelled while it waits in next: the listener's loop \(ended ? "ended" : "did NOT end"); 1000 more posts \(returned ? "returned" : "did NOT return within 2 s")")
+    }
+
+    // The listener is in its body, in a sleep, and a post waits for it.
+    do {
+        let hub = Hub()
+        let probe = Probe()
+        let actor = Cancelled()
+        let listener = Task.detached { await actor.listen(hub, probe, .inASleep) }
+        while hub.listeners < 1 { await Task.yield() }
+        _ = await hub.post(.waits, .together)
+        let (before, post) = await ends(within: 0.5) { _ = await hub.post(.waits, .together) }
+        listener.cancel()
+        let (after, _) = await ends(within: 2) { await post.value }
+        print("cancelled while its body sleeps and a post waits: before the cancellation the post \(before ? "had returned" : "had not returned"); after it the post \(after ? "returned" : "did NOT return within 2 s"); the listener had handled \(probe.last) of 2")
+        await listener.value
+    }
+
+    // The listener is in its body, at a gate that does not end on cancellation, and a post waits for it.
+    do {
+        let hub = Hub()
+        let probe = Probe()
+        let gate = Gate()
+        let actor = Cancelled()
+        let listener = Task.detached { await actor.listen(hub, probe, .atAGate(gate)) }
+        while hub.listeners < 1 { await Task.yield() }
+        _ = await hub.post(.waits, .together)
+        let (_, post) = await ends(within: 0.3) { _ = await hub.post(.waits, .together) }
+        listener.cancel()
+        let (afterCancel, _) = await ends(within: 0.7) { await post.value }
+        gate.open()
+        let (afterBody, _) = await ends(within: 2) { await post.value }
+        print("cancelled while its body waits for something that does not end on cancellation: after the cancellation the post \(afterCancel ? "returned" : "had not returned within 0.7 s"); after the body ended the post \(afterBody ? "returned" : "did NOT return within 2 s"); the listener had handled \(probe.last) of 2")
+        await listener.value
+    }
+
+    // Many rounds: 3 listeners whose bodies suspend, 4 posters, and one listener is cancelled at some moment.
+    do {
+        var hung = 0
+        var postsMade = 0
+        for round in 0..<rounds {
+            let hub = Hub()
+            var probes: [Probe] = []
+            var tasks: [Task<Void, Never>] = []
+            for index in 0..<3 {
+                let probe = Probe()
+                let actor = Cancelled()
+                probes.append(probe)
+                tasks.append(Task.detached { await actor.listen(hub, probe, index == 0 ? .inNext : .forAMoment) })
+                while hub.listeners < index + 1 { await Task.yield() }
+            }
+            let victim = tasks[round % 3]
+            let survivors = probes.enumerated().filter { $0.offset != round % 3 }.map(\.element)
+            let made = Atomic<Int>(0)
+            let (ended, run) = await ends(within: 10) {
+                await withTaskGroup(of: Void.self) { group in
+                    for _ in 0..<4 {
+                        group.addTask {
+                            for _ in 0..<50 {
+                                _ = await hub.post(.waits, .together)
+                                made.add(1, ordering: .relaxed)
+                            }
+                        }
+                    }
+                    group.addTask {
+                        for _ in 0..<(round % 40) { await Task.yield() }
+                        victim.cancel()
+                    }
+                }
+            }
+            _ = run
+            postsMade += made.load(ordering: .relaxed)
+            if !ended { hung += 1; continue }
+            _ = survivors
+            hub.finish()
+            for task in tasks { await task.value }
+        }
+        print("\(rounds) rounds, 3 listeners, 200 posts each round, one listener cancelled at a different moment each round: \(hung) rounds did not end within 10 s; \(postsMade) posts returned")
+    }
+}
+
 @main
 enum Cases {
     static func main() async {
@@ -694,7 +1008,10 @@ enum Cases {
         case "busy": await busyMatrix(posts: posts)
         case "stuck": await stuck()
         case "many": await manyMatrix(posts: posts)
-        default: print("usage: cases busy|stuck|many [posts]")
+        case "own": await ownMatrix(posts: posts)
+        case "cross": await cross(posts: min(posts, 2000))
+        case "cancel": await cancel(rounds: arguments.dropFirst().first.flatMap { Int($0) } ?? 2000)
+        default: print("usage: cases busy|stuck|many|own|cross|cancel [posts]")
         }
     }
 }

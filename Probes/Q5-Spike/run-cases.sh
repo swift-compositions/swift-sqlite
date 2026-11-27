@@ -28,6 +28,19 @@ for build in debug O; do
             echo "== ./cases many $posts (run $run)"
             .build/cases-$build many "$posts"
         done
+        for run in 1 2 3; do
+            echo
+            echo "== ./cases own $posts (run $run)"
+            .build/cases-$build own "$posts"
+        done
+        echo
+        echo "== ./cases cross"
+        .build/cases-$build cross 2000
+        for run in 1 2 3; do
+            echo
+            echo "== ./cases cancel 2000 (run $run)"
+            .build/cases-$build cancel 2000
+        done
     } > "CASES.$platform.$build.txt" 2>&1
 done
 {

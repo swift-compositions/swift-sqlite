@@ -1,0 +1,114 @@
+Swift 6.4.2 (swift-6.4.2-RELEASE), x86_64-unknown-linux-gnu, Ubuntu 24.04, 4 cores. swift run -c release Table 20000
+writes per configuration: 20000; a break is a write that returned before the listener's body ran for it
+BREAKS 16277	main actor, listener medium, writers medium, quiet, wait: barrier
+BREAKS 14635	main actor, listener medium, writers medium, busy, wait: barrier
+BREAKS 9222	main actor, listener low, writers high, quiet, wait: barrier
+BREAKS 14334	main actor, listener low, writers high, busy, wait: barrier
+BREAKS 9967	main actor, listener high, writers low, quiet, wait: barrier
+BREAKS 13903	main actor, listener high, writers low, busy, wait: barrier
+BREAKS 9406	main actor, listener background, writers high, quiet, wait: barrier
+BREAKS 15373	main actor, listener background, writers high, busy, wait: barrier
+BREAKS 663	default actor, listener medium, writers medium, quiet, wait: barrier
+BREAKS 1621	default actor, listener medium, writers medium, busy, wait: barrier
+BREAKS 1691	default actor, listener low, writers high, quiet, wait: barrier
+BREAKS 15126	default actor, listener low, writers high, busy, wait: barrier
+BREAKS 985	default actor, listener high, writers low, quiet, wait: barrier
+BREAKS 5927	default actor, listener high, writers low, busy, wait: barrier
+BREAKS 2344	default actor, listener background, writers high, quiet, wait: barrier
+BREAKS 14436	default actor, listener background, writers high, busy, wait: barrier
+BREAKS 15882	thread executor, listener medium, writers medium, quiet, wait: barrier
+BREAKS 17124	thread executor, listener medium, writers medium, busy, wait: barrier
+BREAKS 9109	thread executor, listener low, writers high, quiet, wait: barrier
+BREAKS 12263	thread executor, listener low, writers high, busy, wait: barrier
+BREAKS 8927	thread executor, listener high, writers low, quiet, wait: barrier
+BREAKS 14731	thread executor, listener high, writers low, busy, wait: barrier
+BREAKS 8097	thread executor, listener background, writers high, quiet, wait: barrier
+BREAKS 17094	thread executor, listener background, writers high, busy, wait: barrier
+BREAKS 1029	no isolation, listener medium, writers medium, quiet, wait: barrier
+BREAKS 1925	no isolation, listener medium, writers medium, busy, wait: barrier
+BREAKS 3266	no isolation, listener low, writers high, quiet, wait: barrier
+BREAKS 12797	no isolation, listener low, writers high, busy, wait: barrier
+BREAKS 1429	no isolation, listener high, writers low, quiet, wait: barrier
+BREAKS 9931	no isolation, listener high, writers low, busy, wait: barrier
+BREAKS 1166	no isolation, listener background, writers high, quiet, wait: barrier
+BREAKS 18914	no isolation, listener background, writers high, busy, wait: barrier
+holds  0	main actor, listener medium, writers medium, quiet, wait: acknowledgement
+holds  0	main actor, listener medium, writers medium, busy, wait: acknowledgement
+holds  0	main actor, listener low, writers high, quiet, wait: acknowledgement
+holds  0	main actor, listener low, writers high, busy, wait: acknowledgement
+holds  0	main actor, listener high, writers low, quiet, wait: acknowledgement
+holds  0	main actor, listener high, writers low, busy, wait: acknowledgement
+holds  0	main actor, listener background, writers high, quiet, wait: acknowledgement
+holds  0	main actor, listener background, writers high, busy, wait: acknowledgement
+holds  0	default actor, listener medium, writers medium, quiet, wait: acknowledgement
+holds  0	default actor, listener medium, writers medium, busy, wait: acknowledgement
+holds  0	default actor, listener low, writers high, quiet, wait: acknowledgement
+holds  0	default actor, listener low, writers high, busy, wait: acknowledgement
+holds  0	default actor, listener high, writers low, quiet, wait: acknowledgement
+holds  0	default actor, listener high, writers low, busy, wait: acknowledgement
+holds  0	default actor, listener background, writers high, quiet, wait: acknowledgement
+holds  0	default actor, listener background, writers high, busy, wait: acknowledgement
+holds  0	thread executor, listener medium, writers medium, quiet, wait: acknowledgement
+holds  0	thread executor, listener medium, writers medium, busy, wait: acknowledgement
+holds  0	thread executor, listener low, writers high, quiet, wait: acknowledgement
+holds  0	thread executor, listener low, writers high, busy, wait: acknowledgement
+holds  0	thread executor, listener high, writers low, quiet, wait: acknowledgement
+holds  0	thread executor, listener high, writers low, busy, wait: acknowledgement
+holds  0	thread executor, listener background, writers high, quiet, wait: acknowledgement
+holds  0	thread executor, listener background, writers high, busy, wait: acknowledgement
+holds  0	no isolation, listener medium, writers medium, quiet, wait: acknowledgement
+holds  0	no isolation, listener medium, writers medium, busy, wait: acknowledgement
+holds  0	no isolation, listener low, writers high, quiet, wait: acknowledgement
+holds  0	no isolation, listener low, writers high, busy, wait: acknowledgement
+holds  0	no isolation, listener high, writers low, quiet, wait: acknowledgement
+holds  0	no isolation, listener high, writers low, busy, wait: acknowledgement
+holds  0	no isolation, listener background, writers high, quiet, wait: acknowledgement
+holds  0	no isolation, listener background, writers high, busy, wait: acknowledgement
+BREAKS 14268	main actor, listener medium, writers medium, quiet, wait: nothing
+BREAKS 14744	main actor, listener medium, writers medium, busy, wait: nothing
+BREAKS 10046	main actor, listener low, writers high, quiet, wait: nothing
+BREAKS 14694	main actor, listener low, writers high, busy, wait: nothing
+BREAKS 8347	main actor, listener high, writers low, quiet, wait: nothing
+BREAKS 14213	main actor, listener high, writers low, busy, wait: nothing
+BREAKS 10355	main actor, listener background, writers high, quiet, wait: nothing
+BREAKS 15184	main actor, listener background, writers high, busy, wait: nothing
+BREAKS 1447	default actor, listener medium, writers medium, quiet, wait: nothing
+BREAKS 6500	default actor, listener medium, writers medium, busy, wait: nothing
+BREAKS 4370	default actor, listener low, writers high, quiet, wait: nothing
+BREAKS 17888	default actor, listener low, writers high, busy, wait: nothing
+BREAKS 805	default actor, listener high, writers low, quiet, wait: nothing
+BREAKS 14624	default actor, listener high, writers low, busy, wait: nothing
+BREAKS 3190	default actor, listener background, writers high, quiet, wait: nothing
+BREAKS 19095	default actor, listener background, writers high, busy, wait: nothing
+BREAKS 14955	thread executor, listener medium, writers medium, quiet, wait: nothing
+BREAKS 17759	thread executor, listener medium, writers medium, busy, wait: nothing
+BREAKS 6423	thread executor, listener low, writers high, quiet, wait: nothing
+BREAKS 16449	thread executor, listener low, writers high, busy, wait: nothing
+BREAKS 10414	thread executor, listener high, writers low, quiet, wait: nothing
+BREAKS 18267	thread executor, listener high, writers low, busy, wait: nothing
+BREAKS 9358	thread executor, listener background, writers high, quiet, wait: nothing
+BREAKS 19500	thread executor, listener background, writers high, busy, wait: nothing
+BREAKS 1602	no isolation, listener medium, writers medium, quiet, wait: nothing
+BREAKS 3323	no isolation, listener medium, writers medium, busy, wait: nothing
+BREAKS 1059	no isolation, listener low, writers high, quiet, wait: nothing
+BREAKS 13466	no isolation, listener low, writers high, busy, wait: nothing
+BREAKS 670	no isolation, listener high, writers low, quiet, wait: nothing
+BREAKS 12866	no isolation, listener high, writers low, busy, wait: nothing
+BREAKS 2254	no isolation, listener background, writers high, quiet, wait: nothing
+BREAKS 17386	no isolation, listener background, writers high, busy, wait: nothing
+
+swift run -c release Mechanism
+resume was called on thread 140310764050112
+jobs that reached the listener's executor inside the call to resume: 0
+job 1 after the resume: enqueued from thread 140310764050112 (the resumer's)
+job 2 after the resume: enqueued from thread 140310772442816 (not the resumer's)
+what the barrier saw: 0 (1 = the listener's body ran first)
+
+swift test -c release, 10 runs, outcome of each test and the number of runs with that outcome
+     10 ✔ Test "acknowledgement, and the listener is cancelled" passed.
+     10 ✔ Test "acknowledgement, and the listener leaves" passed.
+     10 ✔ Test "no wait breaks" passed.
+     10 ✔ Test acknowledgement(_:) with 32 test cases passed.
+     10 ✘ Test "barrier on a default actor" with 8 test cases failed.
+     10 ✘ Test "barrier on an actor with a thread executor" with 8 test cases failed.
+     10 ✘ Test "barrier on the main actor" with 8 test cases failed.

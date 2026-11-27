@@ -1,0 +1,30 @@
+== system library (Ubuntu 24.04, libsqlite3-0 3.45.1-1ubuntu2.9), built with: cc -O2 probe.c -lsqlite3 -lpthread
+SQLite 3.45.1, sqlite3_threadsafe() = 1, compiled with THREADSAFE=1
+  sqlite3_config before sqlite3_initialize (MULTITHREAD, SERIALIZED, SINGLETHREAD): SQLITE_OK SQLITE_OK SQLITE_OK 
+  sqlite3_config(SQLITE_CONFIG_MULTITHREAD) after sqlite3_initialize: SQLITE_MISUSE
+  process default, per connection:
+    no mutex flag        : connection mutex present, step+reset 86 ns
+    SQLITE_OPEN_NOMUTEX  : connection mutex absent , step+reset 63 ns
+    SQLITE_OPEN_FULLMUTEX: connection mutex present, step+reset 80 ns
+  SQLITE_CONFIG_MULTITHREAD, per connection:
+    no mutex flag        : connection mutex absent , step+reset 82 ns
+    SQLITE_OPEN_NOMUTEX  : connection mutex absent , step+reset 65 ns
+    SQLITE_OPEN_FULLMUTEX: connection mutex present, step+reset 76 ns
+  SQLITE_CONFIG_SERIALIZED, per connection:
+    no mutex flag        : connection mutex present, step+reset 83 ns
+    SQLITE_OPEN_NOMUTEX  : connection mutex absent , step+reset 68 ns
+    SQLITE_OPEN_FULLMUTEX: connection mutex present, step+reset 83 ns
+  SQLITE_CONFIG_SINGLETHREAD, per connection:
+    no mutex flag        : connection mutex absent , step+reset 63 ns
+    SQLITE_OPEN_NOMUTEX  : connection mutex absent , step+reset 58 ns
+    SQLITE_OPEN_FULLMUTEX: connection mutex absent , step+reset 58 ns
+  process default, one thread per connection (1 writer, 3 readers, WAL, NOMUTEX), 3 runs:
+    rows 3000 of 3000, statements that failed 0, integrity_check: ok
+    rows 3000 of 3000, statements that failed 0, integrity_check: ok
+    rows 3000 of 3000, statements that failed 0, integrity_check: ok
+  SQLITE_CONFIG_SINGLETHREAD, one thread per connection (1 writer, 3 readers, WAL, NOMUTEX), 3 runs:
+    rows 3000 of 3000, statements that failed 0, integrity_check: ok
+    rows 3000 of 3000, statements that failed 0, integrity_check: ok
+    rows 3000 of 3000, statements that failed 0, integrity_check: ok
+
+== vendored amalgamation: NOT RUN. run.sh builds it with SQLITE_THREADSAFE=1, 2 and 0; it was not executed in the session that wrote this file.

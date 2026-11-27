@@ -1,4 +1,4 @@
-import Executors
+import Thread_Actor
 import Glibc
 import ISO_9075_Call_Level_Interface
 import Lent_Interface
@@ -121,7 +121,7 @@ func probe() async throws {
     // 6. swift-threads' own Kernel.Thread.Actor as the isolation, through an `isolated` parameter.
     let shared = try SQLite.Shared(path: ":memory:")
     let onActor: Tally = try await shared.write { connection throws(ISO.`9075`.Error) in
-        let onActor = shared.executor.isIsolatingCurrentContext()
+        let onActor = shared.actor.executor.isIsolatingCurrentContext()
         precondition(onActor == true)
         _ = try connection.execute("CREATE TABLE item (id INTEGER PRIMARY KEY)")
         let result = Tally()

@@ -12,9 +12,10 @@ let package = Package(
     dependencies: [
         .package(path: "../Q1-Protocol"),
         .package(path: "../Q2-Handle"),
-        .package(url: "https://github.com/swift-compositions/swift-threads.git", branch: "main"),
-        // `Thread Actor` does not re-export `Kernel.Thread.Executor`, which its initializer takes.
-        .package(url: "https://github.com/swift-compositions/swift-executors.git", branch: "main"),
+        // The branch of swift-threads where `Thread Actor` re-exports `Executors` and `Kernel.Thread.Actor.executor`
+        // is nonisolated. On swift-threads `main` (b30bc10) this package does not build: a client could not name
+        // `Kernel.Thread.Executor`, and could read the actor's executor only with an `await`.
+        .package(url: "https://github.com/swift-compositions/swift-threads.git", branch: "probe/lent-connection"),
     ],
     targets: [
         .target(
@@ -23,7 +24,6 @@ let package = Package(
                 .product(name: "Lent Interface", package: "Q1-Protocol"),
                 .product(name: "SQLite Handle", package: "Q2-Handle"),
                 .product(name: "Thread Actor", package: "swift-threads"),
-                .product(name: "Executors", package: "swift-executors"),
             ]
         ),
         .executableTarget(name: "Hop", dependencies: ["SQLite Actors"]),

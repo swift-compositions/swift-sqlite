@@ -9,6 +9,15 @@
     public import SQLite_CloudKit
     import Testing
 
+    /// Raises the limit of open files, once. Every test opens a user database and a metadatabase, and the tests run
+    /// at once: on the iOS simulator, where each takes seconds, they pass the default limit of 256 together.
+    private let raisedOpenFileLimit: Void = {
+        var limit = rlimit()
+        guard unsafe getrlimit(RLIMIT_NOFILE, &limit) == 0 else { return }
+        limit.rlim_cur = min(limit.rlim_max, 8192)
+        _ = unsafe setrlimit(RLIMIT_NOFILE, &limit)
+    }()
+
     @Suite(.timeLimit(.minutes(5)))
     class CloudKitTestBase: @unchecked Sendable {
         let userDatabase: UserDatabase
@@ -32,6 +41,7 @@
             delegate: (any SyncEngineDelegate)? = nil,
             prepareDatabase: @Sendable (UserDatabase) async throws -> Void = { _ in }
         ) async throws {
+            raisedOpenFileLimit
             let containerIdentifier =
                 "iCloud.org.swift-institute.SQLite.Testing.\(ProcessInfo.processInfo.globallyUniqueString)"
             let dataManager = InMemoryDataManager()

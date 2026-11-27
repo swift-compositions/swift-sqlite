@@ -125,7 +125,9 @@
                           [1]: CKRecord(
                             recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
                             recordType: "reminders",
-                            parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+                            parent: CKReference(
+                              recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)
+                            ),
                             share: nil,
                             id: 1,
                             isCompleted: 0,
@@ -136,7 +138,9 @@
                             recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                             recordType: "remindersLists",
                             parent: nil,
-                            share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
+                            share: CKReference(
+                              recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)
+                            ),
                             id: 1,
                             title: "Personal"
                           )

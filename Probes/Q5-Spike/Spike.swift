@@ -6,6 +6,7 @@
 //   ./spike log                 where the listener's task goes on resume, for each variation
 //   ./spike matrix 20000        breaks per variation, isolation, poster, priority
 //   ./spike regression          the check for swiftlang/swift#92915
+//   ./spike fanout 20000        one post to three listeners on three isolations
 //
 // The listener is a `for await` loop whose body is synchronous: `seen.record(value)`. A poster calls
 // `await channel.post()`, which returns the number of its value. A BREAK is a post that returned while the listener
@@ -718,6 +719,43 @@ func matrix(posts: Int, only: Variation?) async {
     }
 }
 
+// MARK: - Several listeners for one post
+
+/// One post goes to three listeners, each on an isolation of its own: the main actor, a default actor and an actor
+/// with a custom executor. A break is a post that returned while one of the three had not run its body for it.
+func fanout(_ variation: Variation, posts: Int) async {
+    let channels = [Channel(variation), Channel(variation), Channel(variation)]
+    let seen = [Seen(), Seen(), Seen()]
+    let defaultActor = DefaultActor()
+    let threadActor = ThreadActor()
+    let listeners = [
+        Task.detached(priority: .low) { await listenOnMain(channels[0], seen[0]) },
+        Task.detached(priority: .high) { await defaultActor.listen(channels[1], seen[1]) },
+        Task.detached(priority: .background) { await threadActor.listen(channels[2], seen[2]) },
+    ]
+    while !channels.allSatisfy(\.isFollowed) { await Task.yield() }
+
+    let broken = await withTaskGroup(of: Int.self) { group in
+        for priority in [TaskPriority.high, .medium, .low, .background] {
+            group.addTask(priority: priority) {
+                var broken = 0
+                for _ in 0..<(posts / 4) {
+                    var numbers: [Int] = []
+                    for channel in channels { numbers.append(await channel.post()) }
+                    if zip(seen, numbers).contains(where: { $0.last < $1 }) { broken += 1 }
+                }
+                return broken
+            }
+        }
+        var total = 0
+        for await broken in group { total += broken }
+        return total
+    }
+    for channel in channels { channel.finish() }
+    for listener in listeners { await listener.value }
+    print("\(broken == 0 ? "HOLDS " : "BREAKS") \(variation.rawValue), 3 listeners for one post: \(broken) breaks in \(posts) posts")
+}
+
 // MARK: - The enqueue log
 
 /// One post to a parked listener on an actor whose executor logs every enqueue. Shows where the listener's task
@@ -818,6 +856,9 @@ enum Spike {
             for variation in Variation.allCases { await log(variation) }
         case "regression":
             await regression()
+        case "fanout":
+            let posts = arguments.dropFirst().first.flatMap { Int($0) } ?? 20_000
+            for variation in [Variation.baseline, .heldJob, .acknowledged] { await fanout(variation, posts: posts) }
         default:
             let posts = arguments.dropFirst().first.flatMap { Int($0) } ?? 20_000
             let only = arguments.dropFirst(2).first.flatMap { prefix in

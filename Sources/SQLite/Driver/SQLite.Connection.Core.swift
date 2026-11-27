@@ -245,6 +245,7 @@ extension SQLite.Connection.Core {
         }
         let count = unsafe sqlite3_column_count(statement)
         var columns: [String]?
+        var storage: SQLite.Row.Storage?
         while true {
             switch unsafe sqlite3_step(statement) {
             case SQLITE_ROW:
@@ -252,9 +253,14 @@ extension SQLite.Connection.Core {
                     columns
                     ?? (0..<count).map { unsafe String(cString: sqlite3_column_name(statement, $0)) }
                 columns = names
-                try body(
-                    SQLite.Row(columns: names, values: (0..<count).map { unsafe Self.value(statement, $0) })
-                )
+                var values = unsafe storage ?? SQLite.Row.Storage(statement: statement, count: count)
+                storage = nil
+                // A row that the body kept is copied out of the statement before the statement steps on. One that
+                // it did not keep gives its storage to the next row.
+                defer {
+                    if isKnownUniquelyReferenced(&values) { storage = values } else { values.keep() }
+                }
+                try body(SQLite.Row(columns: names, storage: values))
             case SQLITE_DONE:
                 return
             default:
@@ -315,7 +321,7 @@ extension SQLite.Connection.Core {
     }
 
     @unsafe
-    private static func value(_ statement: OpaquePointer, _ index: Int32) -> ISO.`9075`.Value {
+    static func value(_ statement: OpaquePointer, _ index: Int32) -> ISO.`9075`.Value {
         switch unsafe sqlite3_column_type(statement, index) {
         case SQLITE_INTEGER: .int(unsafe sqlite3_column_int64(statement, index))
         case SQLITE_FLOAT: .double(unsafe sqlite3_column_double(statement, index))

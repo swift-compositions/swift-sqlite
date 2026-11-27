@@ -329,6 +329,17 @@ extension `Driver Tests`.Synchronous {
 }
 
 extension `Driver Tests`.Statements {
+    @Test func `rows that are kept beyond their decode call each keep their own values`() async throws {
+        let database = try await items(in: SQLite.Database())
+        let rows = try await database.write { connection throws(ISO.`9075`.Error) -> [SQLite.Row] in
+            try connection.execute(script: "INSERT INTO item (name) VALUES ('a'); INSERT INTO item (name) VALUES ('b'); INSERT INTO item (name) VALUES ('c')")
+            return try SQLite.Row.fetchAll(connection, sql: "SELECT id, name FROM item ORDER BY id")
+        }
+        #expect(try rows.map { try $0.value(at: 0) } == [.int(1), .int(2), .int(3)])
+        #expect(try rows.map { try $0.value(at: 1) } == [.text("a"), .text("b"), .text("c")])
+        #expect(throws: ISO.`9075`.Error.self) { try rows[0].value(at: 2) }
+    }
+
     @Test func `a fetch inside a fetch of the same statement gets a statement of its own`() async throws {
         let database = try await items(in: SQLite.Database())
         try await database.write { connection throws(ISO.`9075`.Error) in

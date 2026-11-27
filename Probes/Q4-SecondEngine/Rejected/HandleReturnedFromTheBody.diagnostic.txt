@@ -1,0 +1,31 @@
+Rejected/HandleReturnedFromTheBody.swift:8:24: error: instance method 'read' requires that 'PostgreSQL.Handle' conform to 'Copyable'
+ 6 | // With the handle as the conformer's connection, the connection cannot be the body's result.
+ 7 | func handleReturned(_ database: PostgreSQL.Lending) async throws {
+ 8 |     try await database.read { (connection: borrowing PostgreSQL.Handle) throws(ISO.`9075`.Error) -> PostgreSQL.Handle in
+   |                        `- error: instance method 'read' requires that 'PostgreSQL.Handle' conform to 'Copyable'
+ 9 |         return connection
+10 |     }
+
+/home/user/swift-sqlite/Probes/Q1-Protocol/Sources/Lent Interface/Lent.swift:75:41: note: 'where Value: Copyable' is implicit here
+ 73 | // The overloads of today's `ISO_9075.Database` that flatten `Failure<ISO_9075.Error>` to `ISO_9075.Error`.
+ 74 | extension Lent.Reader {
+ 75 |     public nonisolated(nonsending) func read<Value>(
+    |                                         `- note: 'where Value: Copyable' is implicit here
+ 76 |         _ body: sending (borrowing Connection) throws(ISO.`9075`.Error) -> sending Value
+ 77 |     ) async throws(ISO.`9075`.Error) -> sending Value {
+
+Rejected/HandleReturnedFromTheBody.swift:8:24: error: instance method 'read' requires that 'PostgreSQL.Handle' conform to 'Escapable'
+ 6 | // With the handle as the conformer's connection, the connection cannot be the body's result.
+ 7 | func handleReturned(_ database: PostgreSQL.Lending) async throws {
+ 8 |     try await database.read { (connection: borrowing PostgreSQL.Handle) throws(ISO.`9075`.Error) -> PostgreSQL.Handle in
+   |                        `- error: instance method 'read' requires that 'PostgreSQL.Handle' conform to 'Escapable'
+ 9 |         return connection
+10 |     }
+
+/home/user/swift-sqlite/Probes/Q1-Protocol/Sources/Lent Interface/Lent.swift:75:41: note: 'where Value: Escapable' is implicit here
+ 73 | // The overloads of today's `ISO_9075.Database` that flatten `Failure<ISO_9075.Error>` to `ISO_9075.Error`.
+ 74 | extension Lent.Reader {
+ 75 |     public nonisolated(nonsending) func read<Value>(
+    |                                         `- note: 'where Value: Escapable' is implicit here
+ 76 |         _ body: sending (borrowing Connection) throws(ISO.`9075`.Error) -> sending Value
+ 77 |     ) async throws(ISO.`9075`.Error) -> sending Value {

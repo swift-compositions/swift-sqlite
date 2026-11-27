@@ -1,0 +1,18 @@
+Rejected/SendingBodyToTodaysInterface.swift:12:75: error: capture of 'body' with non-Sendable type '(Database.Connection) throws(ISO.`9075`.Error) -> Int' in a '@Sendable' closure [#SendableClosureCaptures]
+10 |     _ body: sending @escaping (Database.Connection) throws(ISO.`9075`.Error) -> Int
+11 | ) async throws -> Int {
+12 |     try await database.write { connection throws(ISO.`9075`.Error) in try body(connection) }
+   |                                                                           |- error: capture of 'body' with non-Sendable type '(Database.Connection) throws(ISO.`9075`.Error) -> Int' in a '@Sendable' closure [#SendableClosureCaptures]
+   |                                                                           `- note: a function type must be marked '@Sendable' to conform to 'Sendable'
+13 | }
+14 | 
+
+Rejected/SendingBodyToTodaysInterface.swift:12:75: error: reference to captured parameter 'body' in concurrently-executing code [#SendableClosureCaptures]
+10 |     _ body: sending @escaping (Database.Connection) throws(ISO.`9075`.Error) -> Int
+11 | ) async throws -> Int {
+12 |     try await database.write { connection throws(ISO.`9075`.Error) in try body(connection) }
+   |                                                                           `- error: reference to captured parameter 'body' in concurrently-executing code [#SendableClosureCaptures]
+13 | }
+14 | 
+
+[#SendableClosureCaptures]: <https://docs.swift.org/compiler/documentation/diagnostics/sendable-closure-captures>

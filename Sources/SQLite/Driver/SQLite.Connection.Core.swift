@@ -31,7 +31,7 @@ extension SQLite.Connection {
         private var shielded = false
 
         init(path: String, flags: Int32) throws(SQLite.Error) {
-            guard unsafe sqlite3_libversion_number() >= Self.lowestVersion else {
+            guard sqlite3_libversion_number() >= Self.lowestVersion else {
                 throw SQLite.Error(
                     extendedCode: .misuse,
                     message: "the system's SQLite is \(unsafe String(cString: sqlite3_libversion())); the driver needs 3.29.0 or later"
@@ -69,7 +69,7 @@ extension SQLite.Connection {
         }
 
         deinit {
-            for statement in unsafe statements.values { unsafe sqlite3_finalize(statement) }
+            for unsafe statement in unsafe statements.values { unsafe sqlite3_finalize(statement) }
             unsafe sqlite3_progress_handler(pointer, 0, nil, nil)
             unsafe sqlite3_close_v2(pointer)
         }
@@ -100,22 +100,25 @@ extension SQLite.Connection.Core {
     /// Makes the write-ahead log the same on every platform, on the connection that writes.
     ///
     /// The log and its index are removed when the last connection closes: Apple's SQLite keeps them by default, and
-    /// this turns that off. And the log exists and is not empty before a reader opens: a read-only connection cannot
-    /// create it, and on Apple's SQLite it then fails with `SQLITE_CANTOPEN`.
+    /// this turns that off. And the log exists before a reader opens: a read-only connection cannot create it, and on
+    /// Apple's SQLite it then fails with `SQLITE_CANTOPEN`. A read opens the log, which creates its file. Only if
+    /// there is still no file, the user version is written back as it is: one page, and no change to the schema.
     func establishWriteAheadLog(at path: String) throws(SQLite.Error) {
         var persistent: Int32 = 0
         _ = unsafe sqlite3_file_control(pointer, nil, SQLITE_FCNTL_PERSIST_WAL, &persistent)
+        try run(script: "SELECT 1 FROM sqlite_master LIMIT 1")
         var status = stat()
-        if unsafe stat(path + "-wal", &status) != 0 || status.st_size == 0 {
-            try run(
-                script: """
-                    BEGIN IMMEDIATE TRANSACTION;
-                    CREATE TABLE "swift_sqlite_wal_setup" ("id" INTEGER PRIMARY KEY);
-                    DROP TABLE "swift_sqlite_wal_setup";
-                    COMMIT TRANSACTION
-                    """
-            )
+        guard unsafe stat(path + "-wal", &status) != 0 else { return }
+        let versions: [ISO.`9075`.Value]
+        do throws(ISO.`9075`.Error) {
+            versions = try SQLite.Connection(self).fetchAll("PRAGMA user_version") { row throws(ISO.`9075`.Error) in
+                try row.value(at: 0)
+            }
+        } catch {
+            throw SQLite.Error(error)
         }
+        guard case .int(let version)? = versions.first else { return }
+        try run(script: "PRAGMA user_version = \(version)")
     }
 
     /// Steps `rendering` to its end, giving each row to `body`.
@@ -167,13 +170,13 @@ extension SQLite.Connection.Core {
         }
         var prepared: OpaquePointer?
         var text = sql
-        let (code, rest): (Int32, Bool) = unsafe text.withUTF8 { utf8 in
+        let (code, rest): (Int32, Bool) = text.withUTF8 { utf8 in
             unsafe utf8.withMemoryRebound(to: CChar.self) { characters in
                 var tail: UnsafePointer<CChar>?
                 let code = unsafe sqlite3_prepare_v3(
                     pointer, characters.baseAddress, Int32(characters.count), UInt32(SQLITE_PREPARE_PERSISTENT), &prepared, &tail)
                 var rest = false
-                if let tail = unsafe tail, let start = unsafe characters.baseAddress {
+                if let tail = unsafe tail, let start = characters.baseAddress {
                     let consumed = unsafe start.distance(to: tail)
                     rest = unsafe characters[consumed...].contains { !Self.isBlank($0) }
                 }

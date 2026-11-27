@@ -1,0 +1,31 @@
+Rejected/CaptureOfActorState.swift:14:18: error: non-Sendable type 'Tally' of property 'tally' cannot exit actor-isolated context [#NonSendableExitingActor]
+ 4 | import SQLite_Handle
+ 5 | 
+ 6 | final class Tally { var count = 0 }
+   |             `- note: class 'Tally' does not conform to the 'Sendable' protocol
+ 7 | 
+ 8 | // A body cannot capture non-Sendable state of the caller's actor: that state stays with the actor, so it cannot be sent.
+   :
+12 |     func write(_ database: SQLite.Database) async throws {
+13 |         let _: Int = try await database.write { connection throws(ISO.`9075`.Error) in
+14 |             self.tally.count = try connection.execute("DELETE FROM item")
+   |                  `- error: non-Sendable type 'Tally' of property 'tally' cannot exit actor-isolated context [#NonSendableExitingActor]
+15 |             return self.tally.count
+16 |         }
+
+Rejected/CaptureOfActorState.swift:15:25: error: non-Sendable type 'Tally' of property 'tally' cannot exit actor-isolated context [#NonSendableExitingActor]
+ 4 | import SQLite_Handle
+ 5 | 
+ 6 | final class Tally { var count = 0 }
+   |             `- note: class 'Tally' does not conform to the 'Sendable' protocol
+ 7 | 
+ 8 | // A body cannot capture non-Sendable state of the caller's actor: that state stays with the actor, so it cannot be sent.
+   :
+13 |         let _: Int = try await database.write { connection throws(ISO.`9075`.Error) in
+14 |             self.tally.count = try connection.execute("DELETE FROM item")
+15 |             return self.tally.count
+   |                         `- error: non-Sendable type 'Tally' of property 'tally' cannot exit actor-isolated context [#NonSendableExitingActor]
+16 |         }
+17 |     }
+
+[#NonSendableExitingActor]: <https://docs.swift.org/compiler/documentation/diagnostics/getting-non-sendable-values-out-of-actors>

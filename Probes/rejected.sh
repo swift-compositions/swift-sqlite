@@ -10,7 +10,10 @@ modules=".build/out/Products/Debug-linux-x86_64"
 [ -d "$modules" ] || modules="$(swift build --show-bin-path)"
 status=0
 maps=()
-for map in Sources/*/module.modulemap; do [ -f "$map" ] && maps+=(-Xcc "-fmodule-map-file=$map"); done
+while IFS= read -r map; do maps+=(-Xcc "-fmodule-map-file=$map"); done < <(
+    find Sources ../Q*/Sources .build/checkouts -name module.modulemap -not -path "*/.build/*/.build/*" 2>/dev/null
+    find .build/out/Intermediates.noindex -path "*GeneratedModuleMaps*" -name "*.modulemap" 2>/dev/null
+)
 for file in Rejected/*.swift; do
     out="${file%.swift}.diagnostic.txt"
     if swiftc -emit-sil -o /dev/null -parse-as-library -swift-version 6 -I "$modules" \

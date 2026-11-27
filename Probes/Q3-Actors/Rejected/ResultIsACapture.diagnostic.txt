@@ -1,0 +1,10 @@
+Rejected/ResultIsACapture.swift:14:16: error: returning 'captured' as a 'sending' result risks causing data races [#RegionIsolation]
+12 |     let _: Tally = try await database.write { connection throws(ISO.`9075`.Error) in
+13 |         captured.count = try connection.execute("DELETE FROM item")
+14 |         return captured
+   |                |- error: returning 'captured' as a 'sending' result risks causing data races [#RegionIsolation]
+   |                `- note: returning 'captured' risks causing data races since the caller assumes that 'captured' can be safely sent to other isolation domains
+15 |     }
+16 | }
+
+[#RegionIsolation]: <https://docs.swift.org/compiler/documentation/diagnostics/region-isolation>

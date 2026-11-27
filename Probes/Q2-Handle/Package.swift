@@ -9,6 +9,7 @@ import PackageDescription
 let package = Package(
     name: "Q2-Handle",
     platforms: [.macOS(.v27)],
+    products: [.library(name: "SQLite Handle", targets: ["SQLite Handle"])],
     dependencies: [
         .package(path: "../Q1-Protocol")
     ],

@@ -13,20 +13,4 @@ public import SQLite_SQL
             try all.fetchCursor(db)
         }
     }
-
-    extension SQL::PrimaryKeyedTable {
-        public static func find(
-            _ connection: SQLite.Connection,
-            key primaryKey: some QueryExpression<PrimaryKey>
-        ) throws -> QueryOutput {
-            try all.find(connection, key: primaryKey)
-        }
-
-        package static func find(
-            _ db: GRDB.Database,
-            key primaryKey: some QueryExpression<PrimaryKey>
-        ) throws -> QueryOutput {
-            try all.find(db, key: primaryKey)
-        }
-    }
 #endif

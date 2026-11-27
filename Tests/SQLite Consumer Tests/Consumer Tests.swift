@@ -71,28 +71,6 @@
             #expect(dentist == Item(id: "c", title: "Dentist"))
         }
 
-        @Test func `a failing statement throws the call-level interface's diagnostic, with SQLite's result code`() async throws {
-            let database = try await Item.database()
-            await #expect(throws: ISO.`9075`.Error.self) {
-                try await database.write { connection in
-                    try Item.insert { Item(id: "a", title: "Duplicate") }.execute(connection)
-                }
-            }
-            do {
-                try await database.write { connection in
-                    try Item.insert { Item(id: "a", title: "Duplicate") }.execute(connection)
-                }
-                Issue.record("A duplicate primary key was inserted")
-            } catch let error as ISO.`9075`.Error {
-                guard case .diagnostic(let diagnostic) = error else {
-                    Issue.record("expected a diagnostic, got \(error)")
-                    return
-                }
-                #expect(diagnostic.state == .integrityConstraintViolation)
-                #expect(SQLite.Error.Code(diagnostic) == .primaryKeyConstraint)
-            }
-        }
-
         @Test func `a typed write throws the call-level interface's diagnostic, its state and its result code`() async throws {
             let database = try await Item.database()
             do throws(ISO.`9075`.Error) {
@@ -118,9 +96,6 @@
             #expect(items.map(\.id) == ["a", "b"])
             try await database.write { connection in
                 try Item.insert { Item(id: "c") }.execute(connection)
-            }
-            for _ in 0..<200 where items.count < 3 {
-                try await Task.sleep(for: .milliseconds(10))
             }
             #expect(items.map(\.id) == ["a", "b", "c"])
         }

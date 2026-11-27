@@ -16,11 +16,11 @@ import SQLite_SQL
     /// ```
     public struct FetchSubscription: Sendable {
         private let cancellable = Cancellable()
-        private let onCancel: @Sendable () -> Void
+        private let onCancel: @MainActor @Sendable () -> Void
 
         @MainActor
         init<Value>(store: FetchStore<Value>) {
-            onCancel = { Task { @MainActor in store.cancel() } }
+            onCancel = { store.cancel() }
         }
 
         /// An async handle to the given fetch observation.
@@ -36,8 +36,9 @@ import SQLite_SQL
                         for await _ in never {}
                     } onCancel: {
                         waiting.finish()
-                        onCancel()
                     }
+                    // The observation has ended when this handle throws its cancellation.
+                    await onCancel()
                     try Task.checkCancellation()
                 }
                 cancellable.task.withLock { $0 = task }

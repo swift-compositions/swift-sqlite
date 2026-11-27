@@ -1,6 +1,5 @@
 public import SQLite_SQL
 #if Observation
-    internal import GRDB
     public import SQL
 
     @MainActor
@@ -154,27 +153,6 @@ public import SQLite_SQL
             let ordered: Select<QueryValue, From, ()> = sectionedOrder(of: From.self, sectioning) + statement
             let sectioned: Select<(QueryValue, String?), From, ()> = ordered + sectionedColumn(of: From.self, sectioning)
             return try await load(Sectioned<QueryValue>(query: sectioned.query), database: database, scheduling: scheduler)
-        }
-    }
-
-    struct Unsectioned<QueryValue: QueryRepresentable>: FetchKeyRequest where QueryValue.QueryOutput: Sendable {
-        let query: ISO.`9075`.Fragment
-
-        func fetch(_ connection: SQLite.Connection) throws -> ResultsSectionCollection<QueryValue.QueryOutput, String?> {
-            ResultsSectionCollection(
-                elements: try Array(QueryValueCursor<QueryValue>(db: connection.database, query: query, cached: true)),
-                sectionName: nil
-            )
-        }
-    }
-
-    struct Sectioned<QueryValue: QueryRepresentable>: FetchKeyRequest where QueryValue.QueryOutput: Sendable {
-        let query: ISO.`9075`.Fragment
-
-        func fetch(_ connection: SQLite.Connection) throws -> ResultsSectionCollection<QueryValue.QueryOutput, String?> {
-            try ResultsSectionCollection(
-                cursor: QuerySectionedCursor<QueryValue, String?>(db: connection.database, query: query, cached: true)
-            )
         }
     }
 #endif

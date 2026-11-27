@@ -69,7 +69,7 @@ let package = Package(
             linkerSettings: [.linkedLibrary("sqlite3")]
         ),
         // The database: connections, execution and the writer and reader actors, over the driver in Sources/SQLite/Driver.
-        // What still runs on GRDB itself (observation, CloudKit) sits behind the GRDB trait and is not ported yet.
+        // What still runs on GRDB itself (cursors, CloudKit) sits behind the GRDB trait and is not ported yet.
         .target(
             name: "SQLite",
             dependencies: [
@@ -85,11 +85,11 @@ let package = Package(
                 .product(name: "Order", package: "swift-order"),
                 .product(name: "Time", package: "swift-time"),
                 .product(name: "RFC 4122", package: "swift-rfc-4122"),
-                .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["GRDB", "Observation", "CloudKit"])),
+                .product(name: "GRDB", package: "GRDB.swift", condition: .when(traits: ["GRDB", "CloudKit"])),
                 .product(
                     name: "OrderedCollections",
                     package: "swift-collections",
-                    condition: .when(traits: ["GRDB", "Observation", "CloudKit"])
+                    condition: .when(traits: ["GRDB", "CloudKit"])
                 ),
                 .product(name: "Tagged", package: "swift-tagged", condition: .when(traits: ["Tagged"])),
                 .product(name: "Dependencies", package: "swift-dependencies", condition: .when(traits: ["Dependencies"])),

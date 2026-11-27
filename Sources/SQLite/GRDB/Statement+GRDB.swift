@@ -46,31 +46,6 @@ public import SQLite_SQL
         }
     }
 
-    extension SQLite {
-        public struct NotFound: Swift.Error, Hashable, Sendable {
-            public init() {}
-        }
-    }
-
-    extension SelectStatement where QueryValue == (), From: SQL::PrimaryKeyedTable, Joins == () {
-        public func find(
-            _ connection: SQLite.Connection,
-            key primaryKey: some QueryExpression<From.PrimaryKey>
-        ) throws -> From.QueryOutput {
-            try translatingErrors { try find(connection.database, key: primaryKey) }
-        }
-
-        package func find(
-            _ db: GRDB.Database,
-            key primaryKey: some QueryExpression<From.PrimaryKey>
-        ) throws -> From.QueryOutput {
-            guard let record = try asSelect().find(primaryKey).fetch.one(db) else {
-                throw SQLite.NotFound()
-            }
-            return record
-        }
-    }
-
     extension SelectStatement where QueryValue == () {
         public func fetchCursor<each J: SQL::Table>(
             _ connection: SQLite.Connection

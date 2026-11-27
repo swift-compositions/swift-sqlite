@@ -146,9 +146,12 @@ extension SQLite {
             var task: UInt = 0
         }
 
+        /// `first` is the answer at registration. With `yieldsFirst` it is the sequence's first element; without, the
+        /// one that registers has it already, and the sequence starts at the next answer.
         init(
             isolation: any Actor,
             first: Value,
+            yieldsFirst: Bool = true,
             same: (@Sendable (Value, Value) -> Bool)?,
             body: @escaping @Sendable (borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> Value
         ) {
@@ -157,7 +160,7 @@ extension SQLite {
             self.same = same
             state.withLock { state in
                 state.last = first
-                state.latest = (0, .success(first))
+                if yieldsFirst { state.latest = (0, .success(first)) }
             }
         }
 

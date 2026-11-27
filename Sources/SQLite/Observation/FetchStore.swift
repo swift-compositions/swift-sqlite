@@ -1,9 +1,13 @@
 public import SQLite_SQL
 #if Observation
-    internal import GRDB
     public import ISO_9075_Call_Level_Interface
     public import Observation
 
+    /// The value of a request, kept up to date: the value when the store started, then the value each later write
+    /// leaves.
+    ///
+    /// When a write returns, every store that follows the database holds what was written: the write waits for the
+    /// store's loop on the main actor. A request whose value is `Equatable` changes the store only when its value does.
     @MainActor
     @Observable
     public final class FetchStore<Value: Sendable> {
@@ -11,12 +15,17 @@ public import SQLite_SQL
         public private(set) var loadError: ISO.`9075`.Error?
         public private(set) var isLoading = false
 
-        @ObservationIgnored
-        private var cancellable: AnyDatabaseCancellable?
+        /// One fetch of the request: its value, or the error reading it gave. A read that fails is an answer, so the
+        /// store keeps following after it.
+        typealias Answer = Result<Value, ISO.`9075`.Error>
 
-        /// The awaited `load`, until the first value or error arrives.
+        /// The loop over the followed read. It is the only task that asks the read for its next answer.
         @ObservationIgnored
-        private var loading: CheckedContinuation<Void, any Swift.Error>?
+        private var following: Task<Void, Never>?
+
+        /// Counts the starts, so that a start that was replaced while it waited knows it.
+        @ObservationIgnored
+        private var generation = 0
 
         public init(value: Value) {
             self.value = value
@@ -32,6 +41,10 @@ public import SQLite_SQL
             start(request, database: database, scheduling: scheduler)
         }
 
+        isolated deinit {
+            following?.cancel()
+        }
+
         /// Replaces the value with the request's and follows it, as sqlite-data's `load`: returns once the first value
         /// is in, or throws its error; the observation lasts until ``cancel()`` or the returned subscription is cancelled.
         @discardableResult
@@ -40,69 +53,112 @@ public import SQLite_SQL
             database: SQLite.Database,
             scheduling scheduler: SQLite.Scheduler = .immediate
         ) async throws -> FetchSubscription {
-            try await withCheckedThrowingContinuation { continuation in
-                loading?.resume(throwing: CancellationError())
-                loading = continuation
-                start(request, database: database, scheduling: scheduler)
+            let generation = begin()
+            let followed: (first: Answer, later: SQLite.Observation<Answer>)
+            do {
+                followed = try await database.following(same: Self.same, Self.body(request))
+            } catch {
+                // Read again after the wait: another start may have replaced this one.
+                guard generation == self.generation else { throw CancellationError() }
+                isLoading = false
+                loadError = error
+                throw error
             }
+            guard generation == self.generation else { throw CancellationError() }
+            receive(followed.first)
+            follow(followed.later, scheduling: scheduler)
+            if let loadError { throw loadError }
             return FetchSubscription(store: self)
         }
 
-        /// Starts following the request without waiting for its first value, as the property wrappers do.
+        /// Starts following the request with its first value in on return, as the property wrappers do. The first
+        /// value is read on the writer, on the caller's thread: it waits for a write that is running.
         func start(
             _ request: some FetchKeyRequest<Value>,
             database: SQLite.Database,
             scheduling scheduler: SQLite.Scheduler = .immediate
         ) {
-            cancellable?.cancel()
-            isLoading = true
-            cancellable = observe(request, database: database.writer, scheduling: scheduler.driver)
-        }
-
-        private func observe(
-            _ request: some FetchKeyRequest<Value>,
-            database: any DatabaseReader,
-            scheduling scheduler: some ValueObservationScheduler
-        ) -> AnyDatabaseCancellable {
-            ValueObservation
-                .tracking { database in
-                    Result { () throws(ISO.`9075`.Error) -> Value in
-                        do {
-                            return try request.fetch(SQLite.Connection(database))
-                        } catch let error as ISO.`9075`.Error {
-                            throw error
-                        } catch {
-                            throw .execution("\(SQLite.Error.translated(error))")
-                        }
-                    }
-                }
-                .start(in: database, scheduling: scheduler) { [weak self] error in
-                    MainActor.assumeIsolated { self?.receive(.failure(.execution("\(error)"))) }
-                } onChange: { [weak self] result in
-                    MainActor.assumeIsolated { self?.receive(result) }
-                }
+            _ = begin()
+            do throws(ISO.`9075`.Error) {
+                let followed = try database.following(on: MainActor.shared, same: Self.same, Self.body(request))
+                receive(followed.first)
+                follow(followed.later, scheduling: scheduler)
+            } catch {
+                isLoading = false
+                loadError = error
+            }
         }
 
         public func cancel() {
-            cancellable?.cancel()
-            cancellable = nil
+            generation += 1
+            following?.cancel()
+            following = nil
             isLoading = false
-            loading?.resume(throwing: CancellationError())
-            loading = nil
         }
 
-        private func receive(_ result: Result<Value, ISO.`9075`.Error>) {
+        private func begin() -> Int {
+            following?.cancel()
+            following = nil
+            generation += 1
+            isLoading = true
+            return generation
+        }
+
+        private func follow(_ answers: SQLite.Observation<Answer>, scheduling scheduler: SQLite.Scheduler) {
+            following = Task { [weak self] in
+                do throws(ISO.`9075`.Error) {
+                    for try await answer in answers {
+                        guard let self else { return }
+                        // Taken here, with no suspension: the write that waits returns after it.
+                        scheduler.deliver { self.receive(answer) }
+                    }
+                } catch {
+                    self?.loadError = error
+                }
+            }
+        }
+
+        private func receive(_ answer: Answer) {
             isLoading = false
-            switch result {
+            switch answer {
             case .success(let value):
                 self.value = value
                 loadError = nil
-                loading?.resume()
             case .failure(let error):
                 loadError = error
-                loading?.resume(throwing: error)
             }
-            loading = nil
+        }
+    }
+
+    extension FetchStore {
+        nonisolated static func body(
+            _ request: some FetchKeyRequest<Value>
+        ) -> @Sendable (borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> Answer {
+            { (connection: borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> Answer in
+                do throws(ISO.`9075`.Error) {
+                    return .success(try request.fetch(connection))
+                } catch {
+                    return .failure(error)
+                }
+            }
+        }
+
+        /// Whether two answers are the same, for a value that is `Equatable`; `nil` for one that is not, and then
+        /// every commit is an answer. Two errors are never the same.
+        nonisolated static var same: (@Sendable (Answer, Answer) -> Bool)? {
+            guard let equatable = Value.self as? any Equatable.Type else { return nil }
+            return comparison(equatable)
+        }
+
+        private nonisolated static func comparison<Compared: Equatable>(
+            _: Compared.Type
+        ) -> @Sendable (Answer, Answer) -> Bool {
+            { old, new in
+                guard case .success(let old) = old, case .success(let new) = new else { return false }
+                // Value is Compared: `comparison` is called with Value's own type.
+                guard let old = old as? Compared, let new = new as? Compared else { return false }
+                return old == new
+            }
         }
     }
 

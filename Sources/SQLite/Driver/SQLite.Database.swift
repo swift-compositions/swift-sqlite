@@ -126,7 +126,8 @@ extension SQLite.Database {
         _ scope: SQLite.Connection.Slot.Scope,
         _ body: sending (borrowing SQLite.Connection) throws(Thrown) -> sending Value
     ) async throws(ISO.`9075`.Failure<Thrown>) -> sending Value {
-        guard !hub.isEmpty else { return try await writer.run(scope, body) }
+        // Whether there is a followed read is decided on the writer, at the commit: a read that registered just
+        // before this write, on the writer, then gets this write's answer.
         let receipt = SQLite.Hub.Receipt(hub: hub)
         let value = try await writer.run(scope, publishing: receipt, body)
         await hub.settle(receipt)

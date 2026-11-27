@@ -20,7 +20,7 @@ let package = Package(
     ],
     traits: [
         .trait(name: "GRDB", description: "Connection, execution and decoding over GRDB"),
-        .trait(name: "Observation", description: "Observed fetches", enabledTraits: ["GRDB"]),
+        .trait(name: "Observation", description: "Observed fetches"),
         .trait(name: "CloudKit", description: "CloudKit synchronization", enabledTraits: ["GRDB", "Observation"]),
         .trait(name: "Tagged", description: "SQLite conformances for swift-atoms Tagged"),
         .trait(name: "Dependencies", description: "The ambient database as a dependency value", enabledTraits: ["GRDB"]),

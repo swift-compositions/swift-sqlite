@@ -1,0 +1,57 @@
+Swift version 6.4.2 (swift-6.4.2-RELEASE)
+Target: x86_64-unknown-linux-gnu
+Linux 6.18.44-fc-v880 x86_64
+
+== ./cases body 20000 (run 1)
+build: debug; about 20000 numbers per line; a post from outside waits for every listener, all handshakes together; a post from a loop body waits for nobody
+  1 listener whose body posts, 2 that do not: ended; 16254 posts from outside, 0 of them returned before every listener had handled their number; 3746 posts from loop bodies, 3651 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  2 listeners whose bodies post, 1 that does not: ended; 15823 posts from outside, 0 of them returned before every listener had handled their number; 4177 posts from loop bodies, 4094 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  3 listeners whose bodies post: ended; 15707 posts from outside, 0 of them returned before every listener had handled their number; 4293 posts from loop bodies, 4198 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  8 listeners whose bodies post: ended; 9454 posts from outside, 0 of them returned before every listener had handled their number; 10546 posts from loop bodies, 10507 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  2 listeners whose bodies post and suspend, 1 whose body suspends: ended; 16604 posts from outside, 0 of them returned before every listener had handled their number; 3396 posts from loop bodies, 3364 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  3 listeners whose bodies post and suspend: ended; 15941 posts from outside, 0 of them returned before every listener had handled their number; 4059 posts from loop bodies, 3975 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  3 listeners whose bodies post and suspend, 5 whose bodies suspend: ended; 15553 posts from outside, 0 of them returned before every listener had handled their number; 4447 posts from loop bodies, 4432 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+
+== ./cases child (run 1)
+build: debug; 2 listeners; the body of the first posts once, for number 1; the rule is: a post from a loop body waits for nobody
+  async let, awaited: the first post from outside returned; the body's post did NOT return within 2 s; the posting listener handled 1 and the other listener 3 of 3; a later post from outside did NOT return within 2 s
+  a task group child, awaited: the first post from outside returned; the body's post did NOT return within 2 s; the posting listener handled 1 and the other listener 3 of 3; a later post from outside did NOT return within 2 s
+  Task { }, awaited: the first post from outside returned; the body's post did NOT return within 2 s; the posting listener handled 1 and the other listener 3 of 3; a later post from outside did NOT return within 2 s
+  Task { }, not awaited: the first post from outside returned; the body's post returned; the posting listener handled 3 and the other listener 3 of 3; a later post from outside returned
+  no child task (the body's own task): the first post from outside returned; the body's post returned; the posting listener handled 3 and the other listener 3 of 3; a later post from outside returned
+
+== ./cases body 20000 (run 2)
+build: debug; about 20000 numbers per line; a post from outside waits for every listener, all handshakes together; a post from a loop body waits for nobody
+  1 listener whose body posts, 2 that do not: ended; 16262 posts from outside, 0 of them returned before every listener had handled their number; 3738 posts from loop bodies, 3634 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  2 listeners whose bodies post, 1 that does not: ended; 15855 posts from outside, 0 of them returned before every listener had handled their number; 4145 posts from loop bodies, 4087 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  3 listeners whose bodies post: ended; 15716 posts from outside, 0 of them returned before every listener had handled their number; 4284 posts from loop bodies, 4183 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  8 listeners whose bodies post: ended; 9942 posts from outside, 0 of them returned before every listener had handled their number; 10058 posts from loop bodies, 10032 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  2 listeners whose bodies post and suspend, 1 whose body suspends: ended; 16682 posts from outside, 0 of them returned before every listener had handled their number; 3318 posts from loop bodies, 3276 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  3 listeners whose bodies post and suspend: ended; 15958 posts from outside, 0 of them returned before every listener had handled their number; 4042 posts from loop bodies, 3965 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  3 listeners whose bodies post and suspend, 5 whose bodies suspend: ended; 15463 posts from outside, 0 of them returned before every listener had handled their number; 4537 posts from loop bodies, 4525 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+
+== ./cases child (run 2)
+build: debug; 2 listeners; the body of the first posts once, for number 1; the rule is: a post from a loop body waits for nobody
+  async let, awaited: the first post from outside returned; the body's post did NOT return within 2 s; the posting listener handled 1 and the other listener 3 of 3; a later post from outside did NOT return within 2 s
+  a task group child, awaited: the first post from outside returned; the body's post did NOT return within 2 s; the posting listener handled 1 and the other listener 3 of 3; a later post from outside did NOT return within 2 s
+  Task { }, awaited: the first post from outside returned; the body's post did NOT return within 2 s; the posting listener handled 1 and the other listener 3 of 3; a later post from outside did NOT return within 2 s
+  Task { }, not awaited: the first post from outside returned; the body's post returned; the posting listener handled 3 and the other listener 3 of 3; a later post from outside returned
+  no child task (the body's own task): the first post from outside returned; the body's post returned; the posting listener handled 3 and the other listener 3 of 3; a later post from outside returned
+
+== ./cases body 20000 (run 3)
+build: debug; about 20000 numbers per line; a post from outside waits for every listener, all handshakes together; a post from a loop body waits for nobody
+  1 listener whose body posts, 2 that do not: ended; 16280 posts from outside, 0 of them returned before every listener had handled their number; 3720 posts from loop bodies, 3588 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  2 listeners whose bodies post, 1 that does not: ended; 15870 posts from outside, 0 of them returned before every listener had handled their number; 4130 posts from loop bodies, 4067 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  3 listeners whose bodies post: ended; 15751 posts from outside, 0 of them returned before every listener had handled their number; 4249 posts from loop bodies, 4163 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  8 listeners whose bodies post: ended; 10015 posts from outside, 0 of them returned before every listener had handled their number; 9985 posts from loop bodies, 9944 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  2 listeners whose bodies post and suspend, 1 whose body suspends: ended; 16822 posts from outside, 0 of them returned before every listener had handled their number; 3178 posts from loop bodies, 3139 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  3 listeners whose bodies post and suspend: ended; 15946 posts from outside, 0 of them returned before every listener had handled their number; 4054 posts from loop bodies, 3981 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+  3 listeners whose bodies post and suspend, 5 whose bodies suspend: ended; 15485 posts from outside, 0 of them returned before every listener had handled their number; 4515 posts from loop bodies, 4505 of them returned before every other listener had handled their number; 0 numbers out of order; 0 listeners without the last number
+
+== ./cases child (run 3)
+build: debug; 2 listeners; the body of the first posts once, for number 1; the rule is: a post from a loop body waits for nobody
+  async let, awaited: the first post from outside returned; the body's post did NOT return within 2 s; the posting listener handled 1 and the other listener 3 of 3; a later post from outside did NOT return within 2 s
+  a task group child, awaited: the first post from outside returned; the body's post did NOT return within 2 s; the posting listener handled 1 and the other listener 3 of 3; a later post from outside did NOT return within 2 s
+  Task { }, awaited: the first post from outside returned; the body's post did NOT return within 2 s; the posting listener handled 1 and the other listener 3 of 3; a later post from outside did NOT return within 2 s
+  Task { }, not awaited: the first post from outside returned; the body's post returned; the posting listener handled 3 and the other listener 3 of 3; a later post from outside returned
+  no child task (the body's own task): the first post from outside returned; the body's post returned; the posting listener handled 3 and the other listener 3 of 3; a later post from outside returned

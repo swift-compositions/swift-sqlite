@@ -14,7 +14,9 @@ extension SQLite.Connection {
             let core = try Core(path: path, flags: flags)
             core.busy(timeout: configuration.busyTimeout)
             switch journal {
-            case .writeAheadLog: try core.run(script: "PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL")
+            case .writeAheadLog:
+                try core.run(script: "PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL")
+                try core.establishWriteAheadLog(at: path)
             case .asFound: break
             }
             try core.run(script: "PRAGMA foreign_keys = \(configuration.foreignKeysEnabled ? "ON" : "OFF")")

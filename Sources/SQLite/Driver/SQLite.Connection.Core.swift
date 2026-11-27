@@ -1,4 +1,11 @@
 internal import Byte
+#if canImport(Darwin)
+    internal import Darwin
+#elseif canImport(Glibc)
+    internal import Glibc
+#elseif canImport(Musl)
+    internal import Musl
+#endif
 internal import SQLite_Shims
 internal import ISO_9075_Call_Level_Interface
 internal import RFC_4122
@@ -88,6 +95,27 @@ extension SQLite.Connection.Core {
         guard let timeout else { return }
         let (seconds, attoseconds) = timeout.components
         unsafe sqlite3_busy_timeout(pointer, Int32(clamping: seconds * 1000 + attoseconds / 1_000_000_000_000_000))
+    }
+
+    /// Makes the write-ahead log the same on every platform, on the connection that writes.
+    ///
+    /// The log and its index are removed when the last connection closes: Apple's SQLite keeps them by default, and
+    /// this turns that off. And the log exists and is not empty before a reader opens: a read-only connection cannot
+    /// create it, and on Apple's SQLite it then fails with `SQLITE_CANTOPEN`.
+    func establishWriteAheadLog(at path: String) throws(SQLite.Error) {
+        var persistent: Int32 = 0
+        _ = unsafe sqlite3_file_control(pointer, nil, SQLITE_FCNTL_PERSIST_WAL, &persistent)
+        var status = stat()
+        if unsafe stat(path + "-wal", &status) != 0 || status.st_size == 0 {
+            try run(
+                script: """
+                    BEGIN IMMEDIATE TRANSACTION;
+                    CREATE TABLE "swift_sqlite_wal_setup" ("id" INTEGER PRIMARY KEY);
+                    DROP TABLE "swift_sqlite_wal_setup";
+                    COMMIT TRANSACTION
+                    """
+            )
+        }
     }
 
     /// Steps `rendering` to its end, giving each row to `body`.

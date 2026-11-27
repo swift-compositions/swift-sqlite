@@ -27,6 +27,9 @@ extension SQLite {
         /// Holds the `-shm` file of a read-only database that had none: only a connection that can write creates it.
         let holder: SQLite.Connection.Slot?
 
+        /// The followed reads of this database.
+        let hub = SQLite.Hub()
+
         /// The path of the database file; for a database in memory, `:memory:`.
         // swift-linter:disable:next raw concept
         // REASON: SQLite's name of the database location: a file path, or :memory: for a database with no file, which File.Path does not describe.
@@ -105,7 +108,7 @@ extension SQLite.Database {
     public nonisolated(nonsending) func write<Value, Thrown: Swift.Error>(
         _ body: sending (borrowing SQLite.Connection) throws(Thrown) -> sending Value
     ) async throws(ISO.`9075`.Failure<Thrown>) -> sending Value {
-        try await writer.run(.write, body)
+        try await publishing(.write, body)
     }
 
     @_disfavoredOverload
@@ -113,6 +116,21 @@ extension SQLite.Database {
         _ body: sending (borrowing SQLite.Connection) throws(Thrown) -> sending Value
     ) async throws(ISO.`9075`.Failure<Thrown>) -> sending Value {
         try await writer.run(.rollback, body)
+    }
+}
+
+extension SQLite.Database {
+    /// Runs `body` on the writer in `scope`. With followed reads, the writer publishes their new answers after the
+    /// commit, and this returns when each listener has run its loop body for them.
+    nonisolated(nonsending) func publishing<Value, Thrown: Swift.Error>(
+        _ scope: SQLite.Connection.Slot.Scope,
+        _ body: sending (borrowing SQLite.Connection) throws(Thrown) -> sending Value
+    ) async throws(ISO.`9075`.Failure<Thrown>) -> sending Value {
+        guard !hub.isEmpty else { return try await writer.run(scope, body) }
+        let receipt = SQLite.Hub.Receipt(hub: hub)
+        let value = try await writer.run(scope, publishing: receipt, body)
+        await hub.settle(receipt)
+        return value
     }
 }
 
@@ -125,14 +143,14 @@ extension SQLite.Database {
     public nonisolated(nonsending) func writeWithoutTransaction<Value, Thrown: Swift.Error>(
         _ body: sending (borrowing SQLite.Connection) throws(Thrown) -> sending Value
     ) async throws(ISO.`9075`.Failure<Thrown>) -> sending Value {
-        try await writer.run(.bare, body)
+        try await publishing(.bare, body)
     }
 
     public nonisolated(nonsending) func writeWithoutTransaction<Value>(
         _ body: sending (borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> sending Value
     ) async throws(ISO.`9075`.Error) -> sending Value {
         do throws(ISO.`9075`.Failure<ISO.`9075`.Error>) {
-            return try await writer.run(.bare, body)
+            return try await publishing(.bare, body)
         } catch {
             throw error.error
         }

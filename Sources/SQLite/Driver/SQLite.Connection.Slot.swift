@@ -58,6 +58,7 @@ extension SQLite.Connection.Slot {
     /// `sending`: neither has to be Sendable, and neither can keep the connection.
     func run<Value, Thrown: Swift.Error>(
         _ scope: Scope,
+        publishing receipt: SQLite.Hub.Receipt? = nil,
         _ body: sending (borrowing SQLite.Connection) throws(Thrown) -> sending Value
     ) throws(ISO.`9075`.Failure<Thrown>) -> sending Value {
         if Task.isCancelled { throw .database(ISO.`9075`.Error(SQLite.Error.cancelled)) }
@@ -81,6 +82,8 @@ extension SQLite.Connection.Slot {
                 scope.abandon(live)
                 throw .database(ISO.`9075`.Error(error))
             }
+            // Committed. The followed reads are read again here, on the writer, so their answers are in commit order.
+            if let receipt, !live.isInsideTransaction { receipt.hub.publish(on: live, into: receipt) }
             return value
         }
     }

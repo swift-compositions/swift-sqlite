@@ -1,5 +1,5 @@
 import SQLite_SQL
-package import Byte
+internal import Byte
 
 extension Swift.Array where Element == Byte {
     /// A copy of the bytes in `raw`, made in one pass.
@@ -9,7 +9,7 @@ extension Swift.Array where Element == Byte {
     /// A per-element `Byte(bitPattern:)` map costs a call per byte, which on a
     /// multi-megabyte blob dominated every read.
     @unsafe
-    package init(copying raw: UnsafeRawBufferPointer) {
+    init(copying raw: UnsafeRawBufferPointer) {
         self = unsafe Swift.Array(unsafeUninitializedCapacity: raw.count) { buffer, count in
             unsafe UnsafeMutableRawBufferPointer(buffer).copyMemory(from: raw)
             count = raw.count

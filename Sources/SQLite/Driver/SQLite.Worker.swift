@@ -21,9 +21,10 @@ extension SQLite {
 
         func run<Value, Thrown: Swift.Error>(
             _ scope: SQLite.Connection.Slot.Scope,
+            publishing receipt: SQLite.Hub.Receipt? = nil,
             _ body: sending (borrowing SQLite.Connection) throws(Thrown) -> sending Value
         ) throws(ISO.`9075`.Failure<Thrown>) -> sending Value {
-            try slot.run(scope, body)
+            try slot.run(scope, publishing: receipt, body)
         }
 
         func restore(from source: SQLite.Connection.Slot) throws(SQLite.Error) {

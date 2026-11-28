@@ -37,6 +37,9 @@ extension SQLite.Connection {
         /// scope begins. The driver's own statements, such as the ones that begin and end a transaction, are not in it.
         var footprint = SQLite.Footprint()
 
+        /// How many pages the write-ahead log held after the last commit, once ``followLog()`` was called.
+        var logged = 0
+
         /// The lowest SQLite the driver runs on: 3.29.0, the first that can refuse double-quoted string literals.
         static let lowestVersion: Int32 = 3_029_000
 
@@ -108,6 +111,7 @@ extension SQLite.Connection {
         deinit {
             for unsafe statement in unsafe statements.values { unsafe sqlite3_finalize(statement.pointer) }
             unsafe sqlite3_progress_handler(pointer, 0, nil, nil)
+            unsafe sqlite3_wal_hook(pointer, nil, nil)
             unsafe sqlite3_set_authorizer(pointer, nil, nil)
             unsafe sqlite3_close_v2(pointer)
         }
@@ -189,6 +193,34 @@ extension SQLite.Connection.Core {
         guard let timeout else { return }
         let (seconds, attoseconds) = timeout.components
         unsafe sqlite3_busy_timeout(pointer, Int32(clamping: seconds * 1000 + attoseconds / 1_000_000_000_000_000))
+    }
+
+    /// Sets the page count of the log at which SQLite copies it back in the write that commits; zero for never.
+    func checkpointAutomatically(at pages: Int) {
+        unsafe sqlite3_wal_autocheckpoint(pointer, Int32(clamping: max(0, pages)))
+    }
+
+    /// Has SQLite report the size of the log after each commit, into ``logged``. It takes the place of SQLite's
+    /// automatic checkpoint, which uses the same hook.
+    func followLog() {
+        unsafe sqlite3_wal_hook(
+            pointer,
+            { context, _, _, pages in
+                guard let context = unsafe context else { return SQLITE_OK }
+                unsafe Unmanaged<SQLite.Connection.Core>.fromOpaque(context).takeUnretainedValue().logged = Int(pages)
+                return SQLITE_OK
+            },
+            unsafe Unmanaged.passUnretained(self).toOpaque()
+        )
+    }
+
+    /// Copies the log back into the database file, as far as the readers allow, and does not wait for them. A
+    /// cancelled task does not interrupt it. A log that was copied whole starts again at the next write. When another
+    /// connection is copying the log, this does nothing.
+    func checkpoint() {
+        shielded = true
+        defer { shielded = false }
+        _ = unsafe sqlite3_wal_checkpoint_v2(pointer, nil, SQLITE_CHECKPOINT_PASSIVE, nil, nil)
     }
 
     /// Makes the write-ahead log the same on every platform, on the connection that writes.

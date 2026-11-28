@@ -27,6 +27,10 @@ extension SQLite {
         /// Holds the `-shm` file of a read-only database that had none: only a connection that can write creates it.
         let holder: SQLite.Connection.Slot?
 
+        /// The worker that copies the write-ahead log back beside the writer, on a connection of its own; `nil`
+        /// unless the configuration asks for ``SQLite/Configuration/Checkpoint/concurrent(pages:limit:)``.
+        let checkpointer: SQLite.Worker?
+
         /// The followed reads of this database.
         let hub = SQLite.Hub()
 
@@ -44,6 +48,7 @@ extension SQLite {
                 journal: .asFound
             )
             self.writer = SQLite.Worker(slot: slot)
+            self.checkpointer = nil
             self.readers = nil
             self.direct = slot
             self.holder = nil
@@ -77,7 +82,25 @@ extension SQLite {
                 configuration: configuration,
                 journal: configuration.readonly ? .asFound : .writeAheadLog
             )
-            self.writer = SQLite.Worker(slot: writer)
+            var checkpointer: SQLite.Worker?
+            if case .concurrent = configuration.checkpoint, !configuration.readonly {
+                var plain = SQLite.Configuration()
+                plain.busyTimeout = configuration.busyTimeout
+                let slot = try SQLite.Connection.Slot(
+                    path: path, flags: SQLITE_OPEN_READWRITE, configuration: plain, journal: .asFound)
+                // A connection learns that the database has a write-ahead log when it first reads it; until then
+                // its checkpoint does nothing.
+                do throws(ISO.`9075`.Failure<ISO.`9075`.Error>) {
+                    try slot.run(.read) { (connection: borrowing SQLite.Connection) throws(ISO.`9075`.Error) in
+                        _ = try connection.fetchAll("SELECT 1 FROM sqlite_master LIMIT 1") { _ in () }
+                    }
+                } catch {
+                    throw SQLite.Error(error.error)
+                }
+                checkpointer = SQLite.Worker(slot: slot)
+            }
+            self.checkpointer = checkpointer
+            self.writer = SQLite.Worker(slot: writer, checkpointer: checkpointer)
             self.readers = SQLite.Readers(path: path, configuration: configuration)
             self.direct = try SQLite.Readers.slot(path: path, configuration: configuration)
             self.holder = holder
@@ -190,6 +213,11 @@ extension SQLite.Database {
         try writer.slot.run(.write, body)
     }
 
+    /// Returns when no copy of the write-ahead log that an earlier write started is running. For tests.
+    package nonisolated(nonsending) func checkpointsSettled() async {
+        await writer.settled()
+    }
+
     /// Copies every page of this database into `destination`, replacing what it held. Runs on `destination`'s writer.
     public nonisolated(nonsending) func backup(to destination: SQLite.Database) async throws(SQLite.Error) {
         try await destination.writer.restore(from: direct)
@@ -201,6 +229,7 @@ extension SQLite.Database {
     public func close() {
         readers?.close()
         direct.close()
+        checkpointer?.slot.close()
         writer.slot.close()
         holder?.close()
     }

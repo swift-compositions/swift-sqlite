@@ -10,14 +10,45 @@ extension SQLite.Connection {
     final class Slot: Sendable {
         private let core: Mutex<Core?>
 
+        /// The log's page count at which the write that commits copies the log back; `nil` when the driver does
+        /// not checkpoint on this connection.
+        private let limit: Int?
+
+        /// The log's page count from which the log is copied back beside the writer; `nil` as ``limit`` is.
+        let threshold: Int?
+
+        /// How many pages the log held after the last commit on this connection, when the driver checkpoints on it.
+        let logged = Atomic<Int>(0)
+
         init(path: String, flags: Int32, configuration: SQLite.Configuration, journal: Journal) throws(SQLite.Error) {
             let core = try Core(path: path, flags: flags)
             core.busy(timeout: configuration.busyTimeout)
+            var limit: Int?
+            var threshold: Int?
             switch journal {
             case .writeAheadLog:
                 try core.control("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL")
                 try core.establishWriteAheadLog(at: path)
+                switch configuration.checkpoint {
+                case nil: break
+                case .automatic(let pages): core.checkpointAutomatically(at: pages)
+                case .concurrent(let pages, let most):
+                    core.checkpointAutomatically(at: 0)
+                    core.followLog()
+                    threshold = max(1, pages)
+                    limit = max(1, pages, most)
+                }
             case .asFound: break
+            }
+            self.limit = limit
+            self.threshold = threshold
+            if let bytes = configuration.memoryMappedByteCount {
+                try core.control("PRAGMA mmap_size = \(max(0, bytes))")
+            }
+            switch configuration.cache {
+            case nil: break
+            case .pages(let pages): try core.control("PRAGMA cache_size = \(max(0, pages))")
+            case .kibibytes(let kibibytes): try core.control("PRAGMA cache_size = -\(max(0, kibibytes))")
             }
             try core.control("PRAGMA foreign_keys = \(configuration.foreignKeysEnabled ? "ON" : "OFF")")
             for preparation in configuration.preparations {
@@ -85,7 +116,25 @@ extension SQLite.Connection.Slot {
             }
             // Committed. The followed reads are read again here, on the writer, so their answers are in commit order.
             if let receipt, !live.isInsideTransaction { receipt.hub.publish(on: live, into: receipt) }
+            if let limit {
+                // The copy beside the writer did not keep up: this write copies the log back, as SQLite's automatic
+                // checkpoint would.
+                if live.logged >= limit, !live.isInsideTransaction {
+                    live.checkpoint()
+                    live.logged = 0
+                }
+                logged.store(live.logged, ordering: .relaxed)
+            }
             return value
+        }
+    }
+
+    /// Copies the write-ahead log back into the database file, as far as the readers allow. Does nothing on a slot
+    /// that is closed.
+    func checkpoint() {
+        core.withLock { (core: inout sending SQLite.Connection.Core?) in
+            guard let live = core else { return }
+            live.checkpoint()
         }
     }
 

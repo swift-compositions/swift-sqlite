@@ -3,6 +3,7 @@
 //     swift run -c release "SQLite Benchmark"
 //
 // With names after it, only those groups run: followed, reads, fetches, hops, rows, binds, tail.
+// The tail group runs each checkpoint policy twice: writes with no pause, and in bursts.
 //
 // It prints one line per variant. It asserts nothing: the numbers are for a reader to compare within one run. A
 // variant that loops runs its loop five times and prints the fastest, because other work on the machine slows a run
@@ -241,15 +242,24 @@ func binds() async throws {
 
 // MARK: - The slowest write: where a checkpoint falls
 
-func writeTail(_ count: Int) async throws {
-    let database = try SQLite.Database(path: scratch())
+/// Writes with no pause between them, or in bursts of 50 with 2 ms between the bursts.
+func writeTail(
+    _ count: Int, _ variant: String, pragmas: String? = nil, checkpoint: SQLite.Configuration.Checkpoint? = nil, bursts: Bool = false
+) async throws {
+    var configuration = SQLite.Configuration()
+    configuration.checkpoint = checkpoint
+    if let pragmas {
+        configuration.prepareDatabase { connection throws(ISO.`9075`.Error) in try connection.execute(script: pragmas) }
+    }
+    let database = try SQLite.Database(path: scratch(), configuration: configuration)
     try await database.write { connection throws(ISO.`9075`.Error) in
         try connection.execute(script: "CREATE TABLE entry (id INTEGER PRIMARY KEY, body TEXT)")
     }
     let body = String(repeating: "y", count: 2_048)
     var each: [Duration] = []
     each.reserveCapacity(count)
-    for _ in 0..<count {
+    for index in 0..<count {
+        if bursts, index % 50 == 49 { try await Task.sleep(for: .milliseconds(2)) }
         let start = clock.now
         try await database.write { connection throws(ISO.`9075`.Error) in
             try connection.execute(sql: "INSERT INTO entry (body) VALUES (?)", arguments: [body])
@@ -257,9 +267,19 @@ func writeTail(_ count: Int) async throws {
         each.append(clock.now - start)
     }
     each.sort()
-    report("\(count) writes of 2 KB, one transaction each", "median", operations: 1, each[count / 2])
-    report("\(count) writes of 2 KB, one transaction each", "99th percentile", operations: 1, each[count * 99 / 100])
-    report("\(count) writes of 2 KB, one transaction each", "slowest", operations: 1, each[count - 1])
+    let name = "\(count) writes of 2 KB\(bursts ? " in bursts of 50" : ""), \(variant)"
+    report(name, "median", operations: 1, each[count / 2])
+    report(name, "99th percentile", operations: 1, each[count * 99 / 100])
+    report(name, "5th slowest", operations: 1, each[count - 5])
+    report(name, "slowest", operations: 1, each[count - 1])
+    let slow = each.filter { $0 > .milliseconds(1) }.count
+    print("\(name) | writes over 1 ms | \(slow)")
+    // One checkpoint of what the log holds now, timed alone.
+    let start = clock.now
+    try await database.writeWithoutTransaction { connection throws(ISO.`9075`.Error) in
+        try connection.execute(script: "PRAGMA wal_checkpoint(PASSIVE)")
+    }
+    report(name, "one checkpoint afterwards", operations: 1, clock.now - start)
     database.close()
 }
 
@@ -452,4 +472,12 @@ if runs("fetches") { try await fetchCosts(20_000) }
 if runs("hops") { try await hopCosts(20_000) }
 if runs("rows") { try await rows(100_000) }
 if runs("binds") { try await binds() }
-if runs("tail") { try await writeTail(5_000) }
+if runs("tail") {
+    let beside = SQLite.Configuration.Checkpoint.concurrent(pages: 1_000, limit: 10_000)
+    for bursts in [false, true] {
+        try await writeTail(5_000, "as the system has it", bursts: bursts)
+        try await writeTail(5_000, "no checkpoint full sync", pragmas: "PRAGMA checkpoint_fullfsync = 0", bursts: bursts)
+        try await writeTail(5_000, "no automatic checkpoint", checkpoint: .automatic(pages: 0), bursts: bursts)
+        try await writeTail(5_000, "checkpoint beside the writer, from 1,000 pages", checkpoint: beside, bursts: bursts)
+    }
+}

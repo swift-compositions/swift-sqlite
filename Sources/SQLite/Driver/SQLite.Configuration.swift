@@ -18,6 +18,23 @@ extension SQLite {
         /// default. They open as reads need them.
         public var maximumReaderCount = 5
 
+        /// When the write-ahead log of a database with a file is copied back into the file. `nil`, the default,
+        /// leaves it as the system's SQLite has it: on Apple platforms, by the write that brings the log to 1,000
+        /// pages. A database in memory and a read-only one have no log to copy. A `PRAGMA wal_autocheckpoint` in
+        /// ``prepareDatabase(_:)`` replaces it.
+        public var checkpoint: Checkpoint?
+
+        /// The most bytes of the database file that each connection reads through a memory mapping in place of
+        /// a copy. `nil`, the default, leaves it as the system's SQLite has it: on Apple platforms, none. The
+        /// system's SQLite has a limit of its own (on Apple platforms 1 GB) and maps no more than that. An I/O
+        /// error on a mapped file cannot be caught: it ends the process.
+        public var memoryMappedByteCount: Int?
+
+        /// How much of the database each connection keeps in memory. `nil`, the default, leaves it as the
+        /// system's SQLite has it. Every connection has a cache of its own: the writer, each reader, and the
+        /// one of the synchronous read.
+        public var cache: Cache?
+
         var preparations: [@Sendable (borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> Void] = []
 
         public init() {}

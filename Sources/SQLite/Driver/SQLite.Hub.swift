@@ -81,11 +81,11 @@ extension SQLite.Hub {
         }
         guard !followers.isEmpty else { return }
         // A followed read only reads: the writer's connection refuses a write for as long as they run.
-        try? core.control("PRAGMA query_only = 1")
+        core.guarded = true
         for follower in followers {
             if let settlement = follower.refresh(on: core, number: number) { receipt.add(settlement) }
         }
-        try? core.control("PRAGMA query_only = 0")
+        core.guarded = false
     }
 
     /// Called by `write` after its commit, on the caller's isolation.

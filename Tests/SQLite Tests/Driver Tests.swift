@@ -91,6 +91,40 @@ extension `Driver Tests`.Scopes {
         #expect(try await count(database) == 0)
     }
 
+    @Test func `a read in memory refuses every way to write, and the connection writes again afterwards`() async throws {
+        let database = try await items(in: SQLite.Database())
+        let writes = [
+            "INSERT INTO item (name) VALUES ('a')", "CREATE TABLE other (id INTEGER PRIMARY KEY)", "PRAGMA user_version = 3",
+            "DELETE FROM item",
+        ]
+        for sql in writes {
+            for script in [false, true] {
+                let error = await #expect(throws: ISO.`9075`.Error.self) {
+                    try await database.read { connection throws(ISO.`9075`.Error) in
+                        if script { try connection.execute(script: sql) } else { try connection.execute(sql: sql) }
+                    }
+                }
+                #expect(error.flatMap(SQLite.Error.Code.init).map(SQLite.Error.Code.init(primary:)) == .readonly)
+                let synchronous = #expect(throws: ISO.`9075`.Error.self) {
+                    try Self.synchronously(database, sql, script: script)
+                }
+                #expect(synchronous.flatMap(SQLite.Error.Code.init).map(SQLite.Error.Code.init(primary:)) == .readonly)
+            }
+        }
+        let version = try await database.write { connection throws(ISO.`9075`.Error) in
+            try connection.execute(script: "INSERT INTO item (name) VALUES ('b')")
+            return try Int.fetchOne(connection, sql: "PRAGMA user_version")
+        }
+        #expect(version == 0)
+        #expect(try await count(database) == 1)
+    }
+
+    private static func synchronously(_ database: SQLite.Database, _ sql: String, script: Bool) throws(ISO.`9075`.Error) {
+        try database.read { connection throws(ISO.`9075`.Error) in
+            if script { try connection.execute(script: sql) } else { try connection.execute(sql: sql) }
+        }
+    }
+
     @Test func `a read refuses a write, in memory and in a file`() async throws {
         for database in [try SQLite.Database(), try SQLite.Database(path: Scratch.path())] {
             _ = try await items(in: database)

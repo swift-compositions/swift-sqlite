@@ -37,6 +37,11 @@ extension SQLite.Connection {
         /// scope begins. The driver's own statements, such as the ones that begin and end a transaction, are not in it.
         var footprint = SQLite.Footprint()
 
+        /// True while the scope that runs may only read, on a connection that can write: a statement that could change
+        /// the database is refused before it steps, as `PRAGMA query_only` would refuse it. The pragma itself costs a
+        /// compilation each time it is set, which a read on a database in memory paid twice.
+        var guarded = false
+
         /// How many pages the write-ahead log held after the last commit, once ``followLog()`` was called.
         var logged = 0
 
@@ -134,6 +139,11 @@ extension SQLite.Connection.Core {
             shielded = false
             footprint.formUnion(pending)
             pending = SQLite.Footprint()
+        }
+        // SQLite runs a script's statements itself, so the driver cannot ask each whether it only reads.
+        if guarded { _ = unsafe sqlite3_exec(pointer, "PRAGMA query_only = 1", nil, nil, nil) }
+        defer {
+            if guarded { _ = unsafe sqlite3_exec(pointer, "PRAGMA query_only = 0", nil, nil, nil) }
         }
         guard unsafe sqlite3_exec(pointer, script, nil, nil, nil) == SQLITE_OK else {
             throw unsafe SQLite.Error(connection: pointer, statement: script)
@@ -282,6 +292,10 @@ extension SQLite.Connection.Core {
             } else {
                 unsafe sqlite3_finalize(statement)
             }
+        }
+        if guarded, unsafe sqlite3_stmt_readonly(statement) == 0 {
+            throw ISO.`9075`.Error(
+                SQLite.Error(extendedCode: .readonly, message: "attempt to write a readonly database", statement: sql))
         }
         for (index, value) in zip(Int32(1)..., rendering.values) {
             let code = unsafe try value.bind(to: statement, at: index)

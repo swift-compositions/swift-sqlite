@@ -171,8 +171,8 @@ extension SQLite.Connection.Slot.Scope {
         switch self {
         case .read: try core.transact("BEGIN DEFERRED TRANSACTION")
         case .guardedRead:
-            try core.control("PRAGMA query_only = 1")
             try core.transact("BEGIN DEFERRED TRANSACTION")
+            core.guarded = true
         case .write, .rollback: try core.transact("BEGIN IMMEDIATE TRANSACTION")
         case .bare: break
         }
@@ -182,8 +182,8 @@ extension SQLite.Connection.Slot.Scope {
         switch self {
         case .read, .write: try core.transact("COMMIT TRANSACTION")
         case .guardedRead:
+            core.guarded = false
             try core.transact("COMMIT TRANSACTION")
-            try core.control("PRAGMA query_only = 0")
         case .rollback: try core.transact("ROLLBACK TRANSACTION")
         case .bare: break
         }
@@ -191,8 +191,8 @@ extension SQLite.Connection.Slot.Scope {
 
     /// Leaves the connection as the next scope expects it, after a body or a commit that failed.
     fileprivate func abandon(_ core: SQLite.Connection.Core) {
+        core.guarded = false
         if case .bare = self { return }
         if core.isInsideTransaction { try? core.transact("ROLLBACK TRANSACTION") }
-        if case .guardedRead = self { try? core.control("PRAGMA query_only = 0") }
     }
 }

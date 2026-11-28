@@ -18,6 +18,10 @@ extension SQLite {
         /// The copy of the log that runs on ``checkpointer``; `nil` when none runs.
         private var copying: Task<Void, Never>?
 
+        /// How many pages the log held when the last copy started: the next one starts when the log has grown by the
+        /// threshold since, so that a log that does not start again is not copied after every write.
+        private var copied = 0
+
         init(slot: SQLite.Connection.Slot, checkpointer: Worker? = nil) {
             self.executor = Kernel.Thread.Executor()
             self.slot = slot
@@ -34,12 +38,16 @@ extension SQLite {
             _ body: sending (borrowing SQLite.Connection) throws(Thrown) -> sending Value
         ) throws(ISO.`9075`.Failure<Thrown>) -> sending Value {
             defer {
-                if let checkpointer, let threshold = slot.threshold, copying == nil,
-                    slot.logged.load(ordering: .relaxed) >= threshold
-                {
-                    copying = Task {
-                        await checkpointer.checkpoint()
-                        self.copying = nil
+                if let checkpointer, let threshold = slot.threshold, copying == nil {
+                    let logged = slot.logged.load(ordering: .relaxed)
+                    // A log that is shorter than it was has started again.
+                    if logged < copied { copied = 0 }
+                    if logged - copied >= threshold {
+                        copied = logged
+                        copying = Task {
+                            await checkpointer.checkpoint()
+                            self.copying = nil
+                        }
                     }
                 }
             }

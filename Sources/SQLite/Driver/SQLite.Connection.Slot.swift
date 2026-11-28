@@ -34,7 +34,7 @@ extension SQLite.Connection {
                 case .automatic(let pages): core.checkpointAutomatically(at: pages)
                 case .concurrent(let pages, let most):
                     core.checkpointAutomatically(at: 0)
-                    core.followLog()
+                    core.followLog(attachedAt: pages)
                     threshold = max(1, pages)
                     limit = max(1, pages, most)
                 }

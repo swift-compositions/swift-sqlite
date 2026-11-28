@@ -40,6 +40,9 @@ extension SQLite.Connection {
         /// How many pages the write-ahead log held after the last commit, once ``followLog()`` was called.
         var logged = 0
 
+        /// The page count at which an attached database's log is copied back, once ``followLog(attachedAt:)`` was called.
+        private var attachedThreshold: Int32 = 1_000
+
         /// The lowest SQLite the driver runs on: 3.29.0, the first that can refuse double-quoted string literals.
         static let lowestVersion: Int32 = 3_029_000
 
@@ -200,14 +203,23 @@ extension SQLite.Connection.Core {
         unsafe sqlite3_wal_autocheckpoint(pointer, Int32(clamping: max(0, pages)))
     }
 
-    /// Has SQLite report the size of the log after each commit, into ``logged``. It takes the place of SQLite's
-    /// automatic checkpoint, which uses the same hook.
-    func followLog() {
+    /// Has SQLite report the size of the log after each commit, in place of its automatic checkpoint, which uses the
+    /// same hook. The size of the main database's log goes into ``logged``. An attached database's log is copied back
+    /// here, in the write that commits, once it holds `pages` pages: nothing else copies it.
+    func followLog(attachedAt pages: Int) {
+        attachedThreshold = Int32(clamping: max(1, pages))
         unsafe sqlite3_wal_hook(
             pointer,
-            { context, _, _, pages in
+            { context, connection, name, pages in
                 guard let context = unsafe context else { return SQLITE_OK }
-                unsafe Unmanaged<SQLite.Connection.Core>.fromOpaque(context).takeUnretainedValue().logged = Int(pages)
+                let core = unsafe Unmanaged<SQLite.Connection.Core>.fromOpaque(context).takeUnretainedValue()
+                if let name = unsafe name, unsafe strcmp(name, "main") != 0 {
+                    if pages >= core.attachedThreshold {
+                        _ = unsafe sqlite3_wal_checkpoint_v2(connection, name, SQLITE_CHECKPOINT_PASSIVE, nil, nil)
+                    }
+                } else {
+                    core.logged = Int(pages)
+                }
                 return SQLITE_OK
             },
             unsafe Unmanaged.passUnretained(self).toOpaque()
@@ -220,7 +232,7 @@ extension SQLite.Connection.Core {
     func checkpoint() {
         shielded = true
         defer { shielded = false }
-        _ = unsafe sqlite3_wal_checkpoint_v2(pointer, nil, SQLITE_CHECKPOINT_PASSIVE, nil, nil)
+        _ = unsafe sqlite3_wal_checkpoint_v2(pointer, "main", SQLITE_CHECKPOINT_PASSIVE, nil, nil)
     }
 
     /// Makes the write-ahead log the same on every platform, on the connection that writes.

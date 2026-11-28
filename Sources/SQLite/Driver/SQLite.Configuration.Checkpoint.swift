@@ -9,6 +9,7 @@ extension SQLite.Configuration {
         /// log back, while the writer goes on: no write waits for the copy. Under writes without a pause the copy may
         /// never reach the end of the log, so at `limit` pages the write that commits copies the log back before it
         /// returns, as ``automatic(pages:)`` does.
+        /// The log of an attached database is copied back by the write that brings it to `pages` pages.
         case concurrent(pages: Int, limit: Int)
     }
 }

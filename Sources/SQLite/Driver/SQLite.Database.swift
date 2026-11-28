@@ -86,17 +86,10 @@ extension SQLite {
             if case .concurrent = configuration.checkpoint, !configuration.readonly {
                 var plain = SQLite.Configuration()
                 plain.busyTimeout = configuration.busyTimeout
+                // As the writer's: its first read tells it that the database has a write-ahead log, without which
+                // its checkpoint does nothing, and it does not keep the log's files when it is the last to close.
                 let slot = try SQLite.Connection.Slot(
-                    path: path, flags: SQLITE_OPEN_READWRITE, configuration: plain, journal: .asFound)
-                // A connection learns that the database has a write-ahead log when it first reads it; until then
-                // its checkpoint does nothing.
-                do throws(ISO.`9075`.Failure<ISO.`9075`.Error>) {
-                    try slot.run(.read) { (connection: borrowing SQLite.Connection) throws(ISO.`9075`.Error) in
-                        _ = try connection.fetchAll("SELECT 1 FROM sqlite_master LIMIT 1") { _ in () }
-                    }
-                } catch {
-                    throw SQLite.Error(error.error)
-                }
+                    path: path, flags: SQLITE_OPEN_READWRITE, configuration: plain, journal: .writeAheadLog)
                 checkpointer = SQLite.Worker(slot: slot)
             }
             self.checkpointer = checkpointer

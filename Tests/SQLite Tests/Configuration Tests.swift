@@ -84,15 +84,35 @@ extension `Configuration Tests`.Checkpoints {
         let (keeping, copying) = (
             try SQLite.Database(path: kept, configuration: never), try SQLite.Database(path: copied, configuration: beside)
         )
-        defer {
-            keeping.close()
-            copying.close()
-        }
         try await fill(keeping)
         try await fill(copying)
         await copying.checkpointsSettled()
         #expect(try size(kept) <= 8_192)
         #expect(try size(copied) >= 200_000)
+        keeping.close()
+        copying.close()
+        #expect(!FileManager.default.fileExists(atPath: copied.string + "-wal"))
+        #expect(!FileManager.default.fileExists(atPath: copied.string + "-shm"))
+    }
+
+    @Test func `the log of an attached database is copied back by the write that fills it`() async throws {
+        var configuration = SQLite.Configuration()
+        configuration.checkpoint = .concurrent(pages: 10, limit: 1_000_000)
+        let (path, attached) = (try Scratch.path(), try Scratch.path("attached.sqlite"))
+        let database = try SQLite.Database(path: path, configuration: configuration)
+        defer { database.close() }
+        try await database.writeWithoutTransaction { connection throws(ISO.`9075`.Error) in
+            try connection.execute(script: "ATTACH DATABASE '\(attached.string)' AS other; PRAGMA other.journal_mode = WAL")
+        }
+        let body = String(repeating: "y", count: 2_048)
+        try await database.write { connection throws(ISO.`9075`.Error) in
+            try connection.execute(sql: "CREATE TABLE other.entry (id INTEGER PRIMARY KEY, body TEXT)")
+            for _ in 0..<100 { try connection.execute(sql: "INSERT INTO other.entry (body) VALUES (?)", arguments: [body]) }
+        }
+        await database.checkpointsSettled()
+        #expect(try size(attached) >= 200_000)
+        // The attached log is not counted as the main one: nothing was written to the main database.
+        #expect(try size(path) <= 8_192)
     }
 
     @Test func `at the limit the write that commits copies the log back`() async throws {

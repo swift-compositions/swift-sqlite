@@ -256,6 +256,19 @@ extension `Caller Tests`.Files {
         #expect(try namesNow(database) == ["a"])
     }
 
+    @Test func `a file opens again while a database that was let go is still closing`() async throws {
+        let path = try Scratch.path()
+        for round in 0..<40 {
+            let database = try SQLite.Database(path: path)
+            try await database.write { connection throws(ISO.`9075`.Error) in
+                try connection.execute(sql: "CREATE TABLE IF NOT EXISTS item (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE)")
+                try connection.execute(sql: "INSERT INTO item (name) VALUES (?)", arguments: ["\(round)"])
+            }
+            var answers = database.following { connection throws(ISO.`9075`.Error) in try names(connection) }.makeAsyncIterator()
+            #expect(try await answers.next()?.count == round + 1)
+        }
+    }
+
     @Test func `a file opens again right after its database closed`() async throws {
         let path = try Scratch.path()
         for round in 0..<40 {

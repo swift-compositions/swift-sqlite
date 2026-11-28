@@ -23,7 +23,9 @@ extension SQLite.Connection {
         init(path: String, flags: Int32, configuration: SQLite.Configuration, journal: Journal) throws(SQLite.Error) {
             let core = try Core(path: path, flags: flags)
             if let trace = configuration.trace { core.trace(trace) }
-            core.busy(timeout: configuration.busyTimeout)
+            // Opening waits, also with no timeout configured: the last connection of an earlier database on this file
+            // holds the file while it closes, and a database that was let go closes on another thread.
+            core.busy(timeout: configuration.busyTimeout ?? .seconds(5))
             var limit: Int?
             var threshold: Int?
             switch journal {
@@ -52,6 +54,7 @@ extension SQLite.Connection {
             case .kibibytes(let kibibytes): try core.control("PRAGMA cache_size = -\(max(0, kibibytes))")
             }
             try core.control("PRAGMA foreign_keys = \(configuration.foreignKeysEnabled ? "ON" : "OFF")")
+            if configuration.busyTimeout == nil { core.busy(timeout: .zero) }
             for preparation in configuration.preparations {
                 do throws(ISO.`9075`.Error) {
                     try preparation(SQLite.Connection(core))

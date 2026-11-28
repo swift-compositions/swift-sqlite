@@ -61,10 +61,22 @@ let package = Package(
                 .product(name: "Tagged", package: "swift-tagged", condition: .when(traits: ["Tagged"])),
             ]
         ),
-        // The system's SQLite, on every platform, and the one call Swift cannot make of it. No logic.
+        // SQLite, and the one call Swift cannot make of it. No logic. Apple platforms use the system's SQLite; elsewhere
+        // the target compiles the amalgamation of SQLite 3.54.1 in Sources/SQLite Shims/sqlite (sqlite.org,
+        // sqlite-amalgamation-3540100.zip, SHA3-256 92281c86e2957f9b9305890f9ac04204caa7b677cc868dc326d942689df28e30).
         .target(
             name: "SQLite Shims",
-            linkerSettings: [.linkedLibrary("sqlite3")]
+            exclude: ["sqlite/sqlite3.c"],
+            cSettings: [
+                .define("SQLITE_ENABLE_FTS5"),
+                .define("SQLITE_ENABLE_COLUMN_METADATA"),
+                .define("SQLITE_ENABLE_MATH_FUNCTIONS"),
+                .define("SQLITE_OMIT_LOAD_EXTENSION"),
+                .define("HAVE_USLEEP", to: "1"),
+            ],
+            linkerSettings: [
+                .linkedLibrary("sqlite3", .when(platforms: [.macOS, .iOS, .tvOS, .watchOS, .visionOS, .macCatalyst]))
+            ]
         ),
         // The database: connections, execution and the writer and reader actors, over the driver in Sources/SQLite/Driver.
         .target(

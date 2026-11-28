@@ -138,13 +138,10 @@ extension SQLite.Connection {
     }
 }
 
-extension SQLite.Row {
-    /// Every row `statement` returns, kept: each column by name, whatever its type, for a reader that compares whole
-    /// rows.
-    public static func fetchAll(
-        _ connection: borrowing SQLite.Connection,
-        _ statement: some SQL::Statement
-    ) throws(ISO.`9075`.Error) -> [SQLite.Row] {
-        try connection.fetchAll(statement.query) { row in SQLite.Row(row) }
+extension Fetching where Base: SQL::Statement {
+    /// Every row the statement returns, kept: each column by name, whatever its type, for a reader that compares whole
+    /// rows or reads a column by its name.
+    public func rows(_ connection: borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> [SQLite.Row] {
+        try connection.fetchAll(base.query) { row in SQLite.Row(row) }
     }
 }

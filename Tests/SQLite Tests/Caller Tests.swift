@@ -2,6 +2,7 @@ import Foundation
 import ISO_9075_Call_Level_Interface
 import Path
 import SQL
+import SQL_Macros
 import SQLite
 import SQLite_Test_Support
 import Synchronization
@@ -281,5 +282,16 @@ extension `Caller Tests`.Files {
             _ = try namesNow(database)
             database.close()
         }
+    }
+}
+
+extension `Caller Tests`.Errors {
+    @Test func `a statement's rows are kept, each column by name`() async throws {
+        let database = try await items(in: SQLite.Database())
+        try await add("a", to: database)
+        let rows = try await database.read { connection throws(ISO.`9075`.Error) in
+            try #sql("SELECT id, name FROM item", as: Void.self).fetch.rows(connection)
+        }
+        #expect(try rows.map { try $0.value(named: "name") } == [.text("a")])
     }
 }

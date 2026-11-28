@@ -34,6 +34,7 @@ let package = Package(
         .package(url: "https://github.com/swift-atoms/swift-byte.git", branch: "main"),
         .package(url: "https://github.com/swift-atoms/swift-order.git", branch: "main"),
         .package(url: "https://github.com/swift-iso/swift-iso-9075.git", branch: "main"),
+        .package(url: "https://github.com/swift-compositions/swift-executors.git", branch: "main"),
         .package(url: "https://github.com/swift-compositions/swift-threads.git", branch: "main"),
         .package(url: "https://github.com/swift-ietf/swift-rfc-4122.git", branch: "main"),
         .package(url: "https://github.com/swiftlang/swift-syntax.git", "604.0.0"..<"605.0.0"),
@@ -84,6 +85,7 @@ let package = Package(
             dependencies: [
                 .target(name: "SQLite SQL"),
                 .target(name: "SQLite Shims"),
+                .product(name: "Executors", package: "swift-executors"),
                 .product(name: "Thread Actor", package: "swift-threads"),
                 .product(name: "Path", package: "swift-path"),
                 .product(name: "SQL", package: "swift-sql"),
@@ -152,6 +154,7 @@ let package = Package(
                 .product(name: "Path", package: "swift-path"),
                 .product(name: "SQL", package: "swift-sql"),
                 .product(name: "ISO 9075 Call-Level Interface", package: "swift-iso-9075"),
+                .product(name: "Executors", package: "swift-executors"),
                 .product(name: "Thread Actor", package: "swift-threads"),
             ],
             path: "Benchmarks/SQLite Benchmark"

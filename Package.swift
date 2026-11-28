@@ -140,6 +140,7 @@ let package = Package(
                 .product(name: "Path", package: "swift-path"),
                 .product(name: "SQL", package: "swift-sql"),
                 .product(name: "ISO 9075 Call-Level Interface", package: "swift-iso-9075"),
+                .product(name: "Thread Actor", package: "swift-threads"),
             ],
             path: "Benchmarks/SQLite Benchmark"
         ),

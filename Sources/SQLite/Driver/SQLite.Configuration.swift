@@ -35,6 +35,11 @@ extension SQLite {
         /// one of the synchronous read.
         public var cache: Cache?
 
+        /// Called with the text of each statement a connection of this database runs, as it starts: the statements of
+        /// a body, of a script, and the driver's own, such as the ones that begin and end a transaction. It runs on
+        /// the thread that runs the statement. `nil` by default. For tests that count statements, and for a log.
+        public var trace: (@Sendable (String) -> Void)?
+
         var preparations: [@Sendable (borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> Void] = []
 
         public init() {}

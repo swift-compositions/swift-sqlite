@@ -32,7 +32,7 @@ extension SQLite {
         let checkpointer: SQLite.Worker?
 
         /// The followed reads of this database.
-        let hub = SQLite.Hub()
+        let hub: SQLite.Hub
 
         /// The path of the database file; for a database in memory, `:memory:`.
         // swift-linter:disable:next raw concept
@@ -52,6 +52,7 @@ extension SQLite {
             self.readers = nil
             self.direct = slot
             self.holder = nil
+            self.hub = SQLite.Hub()
             self.path = ":memory:"
         }
 
@@ -64,6 +65,12 @@ extension SQLite {
             configuration: SQLite.Configuration = SQLite.Configuration()
         ) throws(SQLite.Error) {
             let path = path.string
+            // SQLite's name for a database in memory: each connection that opened it by path would get an empty
+            // database of its own, so it is the one database in memory that every read and write shares.
+            guard path != ":memory:" else {
+                self = try Self(configuration: configuration)
+                return
+            }
             var holder: SQLite.Connection.Slot?
             if configuration.readonly {
                 // Fails with `cannotOpen` when there is no database: a read-only open never creates one.
@@ -97,6 +104,7 @@ extension SQLite {
             self.readers = SQLite.Readers(path: path, configuration: configuration)
             self.direct = try SQLite.Readers.slot(path: path, configuration: configuration)
             self.holder = holder
+            self.hub = SQLite.Hub()
             self.path = path
         }
     }
@@ -107,6 +115,24 @@ extension SQLite {
 extension SQLite.Database {
     @_disfavoredOverload
     public nonisolated(nonsending) func read<Value, Thrown: Swift.Error>(
+        _ body: sending (borrowing SQLite.Connection) throws(Thrown) -> sending Value
+    ) async throws(ISO.`9075`.Failure<Thrown>) -> sending Value {
+        try await reading(body)
+    }
+
+    /// The asynchronous read for a body that throws the database's error. Declared here, beside the synchronous
+    /// ``read(_:)-(_)``, so that asynchronous code gets this one and does not block its thread.
+    public nonisolated(nonsending) func read<Value>(
+        _ body: sending (borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> sending Value
+    ) async throws(ISO.`9075`.Error) -> sending Value {
+        do throws(ISO.`9075`.Failure<ISO.`9075`.Error>) {
+            return try await reading(body)
+        } catch {
+            throw error.error
+        }
+    }
+
+    nonisolated(nonsending) func reading<Value, Thrown: Swift.Error>(
         _ body: sending (borrowing SQLite.Connection) throws(Thrown) -> sending Value
     ) async throws(ISO.`9075`.Failure<Thrown>) -> sending Value {
         guard let readers else { return try await writer.run(.guardedRead, body) }
@@ -148,6 +174,81 @@ extension SQLite.Database {
         let value = try await writer.run(scope, publishing: receipt, body)
         await hub.settle(receipt)
         return value
+    }
+}
+
+// MARK: - A body that throws any error
+
+// A body with an untyped `throws` has its error thrown as it threw it, not wrapped in `ISO.9075.Failure.body`, and an
+// error of the database is thrown as its `ISO.9075.Error`: so `catch let error as Mine` matches what the body threw.
+// A body with a typed `throws` gets the overloads above, whose error says which of the two it was.
+
+extension SQLite.Database {
+    @_disfavoredOverload
+    public nonisolated(nonsending) func read<Value>(
+        _ body: sending (borrowing SQLite.Connection) throws -> sending Value
+    ) async throws -> sending Value {
+        do throws(ISO.`9075`.Failure<any Swift.Error>) {
+            return try await reading(body)
+        } catch {
+            throw error.thrown
+        }
+    }
+
+    @_disfavoredOverload
+    public nonisolated(nonsending) func write<Value>(
+        _ body: sending (borrowing SQLite.Connection) throws -> sending Value
+    ) async throws -> sending Value {
+        do throws(ISO.`9075`.Failure<any Swift.Error>) {
+            return try await publishing(.write, body)
+        } catch {
+            throw error.thrown
+        }
+    }
+
+    @_disfavoredOverload
+    public nonisolated(nonsending) func withRollback<Value>(
+        _ body: sending (borrowing SQLite.Connection) throws -> sending Value
+    ) async throws -> sending Value {
+        do throws(ISO.`9075`.Failure<any Swift.Error>) {
+            return try await writer.run(.rollback, body)
+        } catch {
+            throw error.thrown
+        }
+    }
+
+    @_disfavoredOverload
+    public nonisolated(nonsending) func writeWithoutTransaction<Value>(
+        _ body: sending (borrowing SQLite.Connection) throws -> sending Value
+    ) async throws -> sending Value {
+        do throws(ISO.`9075`.Failure<any Swift.Error>) {
+            return try await publishing(.bare, body)
+        } catch {
+            throw error.thrown
+        }
+    }
+
+    /// The synchronous ``read(_:)-(_)`` for a body that throws any error.
+    @_disfavoredOverload
+    public func read<Value>(
+        _ body: sending (borrowing SQLite.Connection) throws -> sending Value
+    ) throws -> sending Value {
+        do throws(ISO.`9075`.Failure<any Swift.Error>) {
+            return try direct.run(readers == nil ? .guardedRead : .read, body)
+        } catch {
+            throw error.thrown
+        }
+    }
+}
+
+extension ISO.`9075`.Failure {
+    /// The error as the body threw it, or the database's. A body that ran a scope of its own and let that scope's
+    /// failure pass throws what that scope's body threw.
+    var thrown: any Swift.Error {
+        switch self {
+        case .database(let error): error
+        case .body(let error): (error as? ISO.`9075`.Failure<any Swift.Error>)?.thrown ?? error
+        }
     }
 }
 

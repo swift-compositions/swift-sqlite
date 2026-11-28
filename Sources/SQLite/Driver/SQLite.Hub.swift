@@ -134,6 +134,8 @@ extension SQLite {
         let body: @Sendable (borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> Value
         /// Whether two answers are the same, for a read whose equal answers yield nothing.
         let same: (@Sendable (Value, Value) -> Bool)?
+        /// Whether the tables are the ones the body read last. False for a listener that named its tables itself.
+        let measures: Bool
         private let state: Mutex<State>
 
         struct State {
@@ -163,12 +165,14 @@ extension SQLite {
             first: Value,
             region: SQLite.Region,
             yieldsFirst: Bool = true,
+            measures: Bool = true,
             same: (@Sendable (Value, Value) -> Bool)?,
             body: @escaping @Sendable (borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> Value
         ) {
             self.isolation = isolation
             self.body = body
             self.same = same
+            self.measures = measures
             var state = State(region: region)
             state.last = first
             if yieldsFirst { state.latest = (0, .success(first)) }
@@ -226,7 +230,9 @@ extension SQLite.Subscription {
         let published: Published? = state.withLock { state in
             if state.gone { return nil }
             // A read that failed may have named fewer tables than it reads: it keeps the ones it had.
-            if case .success = element { state.region = region } else { state.region.formUnion(region) }
+            if measures {
+                if case .success = element { state.region = region } else { state.region.formUnion(region) }
+            }
             if case .success(let value) = element {
                 if let last = state.last, let same, same(last, value) { return nil }
                 state.last = value

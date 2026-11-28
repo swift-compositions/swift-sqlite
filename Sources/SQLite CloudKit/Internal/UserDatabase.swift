@@ -25,12 +25,8 @@
             ) async throws -> T {
                 // The task-local value is set around the write: the body runs in this task, on the writer.
                 try await $_isSynchronizingChanges.withValue(true) {
-                    do throws(ISO.`9075`.Failure<any Swift.Error>) {
-                        return try await database.write { (connection: borrowing SQLite.Connection) throws -> T in
-                            try updates(connection)
-                        }
-                    } catch {
-                        throw error.unwrapped
+                    try await database.write { (connection: borrowing SQLite.Connection) throws -> T in
+                        try updates(connection)
                     }
                 }
             }
@@ -40,13 +36,9 @@
                 _ updates: @Sendable (borrowing SQLite.Connection) throws -> T
             ) async throws -> T {
                 try await $_isSynchronizingChanges.withValue(true) {
-                    do throws(ISO.`9075`.Failure<any Swift.Error>) {
-                        return try await database.writeWithoutTransaction {
-                            (connection: borrowing SQLite.Connection) throws -> T in
-                            try updates(connection)
-                        }
-                    } catch {
-                        throw error.unwrapped
+                    try await database.writeWithoutTransaction {
+                        (connection: borrowing SQLite.Connection) throws -> T in
+                        try updates(connection)
                     }
                 }
             }
@@ -54,12 +46,8 @@
             package func read<T: Sendable>(
                 _ updates: @Sendable (borrowing SQLite.Connection) throws -> T
             ) async throws -> T {
-                do throws(ISO.`9075`.Failure<any Swift.Error>) {
-                    return try await database.read { (connection: borrowing SQLite.Connection) throws -> T in
-                        try updates(connection)
-                    }
-                } catch {
-                    throw error.unwrapped
+                try await database.read { (connection: borrowing SQLite.Connection) throws -> T in
+                    try updates(connection)
                 }
             }
 
@@ -68,23 +56,8 @@
             package func read<T: Sendable>(
                 _ updates: @Sendable (borrowing SQLite.Connection) throws -> T
             ) throws -> T {
-                do throws(ISO.`9075`.Failure<any Swift.Error>) {
-                    return try database.read { (connection: borrowing SQLite.Connection) throws -> T in
-                        try updates(connection)
-                    }
-                } catch {
-                    throw error.unwrapped
-                }
-            }
-        }
-
-        extension ISO.`9075`.Failure where Thrown == any Swift.Error {
-            /// The error itself: the database's, or the one the body threw. A body that ran a transaction of its own
-            /// throws that transaction's failure, which is unwrapped in turn.
-            package var unwrapped: any Swift.Error {
-                switch self {
-                case .database(let error): error
-                case .body(let error): (error as? Self)?.unwrapped ?? error
+                try database.read { (connection: borrowing SQLite.Connection) throws -> T in
+                    try updates(connection)
                 }
             }
         }

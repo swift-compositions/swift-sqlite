@@ -169,6 +169,49 @@ extension SQLite.Database {
     }
 }
 
+// MARK: - Commits
+
+extension SQLite.Database {
+    /// An element after each committed write that could change one of `tables`, or any table or the schema when
+    /// `tables` is `nil`: for a caller on no actor that derives something from the tables itself. A table that a
+    /// trigger or a foreign key action writes counts, and so does a write that changes no row. Writes that commit
+    /// before the last element is taken fold into one. With no table named, there is no element.
+    ///
+    /// Every write committed after `commits` returns is in it. The stream ends when its task is cancelled or it is
+    /// let go.
+    public func commits(to tables: [String]? = nil) -> AsyncStream<Void> {
+        if let tables, tables.isEmpty { return AsyncStream { $0.finish() } }
+        let listener = SQLite.Listener()
+        let subscription = SQLite.Subscription<Void>(
+            isolation: listener,
+            first: (),
+            region: SQLite.Region(tables: Set(tables ?? [])),
+            yieldsFirst: false,
+            measures: false,
+            same: nil,
+            body: { (_: borrowing SQLite.Connection) throws(ISO.`9075`.Error) -> Void in }
+        )
+        hub.add(subscription)
+        let lease = SQLite.Observation<Void>.Lease(subscription, hub: hub)
+        return AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
+            let task = Task { await listener.forward(lease, into: continuation) }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+}
+
+extension SQLite {
+    /// The actor the stream of ``SQLite/Database/commits(to:)`` listens on.
+    actor Listener {
+        func forward(_ lease: SQLite.Observation<Void>.Lease, into continuation: AsyncStream<Void>.Continuation) async {
+            while let element = await lease.subscription.next(isolation: self) {
+                if case .success = element { continuation.yield(()) }
+            }
+            continuation.finish()
+        }
+    }
+}
+
 // MARK: - A database that follows a read
 
 extension SQLite.Database: FollowingDatabase {

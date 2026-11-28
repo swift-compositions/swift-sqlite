@@ -149,12 +149,8 @@
             _ updates: @Sendable (borrowing SQLite.Connection) throws -> T
         ) async throws -> T {
             try await $_isSynchronizingChanges.withValue(false) {
-                do throws(ISO.`9075`.Failure<any Swift.Error>) {
-                    return try await database.write { (connection: borrowing SQLite.Connection) throws -> T in
-                        try updates(connection)
-                    }
-                } catch {
-                    throw error.unwrapped
+                try await database.write { (connection: borrowing SQLite.Connection) throws -> T in
+                    try updates(connection)
                 }
             }
         }

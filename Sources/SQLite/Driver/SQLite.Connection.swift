@@ -63,6 +63,33 @@ extension SQLite.Connection {
         try scope(begin: "BEGIN IMMEDIATE TRANSACTION", commit: "COMMIT TRANSACTION", rollback: "ROLLBACK TRANSACTION", body)
     }
 
+    /// ``savepoint(_:)-(_)`` for a body that throws any error: it is thrown as the body threw it, and an error of
+    /// the database as its `ISO.9075.Error`.
+    @_disfavoredOverload
+    public func savepoint(_ body: () throws -> Completion) throws {
+        do throws(ISO.`9075`.Failure<any Swift.Error>) {
+            try scope(
+                begin: "SAVEPOINT sqlite_scope",
+                commit: "RELEASE SAVEPOINT sqlite_scope",
+                rollback: "ROLLBACK TRANSACTION TO SAVEPOINT sqlite_scope; RELEASE SAVEPOINT sqlite_scope",
+                body
+            )
+        } catch {
+            throw error.thrown
+        }
+    }
+
+    /// ``transaction(_:)-(_)`` for a body that throws any error: it is thrown as the body threw it, and an error of
+    /// the database as its `ISO.9075.Error`.
+    @_disfavoredOverload
+    public func transaction(_ body: () throws -> Completion) throws {
+        do throws(ISO.`9075`.Failure<any Swift.Error>) {
+            try scope(begin: "BEGIN IMMEDIATE TRANSACTION", commit: "COMMIT TRANSACTION", rollback: "ROLLBACK TRANSACTION", body)
+        } catch {
+            throw error.thrown
+        }
+    }
+
     /// How a savepoint or transaction ends.
     public enum Completion: Sendable {
         case commit

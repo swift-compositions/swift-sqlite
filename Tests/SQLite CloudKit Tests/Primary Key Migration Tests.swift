@@ -1119,22 +1119,18 @@
             repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible,
             repeat (each T).TableColumns.PrimaryColumn: TableColumnExpression
         {
-            do throws(ISO.`9075`.Failure<any Swift.Error>) {
-                try await database.writeWithoutTransaction { db in
-                    try #sql("PRAGMA foreign_keys = OFF").execute(db)
-                    try db.transaction {
-                        try SyncEngine.migratePrimaryKeys(
-                            db,
-                            tables: repeat each tables,
-                            uuid: $uuid
-                        )
-                        return .commit
-                    }
-                    try #sql("PRAGMA foreign_keys = ON").execute(db)
+            // What the migration throws comes out as it was thrown.
+            try await database.writeWithoutTransaction { db in
+                try #sql("PRAGMA foreign_keys = OFF").execute(db)
+                try db.transaction {
+                    try SyncEngine.migratePrimaryKeys(
+                        db,
+                        tables: repeat each tables,
+                        uuid: $uuid
+                    )
+                    return .commit
                 }
-            } catch {
-                // What the migration threw, as it was thrown.
-                throw error.unwrapped
+                try #sql("PRAGMA foreign_keys = ON").execute(db)
             }
         }
     }

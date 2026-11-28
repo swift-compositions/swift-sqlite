@@ -22,6 +22,7 @@ extension SQLite.Connection {
 
         init(path: String, flags: Int32, configuration: SQLite.Configuration, journal: Journal) throws(SQLite.Error) {
             let core = try Core(path: path, flags: flags)
+            if let trace = configuration.trace { core.trace(trace) }
             core.busy(timeout: configuration.busyTimeout)
             var limit: Int?
             var threshold: Int?

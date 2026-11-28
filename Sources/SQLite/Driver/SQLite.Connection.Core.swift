@@ -54,6 +54,9 @@ extension SQLite.Connection {
         /// True while a statement runs that a cancelled task must not interrupt: the end of a transaction.
         private var shielded = false
 
+        /// What ``trace(_:)`` was given: called with the text of each statement as it starts.
+        private var tracer: (@Sendable (String) -> Void)?
+
         init(path: String, flags: Int32) throws(SQLite.Error) {
             guard sqlite3_libversion_number() >= Self.lowestVersion else {
                 throw SQLite.Error(
@@ -119,6 +122,7 @@ extension SQLite.Connection {
         deinit {
             for unsafe statement in unsafe statements.values { unsafe sqlite3_finalize(statement.pointer) }
             unsafe sqlite3_progress_handler(pointer, 0, nil, nil)
+            _ = unsafe sqlite3_trace_v2(pointer, 0, nil, nil)
             unsafe sqlite3_wal_hook(pointer, nil, nil)
             unsafe sqlite3_set_authorizer(pointer, nil, nil)
             unsafe sqlite3_close_v2(pointer)
@@ -200,6 +204,25 @@ extension SQLite.Connection.Core {
         defer { footprint = outer }
         let value = body()
         return (value, footprint.reads)
+    }
+
+    /// Has SQLite call `tracer` with the text of each statement this connection starts. A statement that a trigger
+    /// runs is not reported apart from the statement that fired it.
+    func trace(_ tracer: @escaping @Sendable (String) -> Void) {
+        self.tracer = tracer
+        _ = unsafe sqlite3_trace_v2(
+            pointer,
+            UInt32(SQLITE_TRACE_STMT),
+            { _, context, _, text in
+                guard let context = unsafe context, let text = unsafe text else { return 0 }
+                let core = unsafe Unmanaged<SQLite.Connection.Core>.fromOpaque(context).takeUnretainedValue()
+                let sql = unsafe String(cString: text.assumingMemoryBound(to: CChar.self))
+                // SQLite reports a trigger's statement as a comment that starts with two dashes.
+                if !sql.hasPrefix("--") { core.tracer?(sql) }
+                return 0
+            },
+            unsafe Unmanaged.passUnretained(self).toOpaque()
+        )
     }
 
     func busy(timeout: Duration?) {

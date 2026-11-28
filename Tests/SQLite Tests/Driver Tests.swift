@@ -1,3 +1,4 @@
+import Byte
 import Foundation
 import ISO_9075_Call_Level_Interface
 import Path
@@ -374,6 +375,65 @@ extension `Driver Tests`.Statements {
         #expect(throws: ISO.`9075`.Error.self) { try rows[0].value(at: 2) }
     }
 
+    @Test func `a lent row gives text and blobs where SQLite holds them`() async throws {
+        let database = try SQLite.Database()
+        let read = try await database.write { connection throws(ISO.`9075`.Error) -> [[String]] in
+            try connection.execute(
+                script: "CREATE TABLE cell (id INTEGER PRIMARY KEY, word TEXT, bytes BLOB); INSERT INTO cell (word, bytes) VALUES ('héllo', x'0102ff'), ('', x''), (NULL, NULL)"
+            )
+            return try connection.fetchAll("SELECT word, bytes, id FROM cell ORDER BY id") { row throws(ISO.`9075`.Error) in
+                var seen: [String] = []
+                if let text = try row.text(at: 0) { seen.append("\(String(copying: text)) \(text.count)") } else { seen.append("no text") }
+                if let bytes = try row.bytes(at: 1) {
+                    var sum = 0
+                    for index in bytes.indices { sum += Int(bytes[index].bitPattern) }
+                    seen.append("\(bytes.count) bytes, sum \(sum)")
+                } else {
+                    seen.append("no bytes")
+                }
+                return seen
+            }
+        }
+        #expect(read == [["héllo 6", "3 bytes, sum 258"], [" 0", "0 bytes, sum 0"], ["no text", "no bytes"]])
+    }
+
+    @Test func `a lent row refuses a span of a column that holds another type, and its values stay as they were`() async throws {
+        let database = try SQLite.Database()
+        let read = try await database.write { connection throws(ISO.`9075`.Error) -> [String] in
+            try connection.execute(script: "CREATE TABLE cell (number INTEGER, word TEXT, bytes BLOB); INSERT INTO cell VALUES (7, 'seven', x'07')")
+            return try connection.fetchAll("SELECT number, word, bytes FROM cell") { row throws(ISO.`9075`.Error) in
+                var seen: [String] = []
+                // Each column is asked in every way, in turn: a refusal converts nothing, so every answer stays.
+                for index in 0..<3 {
+                    let before = try row.value(at: index)
+                    do throws(ISO.`9075`.Error) {
+                        if let text = try row.text(at: index) { seen.append(String(copying: text)) } else { seen.append("nil") }
+                    } catch {
+                        seen.append("no text")
+                    }
+                    do throws(ISO.`9075`.Error) {
+                        if let bytes = try row.bytes(at: index) { seen.append("\(bytes.count)") } else { seen.append("nil") }
+                    } catch {
+                        seen.append("no blob")
+                    }
+                    do throws(ISO.`9075`.Error) {
+                        if let text = try row.text(at: index) { seen.append(String(copying: text)) } else { seen.append("nil") }
+                    } catch {
+                        seen.append("no text")
+                    }
+                    seen.append(try row.value(at: index) == before ? "same" : "changed")
+                }
+                do throws(ISO.`9075`.Error) { _ = try row.text(at: 3) } catch { seen.append("no column") }
+                return seen
+            }.first ?? []
+        }
+        #expect(
+            read == [
+                "no text", "no blob", "no text", "same", "seven", "no blob", "seven", "same", "no text", "1", "no text", "same",
+                "no column",
+            ])
+    }
+
     @Test func `a fetch inside a fetch of the same statement gets a statement of its own`() async throws {
         let database = try await items(in: SQLite.Database())
         try await database.write { connection throws(ISO.`9075`.Error) in
@@ -381,7 +441,7 @@ extension `Driver Tests`.Statements {
         }
         let sizes = try await database.read { connection throws(ISO.`9075`.Error) in
             try connection.fetchAll("SELECT name FROM item") { _ throws(ISO.`9075`.Error) in
-                try connection.fetchAll("SELECT name FROM item") { $0 }.count
+                try connection.fetchAll("SELECT name FROM item") { row in SQLite.Row(row) }.count
             }
         }
         #expect(sizes == [2, 2])

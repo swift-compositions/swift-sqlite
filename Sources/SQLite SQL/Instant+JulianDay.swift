@@ -31,7 +31,7 @@ extension Time.Instant.JulianDayRepresentation: QueryBindable {
 }
 
 extension Time.Instant.JulianDayRepresentation: QueryDecodable {
-    public init(decoder: inout some QueryDecoder) throws(QueryDecodingError) {
+    public init(decoder: inout some QueryDecoder & ~Escapable) throws(QueryDecodingError) {
         self.init(queryOutput: Time.Instant(secondsSinceUnixEpoch: (try Double(decoder: &decoder) - 2_440_587.5) * 86_400))
     }
 }

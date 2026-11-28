@@ -23,7 +23,7 @@
                 self.queryOutput = queryOutput
             }
 
-            public init(decoder: inout some SQL::QueryDecoder) throws(QueryDecodingError) {
+            public init(decoder: inout some SQL::QueryDecoder & ~Escapable) throws(QueryDecodingError) {
                 let bytes = try [Byte](decoder: &decoder)
                 do {
                     try self.init(data: Data(bytes))
@@ -66,7 +66,7 @@
                 self.queryOutput = queryOutput
             }
 
-            public init(decoder: inout some SQL::QueryDecoder) throws(QueryDecodingError) {
+            public init(decoder: inout some SQL::QueryDecoder & ~Escapable) throws(QueryDecodingError) {
                 let bytes = try [Byte](decoder: &decoder)
                 do {
                     try self.init(data: Data(bytes))
@@ -102,7 +102,7 @@
                 public init(queryOutput: CKDatabase.Scope) {
                     self.queryOutput = queryOutput
                 }
-                public init(decoder: inout some QueryDecoder) throws(QueryDecodingError) {
+                public init(decoder: inout some QueryDecoder & ~Escapable) throws(QueryDecodingError) {
                     let rawValue = try Int(decoder: &decoder)
                     guard let queryOutput = CKDatabase.Scope(rawValue: rawValue)
                     else { throw .dataCorrupted("\(rawValue) as a database scope") }

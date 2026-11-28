@@ -212,9 +212,21 @@ func readRows(_ count: Int, in database: SQLite.Database) throws {
     }
     let start = clock.now
     let kept = try database.read { connection throws(ISO.`9075`.Error) -> Int in
-        try connection.fetchAll(select) { $0 }.count
+        try connection.fetchAll(select) { row in SQLite.Row(row) }.count
     }
     report("\(count) rows of 8 columns", "every row kept (\(kept))", operations: count, clock.now - start)
+    let spans = clock.now
+    let viewed = try database.read { connection throws(ISO.`9075`.Error) -> Int in
+        var total = 0
+        _ = try connection.fetchAll(select) { row throws(ISO.`9075`.Error) -> Void in
+            for index in [1, 2, 3, 6, 7] {
+                // The text where SQLite holds it: no String is made.
+                total &+= try row.text(at: index)?.count ?? 0
+            }
+        }
+        return total
+    }
+    report("\(count) rows of 8 columns", "the text columns as spans (\(viewed))", operations: count, clock.now - spans)
 }
 
 // MARK: - Binds: text and blobs

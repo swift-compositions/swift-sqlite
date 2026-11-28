@@ -28,7 +28,7 @@ extension JSONBRepresentation: QueryBindable {
 }
 
 extension JSONBRepresentation: QueryDecodable {
-    public init(decoder: inout some QueryDecoder) throws(QueryDecodingError) {
+    public init(decoder: inout some QueryDecoder & ~Escapable) throws(QueryDecodingError) {
         self.init(queryOutput: try JSONRepresentation<QueryOutput>(decoder: &decoder).queryOutput)
     }
 }

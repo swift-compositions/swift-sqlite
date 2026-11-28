@@ -29,7 +29,7 @@ extension IETF.RFC.`4122`.UUID.BytesRepresentation: QueryBindable {
 }
 
 extension IETF.RFC.`4122`.UUID.BytesRepresentation: QueryDecodable {
-    public init(decoder: inout some QueryDecoder) throws(QueryDecodingError) {
+    public init(decoder: inout some QueryDecoder & ~Escapable) throws(QueryDecodingError) {
         let bytes = try [Byte](decoder: &decoder)
         do {
             self.init(queryOutput: try IETF.RFC.`4122`.UUID(bytes.map(\.bitPattern)))

@@ -25,7 +25,7 @@ extension Time.Instant.UnixTimeRepresentation: QueryBindable {
 }
 
 extension Time.Instant.UnixTimeRepresentation: QueryDecodable {
-    public init(decoder: inout some QueryDecoder) throws(QueryDecodingError) {
+    public init(decoder: inout some QueryDecoder & ~Escapable) throws(QueryDecodingError) {
         self.init(queryOutput: Time.Instant(secondsSinceUnixEpoch: try Int64(decoder: &decoder)))
     }
 }

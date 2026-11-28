@@ -148,6 +148,7 @@ let package = Package(
             name: "SQLite Tests",
             dependencies: [
                 .target(name: "SQLite"),
+                .product(name: "Byte", package: "swift-byte"),
                 .product(name: "Path", package: "swift-path"),
                 .target(name: "SQLite Test Support"),
                 .product(name: "SQL Macros", package: "swift-sql"),

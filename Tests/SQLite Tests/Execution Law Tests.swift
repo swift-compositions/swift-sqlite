@@ -77,7 +77,7 @@ struct Dropping: ISO.`9075`.Database {
 
         func fetchAll<Value>(
             _ statement: ISO.`9075`.Rendering,
-            decode: (SQLite.Row) throws(ISO.`9075`.Error) -> Value
+            decode: (SQLite.Connection.Row) throws(ISO.`9075`.Error) -> Value
         ) throws(ISO.`9075`.Error) -> [Value] {
             Array(try SQLite.Connection(core).fetchAll(statement, decode: decode).dropLast())
         }

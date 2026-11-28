@@ -43,7 +43,7 @@ extension SQLite.Row {
         sql: String,
         arguments: [any QueryBindable] = []
     ) throws(ISO.`9075`.Error) -> [SQLite.Row] {
-        try connection.fetchAll(ISO.`9075`.Fragment(text: sql, arguments: arguments)) { $0 }
+        try connection.fetchAll(ISO.`9075`.Fragment(text: sql, arguments: arguments)) { row in SQLite.Row(row) }
     }
 
     /// The first row `sql` returns, or none.

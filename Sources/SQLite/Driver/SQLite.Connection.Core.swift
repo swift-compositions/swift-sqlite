@@ -272,7 +272,7 @@ extension SQLite.Connection.Core {
     /// Steps `rendering` to its end, giving each row to `body`.
     func step(
         _ rendering: ISO.`9075`.Rendering,
-        _ body: (SQLite.Row) throws(ISO.`9075`.Error) -> Void
+        _ body: (SQLite.Connection.Row) throws(ISO.`9075`.Error) -> Void
     ) throws(ISO.`9075`.Error) {
         if Task.isCancelled { throw ISO.`9075`.Error(SQLite.Error.cancelled) }
         let sql = rendering.sql.isEmpty ? "SELECT 1 WHERE 0" : rendering.sql
@@ -303,7 +303,6 @@ extension SQLite.Connection.Core {
         }
         let count = unsafe sqlite3_column_count(statement)
         var columns: [String]?
-        var storage: SQLite.Row.Storage?
         while true {
             switch unsafe sqlite3_step(statement) {
             case SQLITE_ROW:
@@ -311,14 +310,8 @@ extension SQLite.Connection.Core {
                     columns
                     ?? (0..<count).map { unsafe String(cString: sqlite3_column_name(statement, $0)) }
                 columns = names
-                var values = unsafe storage ?? SQLite.Row.Storage(statement: statement, count: count)
-                storage = nil
-                // A row that the body kept is copied out of the statement before the statement steps on. One that
-                // it did not keep gives its storage to the next row.
-                defer {
-                    if isKnownUniquelyReferenced(&values) { storage = values } else { values.keep() }
-                }
-                try body(SQLite.Row(columns: names, storage: values))
+                // The row is lent: the body cannot keep it past this call, so nothing is copied out of the statement.
+                try body(unsafe SQLite.Connection.Row(self, statement: statement, columns: names))
             case SQLITE_DONE:
                 return
             default:

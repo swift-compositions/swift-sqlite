@@ -17,7 +17,7 @@ extension IETF.RFC.`4122`.UUID.UppercasedRepresentation: QueryBindable {
 }
 
 extension IETF.RFC.`4122`.UUID.UppercasedRepresentation: QueryDecodable {
-    public init(decoder: inout some QueryDecoder) throws(QueryDecodingError) {
+    public init(decoder: inout some QueryDecoder & ~Escapable) throws(QueryDecodingError) {
         let string = try String(decoder: &decoder)
         do {
             self.init(queryOutput: try IETF.RFC.`4122`.UUID(string))

@@ -29,7 +29,7 @@ extension JSONRepresentation: QueryBindable {
 }
 
 extension JSONRepresentation: QueryDecodable {
-    public init(decoder: inout some QueryDecoder) throws(QueryDecodingError) {
+    public init(decoder: inout some QueryDecoder & ~Escapable) throws(QueryDecodingError) {
         let text = try String(decoder: &decoder)
         do {
             self.init(queryOutput: try JSONRepresentation.decoder.decode(QueryOutput.self, from: Data(text.utf8)))
